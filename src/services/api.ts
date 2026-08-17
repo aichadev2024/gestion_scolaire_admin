@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL of the Spring Boot backend
 const api = axios.create({
-  baseURL: 'http://localhost:8089/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
