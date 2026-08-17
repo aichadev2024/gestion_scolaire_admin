@@ -43,7 +43,8 @@ export default function SetupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8089/api/auth/register-first-admin', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api';
+      const response = await fetch(`${apiBase}/auth/register-first-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, role: 'ADMIN' })

@@ -67,7 +67,8 @@ export default function SetupSuperAdminPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8089/api/auth/register-super-admin', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api';
+      const response = await fetch(`${apiBase}/auth/register-super-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
