@@ -106,6 +106,21 @@ export default function SuperAdminEtablissementsPage() {
   const suspendusCount = etablissements.filter(e => e.statut === 'SUSPENDU').length;
   const proCount = etablissements.filter(e => e.planTarifaire === 'PRO' || e.planTarifaire === 'ENTERPRISE').length;
 
+  const handleTelechargerRecu = async (id: number, nomEtablissement: string) => {
+    try {
+      const blob = await etablissementService.telechargerRecuPdf(id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Recu_Abonnement_${nomEtablissement.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Erreur lors du téléchargement du reçu PDF');
+    }
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
       <Head>
@@ -273,21 +288,30 @@ export default function SuperAdminEtablissementsPage() {
                     <span style={{ color: 'var(--text-secondary)' }}>📞 {e.telephone || 'N/A'}</span>
                   </td>
                   <td style={{ padding: '1rem 1.25rem' }}>
-                    {e.statut === 'ACTIF' ? (
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => handleStatutChange(e.id, 'SUSPENDU')}
-                        style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                        onClick={() => handleTelechargerRecu(e.id, e.nom)}
+                        title="Télécharger / Imprimer l'attestation et reçu de paiement PDF"
+                        style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)', padding: '5px 9px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
                       >
-                        Suspendre
+                        📄 Reçu PDF
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => handleStatutChange(e.id, 'ACTIF')}
-                        style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
-                      >
-                        Activer
-                      </button>
-                    )}
+                      {e.statut === 'ACTIF' ? (
+                        <button
+                          onClick={() => handleStatutChange(e.id, 'SUSPENDU')}
+                          style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '5px 9px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                        >
+                          Suspendre
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleStatutChange(e.id, 'ACTIF')}
+                          style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', padding: '5px 9px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                        >
+                          Activer
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

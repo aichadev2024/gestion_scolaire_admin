@@ -51,5 +51,12 @@ export const etablissementService = {
   modifierStatut: async (id: number, statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE'): Promise<Etablissement> => {
     const response = await api.patch<Etablissement>(`/super-admin/etablissements/${id}/statut`, { statut });
     return response.data;
+  },
+
+  telechargerRecuPdf: async (id: number): Promise<Blob> => {
+    const response = await api.get(`/super-admin/etablissements/${id}/recu-pdf`, {
+      responseType: 'blob',
+    });
+    return response.data;
   }
 };
