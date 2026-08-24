@@ -127,8 +127,8 @@ export default function EnseignantsPage() {
             </div>
 
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Adresse Email (pour envoi des accès) *</label>
-              <input type="email" name="email" className="input-field" value={formData.email} onChange={handleInputChange} placeholder="Ex: oumar.traore@gmail.com" required />
+              <label className="input-label">Adresse Email (Optionnel)</label>
+              <input type="email" name="email" className="input-field" value={formData.email} onChange={handleInputChange} placeholder="Ex: oumar.traore@gmail.com (Optionnel)" />
             </div>
 
             <div className="input-group" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>

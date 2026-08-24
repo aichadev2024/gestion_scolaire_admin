@@ -153,8 +153,8 @@ export default function UtilisateursPage() {
               <input type="text" className="input-field" value={form.username || ''} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="Ex: kouassi.aya" required />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Email de contact *</label>
-              <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Ex: fatoumata@netaa-ecole.ml" required />
+              <label className="input-label">Email (Optionnel)</label>
+              <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Ex: fatoumata@gmail.com (Optionnel)" />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">Mot de passe (min. 6 caractères) *</label>
