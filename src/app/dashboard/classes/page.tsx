@@ -87,7 +87,7 @@ export default function ClassesPage() {
       await classeService.createClasse({
         nom: classeForm.nom,
         niveauId: parseInt(classeForm.niveauId),
-        enseignantPrincipalId: parseInt(classeForm.enseignantPrincipalId),
+        enseignantPrincipalId: classeForm.enseignantPrincipalId ? parseInt(classeForm.enseignantPrincipalId) : undefined,
         anneeScolaire: classeForm.anneeScolaire,
         capaciteMax: parseInt(classeForm.capaciteMax.toString())
       });
@@ -184,11 +184,12 @@ export default function ClassesPage() {
                   </select>
                 </div>
                 <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label">Enseignant Principal *</label>
-                  <select className="input-field" value={classeForm.enseignantPrincipalId} onChange={e => setClasseForm({...classeForm, enseignantPrincipalId: e.target.value})} required>
-                    <option value="">Sélectionnez un professeur</option>
+                  <label className="input-label">Prof. Principal / Titulaire (Optionnel - Primaire)</label>
+                  <select className="input-field" value={classeForm.enseignantPrincipalId} onChange={e => setClasseForm({...classeForm, enseignantPrincipalId: e.target.value})}>
+                    <option value="">Aucun / Multi-enseignants par matière (Collège / Lycée)</option>
                     {enseignants.map(e => <option key={e.id} value={e.id}>{e.profil.nom} {e.profil.prenom}</option>)}
                   </select>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Au collège/lycée, les enseignants s'assignent par matière dans l'onglet "Assignations".</small>
                 </div>
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label">Année Scolaire</label>
@@ -216,7 +217,7 @@ export default function ClassesPage() {
                   <tr>
                     <th>Nom</th>
                     <th>Niveau</th>
-                    <th>Prof. Principal</th>
+                    <th>Prof. Principal / Mode</th>
                     <th>Année Scolaire</th>
                     <th>Capacité</th>
                     <th>Action</th>
@@ -232,7 +233,13 @@ export default function ClassesPage() {
                     <tr key={c.id}>
                       <td><span style={{ fontWeight: 700, color: '#d97706' }}>{c.nom}</span></td>
                       <td><span className="badge" style={{ backgroundColor: 'rgba(255,206,32,0.1)', color: '#d97706' }}>{c.niveauNom || '-'}</span></td>
-                      <td>{c.enseignantPrincipalId ? `Prof. #${c.enseignantPrincipalId}` : '-'}</td>
+                      <td>
+                        {c.enseignantPrincipalNom ? (
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>👤 Prof. {c.enseignantPrincipalNom}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontStyle: 'italic' }}>👥 Multi-enseignants par matière</span>
+                        )}
+                      </td>
                       <td>{c.anneeScolaire}</td>
                       <td>{c.capaciteMax} élèves</td>
                       <td>

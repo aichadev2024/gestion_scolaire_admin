@@ -4,7 +4,7 @@ import { Classe, Niveau } from '@/types';
 export interface CreateClassePayload {
   nom: string;
   niveauId: number;
-  enseignantPrincipalId: number;
+  enseignantPrincipalId?: number;
   anneeScolaire: string;
   capaciteMax: number;
 }

@@ -38,7 +38,8 @@ export interface Classe {
   nom: string;
   niveauId: number;
   niveauNom: string;
-  enseignantPrincipalId: number;
+  enseignantPrincipalId?: number;
+  enseignantPrincipalNom?: string;
   anneeScolaire: string;
   capaciteMax: number;
 }
