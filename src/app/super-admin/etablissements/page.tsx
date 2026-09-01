@@ -156,7 +156,7 @@ export default function SuperAdminEtablissementsPage() {
           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.5rem 0 0 0', color: '#ef4444' }}>{suspendusCount}</h2>
         </div>
         <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>PLANS PRO / ENTERPRISE</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ÉCOLES SUR PLAN PRO</span>
           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.5rem 0 0 0', color: '#8b5cf6' }}>{proCount}</h2>
         </div>
       </div>
@@ -371,7 +371,6 @@ export default function SuperAdminEtablissementsPage() {
                   <select className="input-field" value={formData.planTarifaire} onChange={e => setFormData({...formData, planTarifaire: e.target.value})}>
                     <option value="STARTER">Starter (25 000 FCFA/mois)</option>
                     <option value="PRO">Pro (75 000 FCFA/mois)</option>
-                    <option value="ENTERPRISE">Enterprise (200 000 FCFA/mois)</option>
                   </select>
                 </div>
                 <div className="input-group">

@@ -31,8 +31,7 @@ export default function SuperAdminDashboardPage() {
       if (curr.statut !== 'ACTIF') return acc;
       if (curr.planTarifaire === 'STARTER') return acc + 25000;
       if (curr.planTarifaire === 'PRO') return acc + 75000;
-      if (curr.planTarifaire === 'ENTERPRISE') return acc + 200000;
-      return acc + 50000;
+      return acc + 25000;
     }, 0);
   };
 
@@ -183,18 +182,6 @@ export default function SuperAdminDashboardPage() {
               </div>
               <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${total ? (etablissements.filter(e => e.planTarifaire === 'PRO').length / total) * 100 : 0}%`, height: '100%', backgroundColor: '#6366f1' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Plan Enterprise (200 000 FCFA/mois)</span>
-                <span style={{ color: '#a855f7', fontWeight: 700 }}>
-                  {etablissements.filter(e => e.planTarifaire === 'ENTERPRISE').length} école(s)
-                </span>
-              </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${total ? (etablissements.filter(e => e.planTarifaire === 'ENTERPRISE').length / total) * 100 : 0}%`, height: '100%', backgroundColor: '#a855f7' }} />
               </div>
             </div>
           </div>
