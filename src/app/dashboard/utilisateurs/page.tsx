@@ -18,6 +18,7 @@ export default function UtilisateursPage() {
   const [utilisateurs, setUtilisateurs] = useState<UtilisateurResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<UtilisateurResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -43,19 +44,62 @@ export default function UtilisateursPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  const openCreateForm = () => {
+    setEditingUser(null);
+    setForm({
+      username: '',
+      email: '',
+      motDePasse: '',
+      role: 'SECRETAIRE',
+      profil: { prenom: '', nom: '', telephone: '', genre: 'M', adresse: '' }
+    });
+    setError('');
+    setShowForm(true);
+  };
+
+  const openEditForm = (u: UtilisateurResponse) => {
+    setEditingUser(u);
+    setForm({
+      username: u.username || '',
+      email: u.email || '',
+      motDePasse: '', // Left blank if unchanged
+      role: u.role || 'SECRETAIRE',
+      profil: {
+        prenom: u.profil?.prenom || '',
+        nom: u.profil?.nom || '',
+        telephone: u.profil?.telephone || '',
+        genre: u.profil?.genre || 'M',
+        adresse: ''
+      }
+    });
+    setError('');
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true); setError(''); setSuccess('');
     try {
-      // Auto-fallback for username if not explicitly typed
       const usernameFinal = form.username?.trim() || `${form.profil.prenom}.${form.profil.nom}`.toLowerCase().replace(/\s+/g, '');
-      await utilisateurService.create({ ...form, username: usernameFinal });
-      setSuccess(`✅ Compte ${getRoleInfo(form.role).label} créé avec succès pour ${form.profil.prenom} ${form.profil.nom} (Login: @${usernameFinal}) !`);
-      setForm({ username: '', email: '', motDePasse: '', role: 'SECRETAIRE', profil: { prenom: '', nom: '', telephone: '', genre: 'M', adresse: '' } });
+
+      if (editingUser) {
+        // Edit existing user
+        await utilisateurService.update(editingUser.id, {
+          ...form,
+          username: usernameFinal
+        });
+        setSuccess(`✅ Compte de ${form.profil.prenom} ${form.profil.nom} modifié avec succès !`);
+      } else {
+        // Create new user
+        await utilisateurService.create({ ...form, username: usernameFinal });
+        setSuccess(`✅ Compte ${getRoleInfo(form.role).label} créé avec succès pour ${form.profil.prenom} ${form.profil.nom} (Login: @${usernameFinal}) !`);
+      }
+
       setShowForm(false);
+      setEditingUser(null);
       await fetchAll();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la création du compte');
+      setError(err.response?.data?.message || 'Erreur lors de la sauvegarde du compte');
     } finally {
       setSubmitting(false);
     }
@@ -68,6 +112,19 @@ export default function UtilisateursPage() {
     } catch { setError('Erreur lors de la mise à jour du statut'); }
   };
 
+  const handleDelete = async (u: UtilisateurResponse) => {
+    const nomComplet = u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username || u.email;
+    if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${nomComplet} ?`)) {
+      try {
+        await utilisateurService.delete(u.id);
+        setSuccess(`🗑️ Le compte de ${nomComplet} a été supprimé.`);
+        await fetchAll();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Erreur lors de la suppression du compte');
+      }
+    }
+  };
+
   // Group counts by role
   const countByRole: Record<string, number> = {};
   utilisateurs.forEach(u => { countByRole[u.role] = (countByRole[u.role] || 0) + 1; });
@@ -78,9 +135,9 @@ export default function UtilisateursPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Comptes Utilisateurs</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Créez et gérez les accès pour le personnel de l'établissement.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Créez, modifiez et gérez les accès pour le personnel de l'établissement.</p>
         </div>
-        <button className="btn-primary" style={{ width: 'auto' }} onClick={() => setShowForm(!showForm)}>
+        <button className="btn-primary" style={{ width: 'auto' }} onClick={() => showForm ? setShowForm(false) : openCreateForm()}>
           {showForm ? '✕ Annuler' : '+ Nouveau Compte'}
         </button>
       </div>
@@ -94,10 +151,12 @@ export default function UtilisateursPage() {
         ))}
       </div>
 
-      {/* Create form */}
+      {/* Create / Edit Form */}
       {showForm && (
         <div className="glass-card" style={{ marginBottom: '2rem', borderLeft: '4px solid var(--primary-color)' }}>
-          <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: 700 }}>🔐 Créer un nouveau compte</h2>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: 700 }}>
+            {editingUser ? `✏️ Modifier le compte de ${editingUser.profil ? `${editingUser.profil.prenom} ${editingUser.profil.nom}` : editingUser.username}` : '🔐 Créer un nouveau compte'}
+          </h2>
 
           {/* Role picker cards */}
           <div style={{ marginBottom: '1.5rem' }}>
@@ -133,7 +192,7 @@ export default function UtilisateursPage() {
                 setForm(prev => ({
                   ...prev,
                   profil: { ...prev.profil, prenom: newPrenom },
-                  username: prev.username || `${newPrenom}.${prev.profil.nom}`.toLowerCase().replace(/\s+/g, '')
+                  username: editingUser ? prev.username : (prev.username || `${newPrenom}.${prev.profil.nom}`.toLowerCase().replace(/\s+/g, ''))
                 }));
               }} placeholder="Ex: Kouassi" required />
             </div>
@@ -144,7 +203,7 @@ export default function UtilisateursPage() {
                 setForm(prev => ({
                   ...prev,
                   profil: { ...prev.profil, nom: newNom },
-                  username: prev.username || `${prev.profil.prenom}.${newNom}`.toLowerCase().replace(/\s+/g, '')
+                  username: editingUser ? prev.username : (prev.username || `${prev.profil.prenom}.${newNom}`.toLowerCase().replace(/\s+/g, ''))
                 }));
               }} placeholder="Ex: Aya" required />
             </div>
@@ -153,12 +212,12 @@ export default function UtilisateursPage() {
               <input type="text" className="input-field" value={form.username || ''} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="Ex: kouassi.aya" required />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Email (Optionnel)</label>
-              <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Ex: fatoumata@gmail.com (Optionnel)" />
+              <label className="input-label">Email</label>
+              <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Ex: fatoumata@gmail.com" />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Mot de passe (min. 6 caractères) *</label>
-              <input type="password" className="input-field" value={form.motDePasse} onChange={e => setForm({ ...form, motDePasse: e.target.value })} placeholder="••••••••" minLength={6} required />
+              <label className="input-label">{editingUser ? 'Nouveau mot de passe (Laisser vide si inchangé)' : 'Mot de passe (min. 6 caractères) *'}</label>
+              <input type="password" className="input-field" value={form.motDePasse} onChange={e => setForm({ ...form, motDePasse: e.target.value })} placeholder="••••••••" minLength={editingUser ? 0 : 6} required={!editingUser} />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">Téléphone</label>
@@ -181,7 +240,7 @@ export default function UtilisateursPage() {
                 Annuler
               </button>
               <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={submitting}>
-                {submitting ? '⏳ Création en cours...' : `✓ Créer le compte ${getRoleInfo(form.role).label}`}
+                {submitting ? '⏳ Enregistrement...' : editingUser ? '✓ Enregistrer les modifications' : `✓ Créer le compte ${getRoleInfo(form.role).label}`}
               </button>
             </div>
           </form>
@@ -207,7 +266,7 @@ export default function UtilisateursPage() {
                 <th>Rôle</th>
                 <th>Statut</th>
                 <th>Date de création</th>
-                <th style={{ textAlign: 'center' }}>Action</th>
+                <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -240,21 +299,56 @@ export default function UtilisateursPage() {
                       {new Date(u.dateCreation).toLocaleDateString('fr-FR')}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button
-                        onClick={() => handleToggle(u.id, u.estActif)}
-                        style={{
-                          background: 'none',
-                          border: `1px solid ${u.estActif ? 'rgba(238,93,80,0.3)' : 'rgba(5,205,153,0.3)'}`,
-                          color: u.estActif ? '#ee5d50' : '#05cd99',
-                          padding: '0.3rem 0.75rem',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: 600
-                        }}
-                      >
-                        {u.estActif ? '🔒 Désactiver' : '🔓 Activer'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => openEditForm(u)}
+                          title="Modifier les détails du compte"
+                          style={{
+                            background: 'rgba(99,102,241,0.1)',
+                            border: '1px solid rgba(99,102,241,0.3)',
+                            color: '#6366f1',
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          ✏️ Modifier
+                        </button>
+                        <button
+                          onClick={() => handleToggle(u.id, u.estActif)}
+                          title={u.estActif ? 'Désactiver l’accès' : 'Activer l’accès'}
+                          style={{
+                            background: 'none',
+                            border: `1px solid ${u.estActif ? 'rgba(238,93,80,0.3)' : 'rgba(5,205,153,0.3)'}`,
+                            color: u.estActif ? '#ee5d50' : '#05cd99',
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          {u.estActif ? '🔒 Bloquer' : '🔓 Débloquer'}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u)}
+                          title="Supprimer définitivement le compte"
+                          style={{
+                            background: 'rgba(238,93,80,0.1)',
+                            border: '1px solid rgba(238,93,80,0.3)',
+                            color: '#ee5d50',
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          🗑️ Supprimer
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -267,7 +361,7 @@ export default function UtilisateursPage() {
       {/* Info note */}
       <div style={{ marginTop: '1.5rem', padding: '1rem 1.25rem', borderRadius: '10px', backgroundColor: 'rgba(27,54,93,0.06)', border: '1px solid rgba(27,54,93,0.15)' }}>
         <p style={{ color: 'var(--primary-color)', fontWeight: 600, fontSize: '0.875rem', margin: 0 }}>
-          🔐 <strong>Note de sécurité :</strong> Seul un <strong>Administrateur</strong> peut créer des comptes utilisateurs. Les enseignants et élèves ont leur propre flux de création séparé.
+          🔐 <strong>Gestion Administrateur :</strong> Seul un <strong>Administrateur</strong> peut ajouter, modifier ou supprimer des comptes utilisateurs de l'établissement.
         </p>
       </div>
     </div>

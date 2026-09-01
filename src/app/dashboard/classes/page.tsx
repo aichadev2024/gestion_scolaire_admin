@@ -9,7 +9,6 @@ import { Classe, Niveau, Enseignant, Matiere } from '@/types';
 
 type Tab = 'CLASSES' | 'ASSIGNATIONS';
 
-// ─── Shared tab style helper ────────────────────────────────────────────────
 const tabBtn = (active: boolean, color: string) => ({
   padding: '0.75rem 1.5rem',
   background: 'none',
@@ -32,8 +31,10 @@ export default function ClassesPage() {
   const [matieres, setMatieres] = useState<Matiere[]>([]);
   const [loading, setLoading] = useState(true);
   const [showClasseForm, setShowClasseForm] = useState(false);
+  const [editingClasse, setEditingClasse] = useState<Classe | null>(null);
   const [classeSubmitting, setClasseSubmitting] = useState(false);
   const [classeError, setClasseError] = useState('');
+  const [classeSuccess, setClasseSuccess] = useState('');
 
   const [classeForm, setClasseForm] = useState({
     nom: '', niveauId: '', enseignantPrincipalId: '', anneeScolaire: '2026/2027', capaciteMax: 30
@@ -80,23 +81,65 @@ export default function ClassesPage() {
       .finally(() => setAssignLoading(false));
   }, [selectedClasseId]);
 
+  const openCreateClasseForm = () => {
+    setEditingClasse(null);
+    setClasseForm({ nom: '', niveauId: '', enseignantPrincipalId: '', anneeScolaire: '2026/2027', capaciteMax: 30 });
+    setClasseError('');
+    setShowClasseForm(true);
+  };
+
+  const openEditClasseForm = (c: Classe) => {
+    setEditingClasse(c);
+    setClasseForm({
+      nom: c.nom,
+      niveauId: c.niveauId ? String(c.niveauId) : '',
+      enseignantPrincipalId: c.enseignantPrincipalId ? String(c.enseignantPrincipalId) : '',
+      anneeScolaire: c.anneeScolaire || '2026/2027',
+      capaciteMax: c.capaciteMax || 30
+    });
+    setClasseError('');
+    setShowClasseForm(true);
+  };
+
   // ── Handlers: Classe ──
   const handleClasseSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setClasseSubmitting(true); setClasseError('');
+    e.preventDefault(); setClasseSubmitting(true); setClasseError(''); setClasseSuccess('');
     try {
-      await classeService.createClasse({
+      const payload = {
         nom: classeForm.nom,
         niveauId: parseInt(classeForm.niveauId),
         enseignantPrincipalId: classeForm.enseignantPrincipalId ? parseInt(classeForm.enseignantPrincipalId) : undefined,
         anneeScolaire: classeForm.anneeScolaire,
         capaciteMax: parseInt(classeForm.capaciteMax.toString())
-      });
+      };
+
+      if (editingClasse) {
+        await classeService.updateClasse(editingClasse.id, payload);
+        setClasseSuccess(`✅ Classe ${classeForm.nom} modifiée avec succès !`);
+      } else {
+        await classeService.createClasse(payload);
+        setClasseSuccess(`✅ Classe ${classeForm.nom} créée avec succès !`);
+      }
+
       setClasseForm({ nom: '', niveauId: '', enseignantPrincipalId: '', anneeScolaire: '2026/2027', capaciteMax: 30 });
       setShowClasseForm(false);
+      setEditingClasse(null);
       setClasses(await classeService.getClasses());
     } catch (err: any) {
-      setClasseError(err.response?.data?.message || 'Erreur lors de la création');
+      setClasseError(err.response?.data?.message || 'Erreur lors de la sauvegarde de la classe');
     } finally { setClasseSubmitting(false); }
+  };
+
+  const handleDeleteClasse = async (c: Classe) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement la classe "${c.nom}" ?`)) {
+      try {
+        await classeService.deleteClasse(c.id);
+        setClasseSuccess(`🗑️ Classe "${c.nom}" supprimée.`);
+        setClasses(await classeService.getClasses());
+      } catch (err: any) {
+        setClasseError(err.response?.data?.message || 'Erreur lors de la suppression de la classe');
+      }
+    }
   };
 
   // ── Handlers: Assignation ──
@@ -112,7 +155,6 @@ export default function ClassesPage() {
       setAssignSuccess('✓ Matière assignée avec succès !');
       setAssignForm({ classeId: '', matiereId: '', enseignantId: '', coefficient: '1' });
       setShowAssignForm(false);
-      // Refresh
       if (selectedClasseId) {
         setAssignations(await classeMatiereService.getByClasse(parseInt(selectedClasseId)));
       }
@@ -139,12 +181,12 @@ export default function ClassesPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>
             {tab === 'CLASSES'
-              ? 'Créez vos classes et assignez un professeur principal.'
+              ? 'Créez, modifiez et gérez vos classes et professeurs principaux.'
               : 'Liez les matières et leurs enseignants à chaque classe.'}
           </p>
         </div>
         {tab === 'CLASSES' ? (
-          <button className="btn-primary" style={{ width: 'auto', backgroundColor: '#d97706' }} onClick={() => setShowClasseForm(!showClasseForm)}>
+          <button className="btn-primary" style={{ width: 'auto', backgroundColor: '#d97706' }} onClick={() => showClasseForm ? setShowClasseForm(false) : openCreateClasseForm()}>
             {showClasseForm ? '✕ Annuler' : '+ Nouvelle Classe'}
           </button>
         ) : (
@@ -167,9 +209,13 @@ export default function ClassesPage() {
       {/* ═══════════════ TAB: CLASSES ═══════════════ */}
       {tab === 'CLASSES' && (
         <>
+          {classeSuccess && <div style={{ color: '#05cd99', padding: '1rem', borderRadius: '8px', background: 'rgba(5,205,153,0.1)', marginBottom: '1.5rem', fontWeight: 600 }}>{classeSuccess}</div>}
+
           {showClasseForm && (
             <div className="glass-card" style={{ marginBottom: '2rem', borderLeft: '4px solid #d97706' }}>
-              <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>🏫 Nouvelle Classe</h2>
+              <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>
+                {editingClasse ? `✏️ Modifier la classe ${editingClasse.nom}` : '🏫 Nouvelle Classe'}
+              </h2>
               {classeError && <div style={{ color: 'var(--danger)', padding: '0.75rem', borderRadius: '8px', background: 'rgba(238,93,80,0.1)', marginBottom: '1rem' }}>{classeError}</div>}
               <form onSubmit={handleClasseSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 <div className="input-group" style={{ marginBottom: 0 }}>
@@ -189,7 +235,6 @@ export default function ClassesPage() {
                     <option value="">Aucun / Multi-enseignants par matière (Collège / Lycée)</option>
                     {enseignants.map(e => <option key={e.id} value={e.id}>{e.profil.nom} {e.profil.prenom}</option>)}
                   </select>
-                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Au collège/lycée, les enseignants s'assignent par matière dans l'onglet "Assignations".</small>
                 </div>
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label">Année Scolaire</label>
@@ -199,9 +244,12 @@ export default function ClassesPage() {
                   <label className="input-label">Capacité Maximale</label>
                   <input type="number" className="input-field" value={classeForm.capaciteMax} onChange={e => setClasseForm({...classeForm, capaciteMax: parseInt(e.target.value)})} required />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
+                  <button type="button" onClick={() => setShowClasseForm(false)} style={{ background: 'none', border: '1px solid rgba(163,174,209,0.3)', color: 'var(--text-secondary)', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer' }}>
+                    Annuler
+                  </button>
                   <button type="submit" className="btn-primary" style={{ width: '100%', backgroundColor: '#d97706' }} disabled={classeSubmitting}>
-                    {classeSubmitting ? '⏳ Enregistrement...' : '✓ Créer la classe'}
+                    {classeSubmitting ? '⏳ Enregistrement...' : editingClasse ? '✓ Enregistrer les modifications' : '✓ Créer la classe'}
                   </button>
                 </div>
               </form>
@@ -220,7 +268,7 @@ export default function ClassesPage() {
                     <th>Prof. Principal / Mode</th>
                     <th>Année Scolaire</th>
                     <th>Capacité</th>
-                    <th>Action</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,13 +290,27 @@ export default function ClassesPage() {
                       </td>
                       <td>{c.anneeScolaire}</td>
                       <td>{c.capaciteMax} élèves</td>
-                      <td>
-                        <button
-                          onClick={() => { setSelectedClasseId(String(c.id)); setTab('ASSIGNATIONS'); }}
-                          style={{ background: 'none', border: '1px solid rgba(67,24,255,0.3)', color: 'var(--primary-color)', padding: '0.3rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                        >
-                          📚 Matières
-                        </button>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => { setSelectedClasseId(String(c.id)); setTab('ASSIGNATIONS'); }}
+                            style={{ background: 'none', border: '1px solid rgba(67,24,255,0.3)', color: 'var(--primary-color)', padding: '0.3rem 0.6rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            📚 Matières
+                          </button>
+                          <button
+                            onClick={() => openEditClasseForm(c)}
+                            style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366f1', padding: '0.3rem 0.6rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            ✏️ Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClasse(c)}
+                            style={{ background: 'rgba(238,93,80,0.1)', border: '1px solid rgba(238,93,80,0.3)', color: '#ee5d50', padding: '0.3rem 0.6rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            🗑️ Supprimer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -262,7 +324,6 @@ export default function ClassesPage() {
       {/* ═══════════════ TAB: ASSIGNATIONS ═══════════════ */}
       {tab === 'ASSIGNATIONS' && (
         <>
-          {/* Class selector */}
           <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: '250px' }}>
               <label className="input-label">🏫 Classe à configurer</label>
@@ -278,7 +339,6 @@ export default function ClassesPage() {
             )}
           </div>
 
-          {/* Add form */}
           {showAssignForm && (
             <div className="glass-card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--primary-color)' }}>
               <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>➕ Assigner une matière</h2>
@@ -321,7 +381,6 @@ export default function ClassesPage() {
 
           {assignSuccess && <div style={{ color: '#05cd99', padding: '1rem', borderRadius: '8px', background: 'rgba(5,205,153,0.1)', marginBottom: '1rem' }}>{assignSuccess}</div>}
 
-          {/* Assignations table */}
           {!selectedClasseId ? (
             <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
@@ -374,7 +433,6 @@ export default function ClassesPage() {
             </div>
           )}
 
-          {/* Important note */}
           {assignations.length > 0 && (
             <div style={{ marginTop: '1.5rem', padding: '1rem 1.25rem', borderRadius: '10px', backgroundColor: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
               <p style={{ color: '#8b5cf6', fontWeight: 600, fontSize: '0.9rem', margin: 0 }}>

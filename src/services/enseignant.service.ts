@@ -15,5 +15,14 @@ export const enseignantService = {
   createEnseignant: async (data: CreateEnseignantPayload): Promise<Enseignant> => {
     const response = await api.post<Enseignant>('/enseignants', data);
     return response.data;
+  },
+
+  updateEnseignant: async (id: number, data: CreateEnseignantPayload): Promise<Enseignant> => {
+    const response = await api.put<Enseignant>(`/enseignants/${id}`, data);
+    return response.data;
+  },
+
+  deleteEnseignant: async (id: number): Promise<void> => {
+    await api.delete(`/enseignants/${id}`);
   }
 };

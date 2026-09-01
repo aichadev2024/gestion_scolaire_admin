@@ -41,6 +41,15 @@ export const utilisateurService = {
     return response.data;
   },
 
+  update: async (id: number, data: Partial<RegisterPayload>): Promise<UtilisateurResponse> => {
+    const response = await api.put<UtilisateurResponse>(`/utilisateurs/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/utilisateurs/${id}`);
+  },
+
   toggleStatut: async (id: number, estActif: boolean): Promise<void> => {
     await api.patch(`/utilisateurs/${id}/statut`, { estActif });
   }

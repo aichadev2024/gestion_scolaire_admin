@@ -15,5 +15,14 @@ export const matiereService = {
   createMatiere: async (data: CreateMatierePayload): Promise<Matiere> => {
     const response = await api.post<Matiere>('/matieres', data);
     return response.data;
+  },
+
+  updateMatiere: async (id: number, data: CreateMatierePayload): Promise<Matiere> => {
+    const response = await api.put<Matiere>(`/matieres/${id}`, data);
+    return response.data;
+  },
+
+  deleteMatiere: async (id: number): Promise<void> => {
+    await api.delete(`/matieres/${id}`);
   }
 };

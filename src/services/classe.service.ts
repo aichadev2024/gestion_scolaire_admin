@@ -30,5 +30,14 @@ export const classeService = {
   createClasse: async (data: CreateClassePayload): Promise<Classe> => {
     const response = await api.post<Classe>('/classes', data);
     return response.data;
+  },
+
+  updateClasse: async (id: number, data: CreateClassePayload): Promise<Classe> => {
+    const response = await api.put<Classe>(`/classes/${id}`, data);
+    return response.data;
+  },
+
+  deleteClasse: async (id: number): Promise<void> => {
+    await api.delete(`/classes/${id}`);
   }
 };
