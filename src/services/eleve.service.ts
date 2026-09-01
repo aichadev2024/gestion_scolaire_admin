@@ -21,5 +21,13 @@ export const eleveService = {
   updateEleve: async (id: number, data: CreateElevePayload): Promise<Eleve> => {
     const response = await api.put<Eleve>(`/eleves/${id}`, data);
     return response.data;
+  },
+
+  archiverEleve: async (id: number): Promise<void> => {
+    await api.patch(`/eleves/${id}/archiver`);
+  },
+
+  deleteEleve: async (id: number): Promise<void> => {
+    await api.delete(`/eleves/${id}`);
   }
 };

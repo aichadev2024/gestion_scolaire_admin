@@ -302,16 +302,36 @@ export default function ElevesPage() {
                     <td>{eleve.profil.genre === 'M' ? '♂ Masc.' : '♀ Fém.'}</td>
                     <td>{eleve.classeNom ? <span className="badge" style={{ backgroundColor: 'rgba(255,206,32,0.1)', color: '#d97706' }}>{eleve.classeNom}</span> : <span style={{ color: 'var(--text-secondary)' }}>-</span>}</td>
                     <td><span className="badge badge-success">{eleve.statut || 'ACTIF'}</span></td>
-                    <td>
-                      <button
-                        onClick={() => openEditForm(eleve)}
-                        style={{
-                          background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)',
-                          padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
-                        }}
-                      >
-                        ✏️ Modifier / Photo
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => openEditForm(eleve)}
+                          style={{
+                            background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)',
+                            padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                          }}
+                        >
+                          ✏️ Modifier
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'élève ${eleve.profil.prenom} ${eleve.profil.nom} ?`)) {
+                              try {
+                                await eleveService.deleteEleve(eleve.id);
+                                fetchData();
+                              } catch (err: any) {
+                                setError(err.response?.data?.message || "Erreur lors de la suppression de l'élève");
+                              }
+                            }
+                          }}
+                          style={{
+                            background: 'rgba(238,93,80,0.1)', color: '#ee5d50', border: '1px solid rgba(238,93,80,0.3)',
+                            padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                          }}
+                        >
+                          🗑️ Supprimer
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

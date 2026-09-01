@@ -10,11 +10,13 @@ export default function FinancesPage() {
   const [activeTab, setActiveTab] = useState<'FRAIS' | 'PAIEMENTS'>('FRAIS');
   const [classes, setClasses] = useState<Classe[]>([]);
   const [eleves, setEleves] = useState<Eleve[]>([]);
+  const [fraisList, setFraisList] = useState<FraisScolarite[]>([]);
   const [paiementsEleve, setPaiementsEleve] = useState<Paiement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
+  const [editingFrais, setEditingFrais] = useState<FraisScolarite | null>(null);
 
   // Frais Form State
   const [fraisForm, setFraisForm] = useState({
@@ -33,22 +35,25 @@ export default function FinancesPage() {
     referenceTransaction: ''
   });
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [clsData, elvData, frsData] = await Promise.all([
+        classeService.getClasses(),
+        eleveService.getEleves(),
+        financeService.getAllFrais().catch(() => [])
+      ]);
+      setClasses(clsData);
+      setEleves(elvData);
+      setFraisList(frsData);
+    } catch (err) {
+      console.error("Erreur de chargement", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [clsData, elvData] = await Promise.all([
-          classeService.getClasses(),
-          eleveService.getEleves()
-        ]);
-        setClasses(clsData);
-        setEleves(elvData);
-      } catch (err) {
-        console.error("Erreur de chargement", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
@@ -63,20 +68,52 @@ export default function FinancesPage() {
       .catch(console.error);
   }, [paiementForm.eleveId]);
 
+  const openEditFrais = (f: FraisScolarite) => {
+    setEditingFrais(f);
+    setFraisForm({
+      classeId: f.classeNom ? String(classes.find(c => c.nom === f.classeNom)?.id || '') : '',
+      titre: f.titre,
+      montant: String(f.montant),
+      dateEcheance: f.dateEcheance ? f.dateEcheance.substring(0, 10) : ''
+    });
+  };
+
   const handleFraisSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(''); setSuccess('');
     try {
-      await financeService.createFrais({
+      const payload = {
         classeId: parseInt(fraisForm.classeId),
         titre: fraisForm.titre,
         montant: parseFloat(fraisForm.montant),
         dateEcheance: fraisForm.dateEcheance
-      });
-      setSuccess("Frais créé avec succès !");
+      };
+
+      if (editingFrais) {
+        await financeService.updateFrais(editingFrais.id, payload);
+        setSuccess(`✅ Frais "${fraisForm.titre}" modifié avec succès !`);
+      } else {
+        await financeService.createFrais(payload);
+        setSuccess(`✅ Frais "${fraisForm.titre}" créé avec succès !`);
+      }
+
       setFraisForm({ classeId: '', titre: '', montant: '', dateEcheance: '' });
+      setEditingFrais(null);
+      await fetchData();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors de la création du frais");
+      setError(err.response?.data?.message || "Erreur lors de la sauvegarde du frais");
+    }
+  };
+
+  const handleDeleteFrais = async (f: FraisScolarite) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la grille tarifaire "${f.titre}" ?`)) {
+      try {
+        await financeService.deleteFrais(f.id);
+        setSuccess(`🗑️ Frais "${f.titre}" supprimé.`);
+        await fetchData();
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Erreur lors de la suppression du frais");
+      }
     }
   };
 
@@ -84,16 +121,15 @@ export default function FinancesPage() {
     e.preventDefault();
     setError(''); setSuccess('');
     try {
-      const nouveauPaiement = await financeService.createPaiement({
+      await financeService.createPaiement({
         eleveId: parseInt(paiementForm.eleveId),
         fraisId: parseInt(paiementForm.fraisId),
         montantPaye: parseFloat(paiementForm.montantPaye),
         modePaiement: paiementForm.modePaiement,
         referenceTransaction: paiementForm.referenceTransaction || 'CASH'
       });
-      setSuccess("Paiement enregistré avec succès !");
+      setSuccess("✅ Paiement enregistré avec succès !");
       setPaiementForm({ ...paiementForm, montantPaye: '', referenceTransaction: '' });
-      // Refresh past payments
       if (paiementForm.eleveId) {
         const updated = await financeService.getPaiementsByEleve(parseInt(paiementForm.eleveId));
         setPaiementsEleve(updated);
@@ -121,7 +157,7 @@ export default function FinancesPage() {
     }
   };
 
-  if (loading) return <div style={{ padding: '3rem', textAlign: 'center' }}>Chargement...</div>;
+  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Chargement...</div>;
 
   return (
     <div>
@@ -136,7 +172,7 @@ export default function FinancesPage() {
           style={{ width: 'auto', backgroundColor: activeTab === 'FRAIS' ? 'var(--primary-color)' : 'rgba(163, 174, 209, 0.2)', color: activeTab === 'FRAIS' ? 'white' : 'var(--text-primary)' }}
           onClick={() => { setActiveTab('FRAIS'); setError(''); setSuccess(''); }}
         >
-          Définir des Frais de Scolarité
+          Définir & Gérer les Frais de Scolarité
         </button>
         <button
           className="btn-primary"
@@ -148,41 +184,110 @@ export default function FinancesPage() {
       </div>
 
       {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', padding: '1rem', backgroundColor: 'rgba(238, 93, 80, 0.1)', borderRadius: '8px' }}>{error}</div>}
-      {success && <div style={{ color: 'var(--success)', marginBottom: '1rem', padding: '1rem', backgroundColor: 'rgba(5, 205, 153, 0.1)', borderRadius: '8px' }}>{success}</div>}
+      {success && <div style={{ color: '#05cd99', marginBottom: '1rem', padding: '1rem', backgroundColor: 'rgba(5, 205, 153, 0.1)', borderRadius: '8px', fontWeight: 600 }}>{success}</div>}
 
       {activeTab === 'FRAIS' && (
-        <div className="glass-card">
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>➕ Nouveau Frais de Scolarité</h2>
-          <form onSubmit={handleFraisSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Classe concernée</label>
-              <select className="input-field" value={fraisForm.classeId} onChange={e => setFraisForm({...fraisForm, classeId: e.target.value})} required>
-                <option value="">Sélectionnez une classe</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </select>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div className="glass-card">
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>
+              {editingFrais ? `✏️ Modifier le Frais "${editingFrais.titre}"` : '➕ Nouveau Frais de Scolarité'}
+            </h2>
+            <form onSubmit={handleFraisSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">Classe concernée *</label>
+                <select className="input-field" value={fraisForm.classeId} onChange={e => setFraisForm({...fraisForm, classeId: e.target.value})} required>
+                  <option value="">Sélectionnez une classe</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                </select>
+              </div>
 
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Titre (Ex: Inscription, Tranche 1)</label>
-              <input type="text" className="input-field" value={fraisForm.titre} onChange={e => setFraisForm({...fraisForm, titre: e.target.value})} required />
-            </div>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">Titre (Ex: Inscription, Tranche 1)</label>
+                <input type="text" className="input-field" value={fraisForm.titre} onChange={e => setFraisForm({...fraisForm, titre: e.target.value})} required />
+              </div>
 
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Montant (FCFA)</label>
-              <input type="number" className="input-field" value={fraisForm.montant} onChange={e => setFraisForm({...fraisForm, montant: e.target.value})} required />
-            </div>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">Montant (FCFA)</label>
+                <input type="number" className="input-field" value={fraisForm.montant} onChange={e => setFraisForm({...fraisForm, montant: e.target.value})} required />
+              </div>
 
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Date d'échéance</label>
-              <input type="date" className="input-field" value={fraisForm.dateEcheance} onChange={e => setFraisForm({...fraisForm, dateEcheance: e.target.value})} required />
-            </div>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">Date d'échéance</label>
+                <input type="date" className="input-field" value={fraisForm.dateEcheance} onChange={e => setFraisForm({...fraisForm, dateEcheance: e.target.value})} required />
+              </div>
 
-            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button type="submit" className="btn-primary" style={{ width: 'auto' }}>
-                Créer le frais
-              </button>
-            </div>
-          </form>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                {editingFrais && (
+                  <button type="button" onClick={() => { setEditingFrais(null); setFraisForm({ classeId: '', titre: '', montant: '', dateEcheance: '' }); }} style={{ background: 'none', border: '1px solid rgba(163,174,209,0.3)', color: 'var(--text-secondary)', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer' }}>
+                    Annuler
+                  </button>
+                )}
+                <button type="submit" className="btn-primary" style={{ width: 'auto' }}>
+                  {editingFrais ? '✓ Enregistrer la modification' : '✓ Créer le frais'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Frais List Table */}
+          <div className="table-container">
+            <h3 style={{ padding: '1rem 1.25rem', margin: 0, fontSize: '1.1rem', fontWeight: 700, borderBottom: '1px solid rgba(163,174,209,0.1)' }}>
+              📋 Grilles Tarifaires Configurée(s) ({fraisList.length})
+            </h3>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Titre / Motif</th>
+                  <th>Classe</th>
+                  <th>Montant</th>
+                  <th>Échéance</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fraisList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-secondary)' }}>
+                      Aucun frais de scolarité configuré
+                    </td>
+                  </tr>
+                ) : (
+                  fraisList.map(f => (
+                    <tr key={f.id}>
+                      <td><span className="badge badge-primary">#{f.id}</span></td>
+                      <td style={{ fontWeight: 600 }}>{f.titre}</td>
+                      <td>{f.classeNom || '-'}</td>
+                      <td style={{ fontWeight: 700, color: '#05cd99' }}>{f.montant?.toLocaleString('fr-FR')} FCFA</td>
+                      <td>{f.dateEcheance ? new Date(f.dateEcheance).toLocaleDateString('fr-FR') : '-'}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => openEditFrais(f)}
+                            style={{
+                              background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)',
+                              padding: '0.35rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                            }}
+                          >
+                            ✏️ Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFrais(f)}
+                            style={{
+                              background: 'rgba(238,93,80,0.1)', color: '#ee5d50', border: '1px solid rgba(238,93,80,0.3)',
+                              padding: '0.35rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                            }}
+                          >
+                            🗑️ Supprimer
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -234,7 +339,6 @@ export default function FinancesPage() {
             </form>
           </div>
 
-          {/* Past Payments for selected student */}
           {paiementForm.eleveId && (
             <div className="glass-card">
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
