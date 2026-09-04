@@ -119,8 +119,8 @@ export default function MatieresPage() {
             </div>
             
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Code *</label>
-              <input type="text" name="code" className="input-field" value={formData.code} onChange={handleInputChange} placeholder="Ex: MATH-01" required />
+              <label className="input-label">Code (Optionnel - généré si vide)</label>
+              <input type="text" name="code" className="input-field" value={formData.code} onChange={handleInputChange} placeholder="Ex: MATH-01 (Optionnel)" />
             </div>
 
             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>

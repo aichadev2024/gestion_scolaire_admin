@@ -3,7 +3,7 @@ import { Matiere } from '@/types';
 
 export interface CreateMatierePayload {
   nom: string;
-  code: string;
+  code?: string;
 }
 
 export const matiereService = {
