@@ -345,10 +345,10 @@ export default function SuperAdminEtablissementsPage() {
                     value={formData.nomEtablissement} onChange={e => setFormData({...formData, nomEtablissement: e.target.value})} />
                 </div>
                 <div className="input-group">
-                  <label className="input-label">Code Sous-domaine *</label>
-                  <input type="text" className="input-field" placeholder="jules-verne" required
+                  <label className="input-label">Code / Sous-domaine (Optionnel)</label>
+                  <input type="text" className="input-field" placeholder="Ex: jules-verne (généré si vide)"
                     value={formData.codeEtablissement} onChange={e => setFormData({...formData, codeEtablissement: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} />
-                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Sera utilisé pour: code.netaa-ecole.com</small>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Généré automatiquement à partir du nom si laissé vide</small>
                 </div>
               </div>
 
