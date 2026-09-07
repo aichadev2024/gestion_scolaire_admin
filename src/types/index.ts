@@ -61,6 +61,7 @@ export interface FraisScolarite {
 
 export interface Paiement {
   id: number;
+  numeroRecu: string;
   montantPaye: number;
   datePaiement: string;
   modePaiement: string;
