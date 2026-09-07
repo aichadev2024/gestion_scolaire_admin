@@ -70,8 +70,9 @@ export default function FinancesPage() {
 
   const openEditFrais = (f: FraisScolarite) => {
     setEditingFrais(f);
+    const resolvedClasseId = (f as any).classe?.id || f.classeId || (f.classeNom ? classes.find(c => c.nom === f.classeNom)?.id : '') || '';
     setFraisForm({
-      classeId: f.classeNom ? String(classes.find(c => c.nom === f.classeNom)?.id || '') : '',
+      classeId: String(resolvedClasseId),
       titre: f.titre,
       montant: String(f.montant),
       dateEcheance: f.dateEcheance ? f.dateEcheance.substring(0, 10) : ''
@@ -257,7 +258,7 @@ export default function FinancesPage() {
                     <tr key={f.id}>
                       <td><span className="badge badge-primary">#{f.id}</span></td>
                       <td style={{ fontWeight: 600 }}>{f.titre}</td>
-                      <td>{f.classeNom || '-'}</td>
+                      <td>{(f as any).classe?.nom || f.classeNom || classes.find(c => c.id === f.classeId)?.nom || '-'}</td>
                       <td style={{ fontWeight: 700, color: '#05cd99' }}>{f.montant?.toLocaleString('fr-FR')} FCFA</td>
                       <td>{f.dateEcheance ? new Date(f.dateEcheance).toLocaleDateString('fr-FR') : '-'}</td>
                       <td style={{ textAlign: 'center' }}>
@@ -305,8 +306,31 @@ export default function FinancesPage() {
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label">ID du Frais *</label>
-                <input type="number" className="input-field" placeholder="Ex: 1" value={paiementForm.fraisId} onChange={e => setPaiementForm({...paiementForm, fraisId: e.target.value})} required />
+                <label className="input-label">Frais Concerné *</label>
+                <select 
+                  className="input-field" 
+                  value={paiementForm.fraisId} 
+                  onChange={e => {
+                    const selectedId = e.target.value;
+                    const foundObj = fraisList.find(f => String(f.id) === selectedId);
+                    setPaiementForm({
+                      ...paiementForm, 
+                      fraisId: selectedId,
+                      montantPaye: foundObj ? String(foundObj.montant) : paiementForm.montantPaye
+                    });
+                  }} 
+                  required
+                >
+                  <option value="">— Sélectionnez un frais —</option>
+                  {fraisList.map(f => {
+                    const cNom = (f as any).classe?.nom || f.classeNom || classes.find(c => c.id === f.classeId)?.nom || 'Toutes classes';
+                    return (
+                      <option key={f.id} value={f.id}>
+                        {f.titre} ({cNom}) — {f.montant?.toLocaleString('fr-FR')} FCFA
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
