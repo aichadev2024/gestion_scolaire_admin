@@ -190,8 +190,8 @@ export default function ElevesPage() {
               <input type="date" name="dateNaissance" className="input-field" value={formData.dateNaissance} onChange={handleInputChange} required />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Téléphone</label>
-              <input type="text" name="telephone" className="input-field" value={formData.telephone} onChange={handleInputChange} placeholder="Ex: +223 70 00 00 00" />
+              <label className="input-label">Téléphone (optionnel)</label>
+              <input type="text" name="telephone" className="input-field" value={formData.telephone} onChange={handleInputChange} placeholder="Ex: +223 70 00 00 00 (optionnel)" />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">Adresse Email (optionnel)</label>

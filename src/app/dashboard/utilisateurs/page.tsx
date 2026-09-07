@@ -212,16 +212,16 @@ export default function UtilisateursPage() {
               <input type="text" className="input-field" value={form.username || ''} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="Ex: kouassi.aya" required />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Email</label>
-              <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Ex: fatoumata@gmail.com" />
+              <label className="input-label">Email (optionnel)</label>
+              <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Ex: fatoumata@gmail.com (optionnel)" />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">{editingUser ? 'Nouveau mot de passe (Laisser vide si inchangé)' : 'Mot de passe (min. 6 caractères) *'}</label>
               <input type="password" className="input-field" value={form.motDePasse} onChange={e => setForm({ ...form, motDePasse: e.target.value })} placeholder="••••••••" minLength={editingUser ? 0 : 6} required={!editingUser} />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Téléphone</label>
-              <input type="text" className="input-field" value={form.profil.telephone || ''} onChange={e => setForm({ ...form, profil: { ...form.profil, telephone: e.target.value } })} placeholder="+22501020304" />
+              <label className="input-label">Téléphone (optionnel)</label>
+              <input type="text" className="input-field" value={form.profil.telephone || ''} onChange={e => setForm({ ...form, profil: { ...form.profil, telephone: e.target.value } })} placeholder="+223 70 00 00 00 (optionnel)" />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">Genre</label>
