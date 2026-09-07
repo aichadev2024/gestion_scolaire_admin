@@ -396,8 +396,8 @@ export default function FinancesPage() {
                         </td>
                         <td style={{ padding: '0.75rem' }}>
                           <button
-                            onClick={() => handleDownloadRecu(String(p.id))}
-                            disabled={downloadingPdf === String(p.id)}
+                            onClick={() => handleDownloadRecu(p.numeroRecu)}
+                            disabled={downloadingPdf === p.numeroRecu}
                             style={{
                               padding: '4px 10px',
                               borderRadius: '6px',
