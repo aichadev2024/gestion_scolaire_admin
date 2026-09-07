@@ -369,7 +369,7 @@ export default function SuperAdminEtablissementsPage() {
                 <div className="input-group">
                   <label className="input-label">Plan Tarifaire</label>
                   <select className="input-field" value={formData.planTarifaire} onChange={e => setFormData({...formData, planTarifaire: e.target.value})}>
-                    <option value="STARTER">Starter (25 000 FCFA/mois)</option>
+                    <option value="STARTER">Starter (50 000 FCFA/mois)</option>
                     <option value="PRO">Pro (75 000 FCFA/mois)</option>
                   </select>
                 </div>

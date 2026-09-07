@@ -29,9 +29,9 @@ export default function SuperAdminDashboardPage() {
   const calculateMRR = () => {
     return etablissements.reduce((acc, curr) => {
       if (curr.statut !== 'ACTIF') return acc;
-      if (curr.planTarifaire === 'STARTER') return acc + 25000;
+      if (curr.planTarifaire === 'STARTER') return acc + 50000;
       if (curr.planTarifaire === 'PRO') return acc + 75000;
-      return acc + 25000;
+      return acc + 50000;
     }, 0);
   };
 
@@ -163,7 +163,7 @@ export default function SuperAdminDashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Plan Starter (25 000 FCFA/mois)</span>
+                <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Plan Starter (50 000 FCFA/mois)</span>
                 <span style={{ color: '#a5b4fc', fontWeight: 700 }}>
                   {etablissements.filter(e => e.planTarifaire === 'STARTER').length} école(s)
                 </span>
