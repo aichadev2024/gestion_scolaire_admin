@@ -7,6 +7,24 @@ import { bulletinService } from '@/services/bulletin.service';
 import { authService } from '@/services/auth.service';
 import { Classe, Eleve, Bulletin } from '@/types';
 
+function getCategoryForClasse(c?: Classe) {
+  if (!c) return 'ALL';
+  const text = `${c.niveauNom || ''} ${c.nom || ''}`.toLowerCase();
+  if (text.includes('lycée') || text.includes('lycee') || text.includes('10è') || text.includes('11è') || text.includes('12è') || text.includes('term') || text.includes('2nde') || text.includes('1ère s') || text.includes('1ère l') || text.includes('tse') || text.includes('tsexp') || text.includes('tseco') || text.includes('tss')) {
+    return 'LYCEE';
+  }
+  if (text.includes('collège') || text.includes('college') || text.includes('7è') || text.includes('8è') || text.includes('9è') || text.includes('6è')) {
+    return 'COLLEGE';
+  }
+  if (text.includes('maternelle') || text.includes('petite') || text.includes('moyenne') || text.includes('grande')) {
+    return 'MATERNELLE';
+  }
+  if (text.includes('primaire') || text.includes('1ère a') || text.includes('2ème a') || text.includes('3ème a') || text.includes('4ème a') || text.includes('5ème a') || text.includes('6ème a') || text.includes('cp') || text.includes('ce1') || text.includes('ce2') || text.includes('cm1') || text.includes('cm2')) {
+    return 'PRIMAIRE';
+  }
+  return 'ALL';
+}
+
 export default function BulletinsPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
   const [eleves, setEleves] = useState<Eleve[]>([]);
@@ -27,6 +45,9 @@ export default function BulletinsPage() {
 
   const role = authService.getCurrentUser()?.role || '';
   const canLock = role === 'ADMIN' || role === 'DIRECTEUR';
+
+  const selectedClasseObj = classes.find(c => String(c.id) === selectedClasseId);
+  const currentCategory = getCategoryForClasse(selectedClasseObj);
 
   const formatPeriode = (p: string) => {
     switch (p) {
@@ -55,19 +76,22 @@ export default function BulletinsPage() {
 
   useEffect(() => {
     if (selectedClasseId) {
-      eleveService.getEleves().then(res => setEleves(res.filter(e => String(e.classeId) === selectedClasseId && e.statut === 'ACTIF'))).catch(console.error);
+      eleveService.getEleves().then(res => 
+        setEleves(res.filter(e => 
+          (String(e.classeId) === selectedClasseId || String((e as any).classe?.id) === selectedClasseId) && 
+          (!e.statut || e.statut.toUpperCase() === 'ACTIF')
+        ))
+      ).catch(console.error);
       setSelectedEleveId('');
       setBulletin(null);
 
       const foundClasse = classes.find(c => String(c.id) === selectedClasseId);
       if (foundClasse) {
-        const isPrimaireOrMaternelle = foundClasse.niveauNom?.toLowerCase().includes('primaire') || 
-                                       foundClasse.niveauNom?.toLowerCase().includes('maternelle') ||
-                                       ['1ère', '2ème', '3ème', '4ème', '5ème', '6ème', 'ci', 'cp', 'ce1', 'ce2', 'cm1', 'cm2'].some(k => foundClasse.nom.toLowerCase().includes(k));
-        if (isPrimaireOrMaternelle) {
-          setSelectedPeriode('COMPOSITION_1');
-        } else {
+        const cat = getCategoryForClasse(foundClasse);
+        if (cat === 'LYCEE') {
           setSelectedPeriode('TRIMESTRE_1');
+        } else {
+          setSelectedPeriode('COMPOSITION_1');
         }
       }
     } else {
@@ -176,23 +200,23 @@ export default function BulletinsPage() {
         <div className="input-group" style={{ flex: 1, minWidth: '180px', marginBottom: 0 }}>
           <label className="input-label">Période</label>
           <select className="input-field" value={selectedPeriode} onChange={e => { setSelectedPeriode(e.target.value); setBulletin(null); }}>
-            <optgroup label="📋 Compositions (Primaire / Maternelle : 1ère à 6ème Année)">
-              <option value="COMPOSITION_1">Composition N° 1</option>
-              <option value="COMPOSITION_2">Composition N° 2</option>
-              <option value="COMPOSITION_3">Composition N° 3</option>
-              <option value="COMPOSITION_4">Composition N° 4</option>
-              <option value="COMPOSITION_5">Composition N° 5</option>
-              <option value="COMPOSITION_6">Composition N° 6</option>
-            </optgroup>
-            <optgroup label="📅 Trimestres (Collège & Lycée : 7ème Année à Terminale)">
-              <option value="TRIMESTRE_1">1er Trimestre</option>
-              <option value="TRIMESTRE_2">2ème Trimestre</option>
-              <option value="TRIMESTRE_3">3ème Trimestre</option>
-            </optgroup>
-            <optgroup label="🎓 Semestres">
-              <option value="SEMESTRE_1">Semestre 1</option>
-              <option value="SEMESTRE_2">Semestre 2</option>
-            </optgroup>
+            {(currentCategory === 'PRIMAIRE' || currentCategory === 'MATERNELLE' || currentCategory === 'COLLEGE' || currentCategory === 'ALL') && (
+              <optgroup label="📋 Compositions (1ère à 6ème Année)">
+                <option value="COMPOSITION_1">Composition N° 1</option>
+                <option value="COMPOSITION_2">Composition N° 2</option>
+                <option value="COMPOSITION_3">Composition N° 3</option>
+                <option value="COMPOSITION_4">Composition N° 4</option>
+                <option value="COMPOSITION_5">Composition N° 5</option>
+                <option value="COMPOSITION_6">Composition N° 6</option>
+              </optgroup>
+            )}
+            {(currentCategory === 'LYCEE' || currentCategory === 'COLLEGE' || currentCategory === 'ALL') && (
+              <optgroup label="📅 Trimestres">
+                <option value="TRIMESTRE_1">1er Trimestre</option>
+                <option value="TRIMESTRE_2">2ème Trimestre</option>
+                <option value="TRIMESTRE_3">3ème Trimestre</option>
+              </optgroup>
+            )}
           </select>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>

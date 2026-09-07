@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { authService } from '@/services/auth.service';
+import ChangePasswordModal from '@/components/ChangePasswordModal';
 
 export default function SuperAdminLayout({
   children,
@@ -12,6 +13,7 @@ export default function SuperAdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isChangePwdOpen, setIsChangePwdOpen] = useState(false);
 
   const handleLogout = () => {
     authService.logout();
@@ -106,6 +108,22 @@ export default function SuperAdminLayout({
             ↩ Vue École
           </Link>
           <button
+            onClick={() => setIsChangePwdOpen(true)}
+            style={{
+              backgroundColor: 'rgba(99,102,241,0.15)',
+              color: '#a5b4fc',
+              border: '1px solid rgba(99,102,241,0.3)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              transition: 'background 0.2s'
+            }}
+          >
+            🔑 Mot de passe
+          </button>
+          <button
             onClick={handleLogout}
             style={{
               backgroundColor: 'rgba(239,68,68,0.15)',
@@ -128,6 +146,11 @@ export default function SuperAdminLayout({
       <main style={{ padding: '2rem 1.5rem', maxWidth: '1300px', margin: '0 auto' }}>
         {children}
       </main>
+
+      <ChangePasswordModal 
+        isOpen={isChangePwdOpen} 
+        onClose={() => setIsChangePwdOpen(false)} 
+      />
     </div>
   );
 }
