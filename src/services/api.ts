@@ -1,8 +1,10 @@
 import axios from 'axios';
 
 // Create axios instance with base URL of the Spring Boot backend
+// L'URL de l'API vient de NEXT_PUBLIC_API_URL (voir .env.example).
+// Fallback = backend local. En production, NEXT_PUBLIC_API_URL DOIT être défini (Vercel > Settings > Environment Variables).
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8089/api',
   headers: {
     'Content-Type': 'application/json',
   },

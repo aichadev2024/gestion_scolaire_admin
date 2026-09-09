@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { enseignantService } from '@/services/enseignant.service';
 import { Enseignant } from '@/types';
+import CredentialsBanner from '@/components/CredentialsBanner';
 
 export default function EnseignantsPage() {
   const [enseignants, setEnseignants] = useState<Enseignant[]>([]);
@@ -12,6 +13,7 @@ export default function EnseignantsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -93,8 +95,14 @@ export default function EnseignantsPage() {
         await enseignantService.updateEnseignant(editingEnseignant.id, payload);
         setSuccess(`✅ Enseignant ${formData.prenom} ${formData.nom} modifié avec succès !`);
       } else {
-        await enseignantService.createEnseignant(payload);
+        const cree = await enseignantService.createEnseignant(payload);
         setSuccess(`✅ Enseignant ${formData.prenom} ${formData.nom} ajouté avec succès !`);
+        if (cree?.motDePasseInitial) {
+          setNouveauCompte({
+            nom: `${formData.prenom} ${formData.nom}`.trim() || 'Nouvel enseignant',
+            motDePasse: cree.motDePasseInitial,
+          });
+        }
       }
       
       setShowForm(false);
@@ -121,6 +129,13 @@ export default function EnseignantsPage() {
 
   return (
     <div>
+      {nouveauCompte && (
+        <CredentialsBanner
+          title={`Compte enseignant « ${nouveauCompte.nom} » créé`}
+          password={nouveauCompte.motDePasse}
+          onClose={() => setNouveauCompte(null)}
+        />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestion des Enseignants</h1>

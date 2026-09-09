@@ -5,6 +5,7 @@ import { eleveService } from '@/services/eleve.service';
 import { classeService } from '@/services/classe.service';
 import { utilisateurService, UtilisateurResponse } from '@/services/utilisateur.service';
 import { Eleve, Classe } from '@/types';
+import CredentialsBanner from '@/components/CredentialsBanner';
 
 export default function ElevesPage() {
   const [eleves, setEleves] = useState<Eleve[]>([]);
@@ -16,6 +17,7 @@ export default function ElevesPage() {
   const [error, setError] = useState('');
 
   const [editingEleve, setEditingEleve] = useState<Eleve | null>(null);
+  const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
 
   const [formData, setFormData] = useState({
     prenom: '',
@@ -121,7 +123,13 @@ export default function ElevesPage() {
       if (editingEleve) {
         await eleveService.updateEleve(editingEleve.id, payload);
       } else {
-        await eleveService.createEleve(payload);
+        const cree = await eleveService.createEleve(payload);
+        if (cree?.motDePasseInitial) {
+          setNouveauCompte({
+            nom: `${cree.profil?.prenom ?? ''} ${cree.profil?.nom ?? ''}`.trim() || 'Nouvel élève',
+            motDePasse: cree.motDePasseInitial,
+          });
+        }
       }
       setFormData({ prenom: '', nom: '', telephone: '', email: '', genre: 'M', dateNaissance: '', adresse: '', classeId: '', parentId: '', photoUrl: '' });
       setEditingEleve(null);
@@ -136,6 +144,13 @@ export default function ElevesPage() {
 
   return (
     <div>
+      {nouveauCompte && (
+        <CredentialsBanner
+          title={`Compte élève « ${nouveauCompte.nom} » créé`}
+          password={nouveauCompte.motDePasse}
+          onClose={() => setNouveauCompte(null)}
+        />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestion des Élèves</h1>

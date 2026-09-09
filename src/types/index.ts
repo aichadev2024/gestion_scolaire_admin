@@ -19,6 +19,8 @@ export interface Eleve {
   profil: Profil;
   dateInscription: string;
   etablissementNom?: string;
+  /** Présent uniquement dans la réponse de création : mot de passe initial à transmettre. */
+  motDePasseInitial?: string;
 }
 
 export interface Enseignant {
@@ -26,6 +28,8 @@ export interface Enseignant {
   matricule: string;
   biographie: string;
   profil: Profil;
+  /** Présent uniquement dans la réponse de création : mot de passe initial à transmettre. */
+  motDePasseInitial?: string;
 }
 
 export interface Niveau {

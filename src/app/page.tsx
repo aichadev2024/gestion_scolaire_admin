@@ -1,14 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import Head from 'next/head';
+
+export const metadata: Metadata = {
+  title: 'Accueil | Netaa — Gestion Scolaire Numérique',
+  description: 'Netaa — Plateforme de gestion scolaire numérique',
+};
 
 export default function Home() {
   return (
     <>
-      <Head>
-        <title>Accueil | Netaa — Gestion Scolaire Numérique</title>
-        <meta name="description" content="Netaa - Plateforme de gestion scolaire numérique" />
-      </Head>
-      
       {/* Navbar */}
       <nav style={{ padding: '1.25rem 0', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid rgba(163, 174, 209, 0.2)' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

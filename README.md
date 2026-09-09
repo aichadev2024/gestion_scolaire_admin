@@ -1,13 +1,13 @@
 # 💻 Netaa École - Portail Web Administration 🇲🇱
 
-Application web d'administration moderne conçue avec **Next.js 15** pour la gestion centrale des établissements scolaires.
+Application web d'administration conçue avec **Next.js 16** (App Router) pour la gestion centrale des établissements scolaires.
 
 ---
 
 ## 🛠️ Stack Technique
 
-- **Framework Web** : Next.js 15 (App Router) + React 19
-- **Style & UI** : Vanilla CSS / Glassmorphic UI moderne
+- **Framework Web** : Next.js 16 (App Router) + React 19
+- **Style & UI** : CSS vanilla / UI glassmorphic — _refonte prévue en Phase 3 (Tailwind + shadcn/ui)_
 - **Langage** : TypeScript
 - **Client HTTP** : Axios avec gestion des tokens JWT
 
@@ -42,7 +42,13 @@ Application web d'administration moderne conçue avec **Next.js 15** pour la ges
 
 ## ⚙️ Variables d'Environnement
 
-Créez un fichier `.env.local` (optionnel si le backend tourne sur le port 8089) :
+Copiez `.env.example` vers `.env.local` :
+```bash
+cp .env.example .env.local
+```
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8089/api
 ```
+
+> ⚠️ En production (Vercel), `NEXT_PUBLIC_API_URL` **doit** être défini dans
+> _Settings → Environment Variables_. À défaut, l'application ciblera `localhost`.
