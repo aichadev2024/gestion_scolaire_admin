@@ -1,11 +1,42 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { Pencil, Plus, Trash2, GraduationCap } from 'lucide-react';
 import { eleveService } from '@/services/eleve.service';
 import { classeService } from '@/services/classe.service';
 import { utilisateurService, UtilisateurResponse } from '@/services/utilisateur.service';
 import { Eleve, Classe } from '@/types';
 import CredentialsBanner from '@/components/CredentialsBanner';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+const EMPTY = {
+  prenom: '', nom: '', telephone: '', email: '', genre: 'M',
+  dateNaissance: '', adresse: '', classeId: '', parentId: '', photoUrl: '',
+};
+
+function msg(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const r = (err as { response?: { data?: { message?: string } } }).response;
+    if (r?.data?.message) return r.data.message;
+  }
+  return fallback;
+}
 
 export default function ElevesPage() {
   const [eleves, setEleves] = useState<Eleve[]>([]);
@@ -15,46 +46,32 @@ export default function ElevesPage() {
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-
   const [editingEleve, setEditingEleve] = useState<Eleve | null>(null);
   const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
-
-  const [formData, setFormData] = useState({
-    prenom: '',
-    nom: '',
-    telephone: '',
-    email: '',
-    genre: 'M',
-    dateNaissance: '',
-    adresse: '',
-    classeId: '',
-    parentId: '',
-    photoUrl: ''
-  });
+  const [formData, setFormData] = useState(EMPTY);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("La photo ne doit pas dépasser 2 Mo.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setError('La photo ne doit pas dépasser 2 Mo.');
+      return;
     }
+    const reader = new FileReader();
+    reader.onloadend = () => setFormData((p) => ({ ...p, photoUrl: reader.result as string }));
+    reader.readAsDataURL(file);
   };
 
   const openNewForm = () => {
     setEditingEleve(null);
-    setFormData({ prenom: '', nom: '', telephone: '', email: '', genre: 'M', dateNaissance: '', adresse: '', classeId: '', parentId: '', photoUrl: '' });
+    setError('');
+    setFormData(EMPTY);
     setShowForm(true);
   };
 
   const openEditForm = (eleve: Eleve) => {
     setEditingEleve(eleve);
+    setError('');
     setFormData({
       prenom: eleve.profil?.prenom || '',
       nom: eleve.profil?.nom || '',
@@ -64,11 +81,10 @@ export default function ElevesPage() {
       dateNaissance: eleve.profil?.dateNaissance || '',
       adresse: eleve.profil?.adresse || '',
       classeId: eleve.classeId ? String(eleve.classeId) : '',
-      parentId: (eleve as any).parentId ? String((eleve as any).parentId) : '',
-      photoUrl: eleve.profil?.photoUrl || ''
+      parentId: eleve.parentId ? String(eleve.parentId) : '',
+      photoUrl: eleve.profil?.photoUrl || '',
     });
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const fetchData = async () => {
@@ -77,14 +93,13 @@ export default function ElevesPage() {
       const [elevesData, classesData, usersData] = await Promise.all([
         eleveService.getEleves(),
         classeService.getClasses(),
-        utilisateurService.getAll()
+        utilisateurService.getAll(),
       ]);
       setEleves(elevesData);
       setClasses(classesData);
-      const parentsList = usersData.filter(u => u.role === 'PARENT');
-      setParents(parentsList);
-    } catch (err) {
-      console.error("Erreur lors du chargement des données", err);
+      setParents(usersData.filter((u) => u.role === 'PARENT'));
+    } catch {
+      toast.error('Impossible de charger la liste des élèves.');
     } finally {
       setLoading(false);
     }
@@ -94,16 +109,17 @@ export default function ElevesPage() {
     fetchData();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((p) => ({ ...p, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
-
     try {
       const payload = {
         profil: {
@@ -114,16 +130,18 @@ export default function ElevesPage() {
           genre: formData.genre as 'M' | 'F',
           dateNaissance: formData.dateNaissance,
           adresse: formData.adresse,
-          photoUrl: formData.photoUrl
+          photoUrl: formData.photoUrl,
         },
         classeId: formData.classeId ? parseInt(formData.classeId) : undefined,
-        parentId: formData.parentId ? parseInt(formData.parentId) : undefined
+        parentId: formData.parentId ? parseInt(formData.parentId) : undefined,
       };
 
       if (editingEleve) {
         await eleveService.updateEleve(editingEleve.id, payload);
+        toast.success('Élève mis à jour.');
       } else {
         const cree = await eleveService.createEleve(payload);
+        toast.success('Élève inscrit.');
         if (cree?.motDePasseInitial) {
           setNouveauCompte({
             nom: `${cree.profil?.prenom ?? ''} ${cree.profil?.nom ?? ''}`.trim() || 'Nouvel élève',
@@ -131,14 +149,25 @@ export default function ElevesPage() {
           });
         }
       }
-      setFormData({ prenom: '', nom: '', telephone: '', email: '', genre: 'M', dateNaissance: '', adresse: '', classeId: '', parentId: '', photoUrl: '' });
+      setFormData(EMPTY);
       setEditingEleve(null);
       setShowForm(false);
       await fetchData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors de la sauvegarde de l'élève");
+    } catch (err) {
+      setError(msg(err, "Erreur lors de la sauvegarde de l'élève"));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (eleve: Eleve) => {
+    if (!confirm(`Supprimer définitivement l'élève ${eleve.profil.prenom} ${eleve.profil.nom} ?`)) return;
+    try {
+      await eleveService.deleteEleve(eleve.id);
+      toast.success('Élève supprimé.');
+      fetchData();
+    } catch (err) {
+      toast.error(msg(err, "Erreur lors de la suppression de l'élève"));
     }
   };
 
@@ -151,210 +180,203 @@ export default function ElevesPage() {
           onClose={() => setNouveauCompte(null)}
         />
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestion des Élèves</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            {loading ? '...' : `${eleves.length} élève(s) inscrit(s)`}
-          </p>
-        </div>
-        <button
-          className="btn-primary"
-          style={{ width: 'auto' }}
-          onClick={() => {
-            if (showForm) {
-              setShowForm(false);
-              setEditingEleve(null);
-            } else {
-              openNewForm();
-            }
-          }}
-        >
-          {showForm ? '✕ Annuler' : '+ Nouvel Élève'}
-        </button>
-      </div>
 
-      {showForm && (
-        <div className="glass-card" style={{ marginBottom: '2rem', borderLeft: '4px solid var(--primary-color)' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {editingEleve ? "✏️ Modifier les Informations & Photo de l'Élève" : "🎓 Ajouter un Élève"}
-          </h2>
+      <PageHeader
+        title="Gestion des élèves"
+        description={loading ? 'Chargement…' : `${eleves.length} élève(s) inscrit(s)`}
+      >
+        <Button onClick={openNewForm}>
+          <Plus /> Nouvel élève
+        </Button>
+      </PageHeader>
+
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </div>
+      ) : eleves.length === 0 ? (
+        <EmptyState
+          icon={<GraduationCap />}
+          title="Aucun élève inscrit"
+          description="Commencez par inscrire un élève. Un compte lui sera créé automatiquement."
+          action={
+            <Button onClick={openNewForm}>
+              <Plus /> Inscrire un élève
+            </Button>
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Matricule</TableHead>
+              <TableHead>Nom &amp; prénom</TableHead>
+              <TableHead>Genre</TableHead>
+              <TableHead>Classe</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {eleves.map((eleve) => (
+              <TableRow key={eleve.id}>
+                <TableCell>
+                  <span className="font-mono text-xs font-medium text-primary">{eleve.matricule}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-[hsl(var(--gold))]">
+                      {eleve.profil?.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={eleve.profil.photoUrl} alt="" className="size-full object-cover" />
+                      ) : (
+                        `${eleve.profil?.prenom?.[0] ?? ''}${eleve.profil?.nom?.[0] ?? ''}`
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-medium">{eleve.profil.nom} {eleve.profil.prenom}</div>
+                      {eleve.profil.telephone && (
+                        <div className="text-xs text-muted-foreground">{eleve.profil.telephone}</div>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {eleve.profil.genre === 'M' ? 'Masculin' : 'Féminin'}
+                </TableCell>
+                <TableCell>
+                  {eleve.classeNom ? (
+                    <Badge variant="warning">{eleve.classeNom}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={eleve.statut === 'ARCHIVE' ? 'secondary' : 'success'}>
+                    {eleve.statut || 'ACTIF'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1.5">
+                    <Button size="sm" variant="ghost" onClick={() => openEditForm(eleve)}>
+                      <Pencil /> Modifier
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => handleDelete(eleve)}
+                    >
+                      <Trash2 /> Supprimer
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      {/* Formulaire création / édition */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingEleve ? "Modifier l'élève" : 'Inscrire un élève'}</DialogTitle>
+          </DialogHeader>
+
           {error && (
-            <div style={{ color: 'var(--danger)', marginBottom: '1rem', padding: '0.75rem 1rem', backgroundColor: 'rgba(238, 93, 80, 0.1)', borderRadius: '8px', fontSize: '0.9rem' }}>
-              ⚠️ {error}
-            </div>
+            <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
           )}
-          <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Prénom *</label>
-              <input type="text" name="prenom" className="input-field" value={formData.prenom} onChange={handleInputChange} placeholder="Ex: Fatoumata" required />
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Nom *</label>
-              <input type="text" name="nom" className="input-field" value={formData.nom} onChange={handleInputChange} placeholder="Ex: Diarra" required />
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Genre</label>
-              <select name="genre" className="input-field" value={formData.genre} onChange={handleInputChange}>
+
+          <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+            <Field label="Prénom *">
+              <Input name="prenom" value={formData.prenom} onChange={handleInputChange} placeholder="Ex : Fatoumata" required />
+            </Field>
+            <Field label="Nom *">
+              <Input name="nom" value={formData.nom} onChange={handleInputChange} placeholder="Ex : Diarra" required />
+            </Field>
+            <Field label="Genre">
+              <Select name="genre" value={formData.genre} onChange={handleInputChange}>
                 <option value="M">Masculin</option>
                 <option value="F">Féminin</option>
-              </select>
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Date de Naissance *</label>
-              <input type="date" name="dateNaissance" className="input-field" value={formData.dateNaissance} onChange={handleInputChange} required />
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Téléphone (optionnel)</label>
-              <input type="text" name="telephone" className="input-field" value={formData.telephone} onChange={handleInputChange} placeholder="Ex: +223 70 00 00 00 (optionnel)" />
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Adresse Email (optionnel)</label>
-              <input type="email" name="email" className="input-field" value={formData.email || ''} onChange={handleInputChange} placeholder="Ex: fatoumata.diarra@netaa-ecole.ml (optionnel)" />
-            </div>
-            <div className="input-group" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-              <label className="input-label">Adresse</label>
-              <input type="text" name="adresse" className="input-field" value={formData.adresse} onChange={handleInputChange} placeholder="Ex: Badalabougou, Bamako" />
-            </div>
-
-            <div className="input-group" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-              <label className="input-label" style={{ fontWeight: 700, color: 'var(--primary-color)' }}>
-                👨‍👩‍👧 Parent / Tuteur Légal (Liaison Application Mobile Parent)
-              </label>
-              <select name="parentId" className="input-field" value={formData.parentId} onChange={handleInputChange}>
-                <option value="">— Aucun parent associé (Sélectionnez un parent) —</option>
-                {parents.map(p => (
+              </Select>
+            </Field>
+            <Field label="Date de naissance *">
+              <Input type="date" name="dateNaissance" value={formData.dateNaissance} onChange={handleInputChange} required />
+            </Field>
+            <Field label="Téléphone (optionnel)">
+              <Input name="telephone" value={formData.telephone} onChange={handleInputChange} placeholder="+223 70 00 00 00" />
+            </Field>
+            <Field label="E-mail (optionnel)">
+              <Input type="email" name="email" value={formData.email || ''} onChange={handleInputChange} placeholder="fatoumata.diarra@exemple.ml" />
+            </Field>
+            <Field label="Adresse" className="sm:col-span-2">
+              <Input name="adresse" value={formData.adresse} onChange={handleInputChange} placeholder="Badalabougou, Bamako" />
+            </Field>
+            <Field label="Parent / tuteur légal (liaison espace parent)" className="sm:col-span-2">
+              <Select name="parentId" value={formData.parentId} onChange={handleInputChange}>
+                <option value="">— Aucun parent associé —</option>
+                {parents.map((p) => (
                   <option key={p.id} value={p.id}>
-                    👨‍👩‍👧 {p.profil?.prenom} {p.profil?.nom} ({p.email || p.username})
+                    {p.profil?.prenom} {p.profil?.nom} ({p.email || p.username})
                   </option>
                 ))}
-              </select>
-            </div>
-
-            <div className="input-group" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-              <label className="input-label">Photo de Profil de l'Élève (pour Carte Scolaire & Trombinoscope)</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="input-field" style={{ flex: 1 }} />
-                {formData.photoUrl && (
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary-color)', flexShrink: 0 }}>
-                    <img src={formData.photoUrl} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="input-group" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-              <label className="input-label">Classe</label>
-              <select name="classeId" className="input-field" value={formData.classeId} onChange={handleInputChange}>
-                <option value="">— Sélectionnez une classe (optionnel) —</option>
-                {classes.map(c => (
+              </Select>
+            </Field>
+            <Field label="Classe" className="sm:col-span-2">
+              <Select name="classeId" value={formData.classeId} onChange={handleInputChange}>
+                <option value="">— Sélectionner une classe (optionnel) —</option>
+                {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nom} — {c.niveauNom || 'Niveau ?'} ({c.anneeScolaire})
                   </option>
                 ))}
-              </select>
-            </div>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.5rem' }}>
-              <button type="button" onClick={() => setShowForm(false)} style={{ background: 'none', border: '1px solid rgba(163,174,209,0.3)', color: 'var(--text-secondary)', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer' }}>
-                Annuler
-              </button>
-              <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={isSubmitting}>
-                {isSubmitting ? '⏳ Enregistrement...' : '✓ Enregistrer l\'élève'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              </Select>
+            </Field>
+            <Field label="Photo (carte scolaire & trombinoscope)" className="sm:col-span-2">
+              <div className="flex items-center gap-3">
+                <Input type="file" accept="image/*" onChange={handlePhotoUpload} className="flex-1" />
+                {formData.photoUrl && (
+                  <span className="size-11 shrink-0 overflow-hidden rounded-full border border-primary/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={formData.photoUrl} alt="Aperçu" className="size-full object-cover" />
+                  </span>
+                )}
+              </div>
+            </Field>
 
-      <div className="table-container">
-        {loading ? (
-          <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            Chargement des élèves...
-          </div>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Matricule</th>
-                <th>Nom & Prénom</th>
-                <th>Genre</th>
-                <th>Classe</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eleves.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎓</div>
-                    Aucun élève inscrit pour le moment
-                  </td>
-                </tr>
-              ) : (
-                eleves.map((eleve) => (
-                  <tr key={eleve.id}>
-                    <td><span className="badge badge-primary">{eleve.matricule}</span></td>
-                    <td style={{ fontWeight: 500 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', background: '#1B365D', color: '#E5A93C',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0,
-                          border: '1px solid rgba(229,169,60,0.4)'
-                        }}>
-                          {eleve.profil?.photoUrl ? (
-                            <img src={eleve.profil.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            `${eleve.profil?.prenom?.[0] || ''}${eleve.profil?.nom?.[0] || ''}`
-                          )}
-                        </div>
-                        <div>
-                          <div>{eleve.profil.nom} {eleve.profil.prenom}</div>
-                          {eleve.profil.telephone && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{eleve.profil.telephone}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td>{eleve.profil.genre === 'M' ? '♂ Masc.' : '♀ Fém.'}</td>
-                    <td>{eleve.classeNom ? <span className="badge" style={{ backgroundColor: 'rgba(255,206,32,0.1)', color: '#d97706' }}>{eleve.classeNom}</span> : <span style={{ color: 'var(--text-secondary)' }}>-</span>}</td>
-                    <td><span className="badge badge-success">{eleve.statut || 'ACTIF'}</span></td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => openEditForm(eleve)}
-                          style={{
-                            background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)',
-                            padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
-                          }}
-                        >
-                          ✏️ Modifier
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'élève ${eleve.profil.prenom} ${eleve.profil.nom} ?`)) {
-                              try {
-                                await eleveService.deleteEleve(eleve.id);
-                                fetchData();
-                              } catch (err: any) {
-                                setError(err.response?.data?.message || "Erreur lors de la suppression de l'élève");
-                              }
-                            }
-                          }}
-                          style={{
-                            background: 'rgba(238,93,80,0.1)', color: '#ee5d50', border: '1px solid rgba(238,93,80,0.3)',
-                            padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
-                          }}
-                        >
-                          🗑️ Supprimer
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+            <DialogFooter className="sm:col-span-2">
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" loading={isSubmitting}>
+                {editingEleve ? 'Enregistrer' : "Inscrire l'élève"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-1.5 ${className ?? ''}`}>
+      <Label>{label}</Label>
+      {children}
     </div>
   );
 }

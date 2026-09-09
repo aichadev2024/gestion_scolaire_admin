@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Loader2, Lock } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import { Button } from '@/components/ui/button';
 
 // Pages autorisées par rôle
 const ALLOWED_PATHS: Record<string, string[]> = {
@@ -84,29 +86,25 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (status === 'loading') {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-secondary)' }}>
-        <svg viewBox="0 0 50 50" style={{ width: '40px', height: '40px', animation: 'rotate 2s linear infinite', color: 'var(--primary-color)' }}>
-          <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeDasharray="90, 150" strokeDashoffset="0" style={{ animation: 'dash 1.5s ease-in-out infinite' }}></circle>
-        </svg>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (status === 'forbidden') {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-secondary)', flexDirection: 'column', gap: '1rem', textAlign: 'center', padding: '2rem' }}>
-        <div style={{ fontSize: '4rem' }}>🔒</div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>Accès non autorisé</h1>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: '400px' }}>
-          Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <span className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <Lock className="size-7" />
+        </span>
+        <h1 className="font-display text-2xl font-extrabold text-foreground">Accès non autorisé</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Vous n&apos;avez pas les permissions nécessaires pour accéder à cette page.
         </p>
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="btn-primary"
-          style={{ width: 'auto', marginTop: '1rem' }}
-        >
-          ← Retour au tableau de bord
-        </button>
+        <Button onClick={() => router.push('/dashboard')} className="mt-2">
+          Retour au tableau de bord
+        </Button>
       </div>
     );
   }

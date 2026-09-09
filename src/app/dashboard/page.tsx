@@ -1,11 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  GraduationCap,
+  UsersRound,
+  School,
+  Building2,
+  UserPlus,
+  Wallet,
+  ArrowRight,
+} from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { eleveService } from '@/services/eleve.service';
 import { enseignantService } from '@/services/enseignant.service';
 import { classeService } from '@/services/classe.service';
-import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Stats {
   totalEleves: number;
@@ -14,8 +26,8 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const [userName, setUserName] = useState<string>('Admin');
-  const [etablissementNom, setEtablissementNom] = useState<string>('');
+  const [userName, setUserName] = useState('Admin');
+  const [etablissementNom, setEtablissementNom] = useState('');
   const [stats, setStats] = useState<Stats>({ totalEleves: 0, totalEnseignants: 0, totalClasses: 0 });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -26,7 +38,6 @@ export default function DashboardPage() {
       router.push('/login');
       return;
     }
-
     if (user.role === 'SUPER_ADMIN') {
       router.push('/super-admin');
       return;
@@ -34,155 +45,109 @@ export default function DashboardPage() {
 
     const nomComplet = [user.prenom, user.nom].filter(Boolean).join(' ');
     setUserName(nomComplet || user.username || user.email?.split('@')[0] || 'Utilisateur');
-    if (user.etablissementNom) {
-      setEtablissementNom(user.etablissementNom);
-    }
+    if (user.etablissementNom) setEtablissementNom(user.etablissementNom);
 
-    const fetchStats = async () => {
+    (async () => {
       try {
-        const [elevesData, enseignantsData, classesData] = await Promise.all([
+        const [eleves, enseignants, classes] = await Promise.all([
           eleveService.getEleves(),
           enseignantService.getEnseignants(),
-          classeService.getClasses()
+          classeService.getClasses(),
         ]);
         setStats({
-          totalEleves: elevesData.length,
-          totalEnseignants: enseignantsData.length,
-          totalClasses: classesData.length
+          totalEleves: eleves.length,
+          totalEnseignants: enseignants.length,
+          totalClasses: classes.length,
         });
-      } catch (err: any) {
-        console.error("Erreur de chargement des stats", err);
-        if (err.response?.status === 401 || err.response?.status === 403) {
+      } catch (err) {
+        const status = (err as { response?: { status?: number } }).response?.status;
+        if (status === 401 || status === 403) {
           authService.logout();
           router.push('/login');
         }
       } finally {
         setLoading(false);
       }
-    };
+    })();
+  }, [router]);
 
-    fetchStats();
-  }, []);
-
-  const statCards = [
-    {
-      label: 'Total Élèves',
-      value: stats.totalEleves,
-      icon: '🎓',
-      color: 'var(--primary-color)',
-      bg: 'rgba(67, 24, 255, 0.1)',
-      link: '/dashboard/eleves'
-    },
-    {
-      label: 'Enseignants',
-      value: stats.totalEnseignants,
-      icon: '👨‍🏫',
-      color: 'var(--success)',
-      bg: 'rgba(5, 205, 153, 0.1)',
-      link: '/dashboard/enseignants'
-    },
-    {
-      label: 'Classes Actives',
-      value: stats.totalClasses,
-      icon: '🏫',
-      color: '#d97706',
-      bg: 'rgba(255, 206, 32, 0.1)',
-      link: '/dashboard/classes'
-    }
+  const tiles = [
+    { label: 'Élèves inscrits', value: stats.totalEleves, Icon: GraduationCap, href: '/dashboard/eleves' },
+    { label: 'Enseignants', value: stats.totalEnseignants, Icon: UsersRound, href: '/dashboard/enseignants' },
+    { label: 'Classes actives', value: stats.totalClasses, Icon: School, href: '/dashboard/classes' },
   ];
 
-  const quickActions = [
-    { label: '+ Nouvelle Inscription', path: '/dashboard/eleves', color: 'var(--primary-color)' },
-    { label: '+ Ajouter une classe', path: '/dashboard/classes', color: '#d97706' },
-    { label: '+ Ajouter un enseignant', path: '/dashboard/enseignants', color: 'var(--success)' },
-    { label: '💰 Enregistrer un paiement', path: '/dashboard/finances', color: '#8b5cf6' }
+  const actions = [
+    { label: 'Inscrire un élève', href: '/dashboard/eleves', Icon: UserPlus },
+    { label: 'Ajouter une classe', href: '/dashboard/classes', Icon: School },
+    { label: 'Ajouter un enseignant', href: '/dashboard/enseignants', Icon: UsersRound },
+    { label: 'Enregistrer un paiement', href: '/dashboard/finances', Icon: Wallet },
   ];
 
   return (
     <div>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-            Bonjour, {userName} 👋
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-primary sm:text-[1.75rem]">
+            Bonjour, {userName}
           </h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Voici un aperçu en temps réel de l'activité de votre établissement.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Un aperçu en temps réel de l&apos;activité de votre établissement.
           </p>
         </div>
-        <div style={{ padding: '0.75rem 1.25rem', background: 'linear-gradient(135deg, #1B365D, #0f2140)', borderRadius: '12px', border: '1px solid rgba(217, 119, 6, 0.4)', boxShadow: '0 4px 12px rgba(27, 54, 93, 0.2)', color: 'white', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '1.5rem' }}>🏛️</span>
+        <div className="flex items-center gap-3 rounded-xl bg-primary px-4 py-2.5 text-primary-foreground shadow-sm">
+          <Building2 className="size-5 shrink-0 text-[hsl(var(--gold))]" />
           <div>
-            <div style={{ fontSize: '0.65rem', color: '#D97706', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Établissement Actif</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'white' }}>{etablissementNom || 'Établissement Scolaire'}</div>
+            <div className="font-mono text-[0.6rem] font-semibold uppercase tracking-wide text-[hsl(var(--gold))]">
+              Établissement
+            </div>
+            <div className="text-sm font-semibold">{etablissementNom || 'Établissement scolaire'}</div>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="glass-card"
-            style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', cursor: 'pointer', transition: 'transform 0.2s', border: `1px solid ${card.bg}` }}
-            onClick={() => router.push(card.link)}
-            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-4px)')}
-            onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{card.label}</span>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
-                {card.icon}
+      {/* Chiffres clés */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {tiles.map(({ label, value, Icon, href }) => (
+          <Link key={label} href={href}>
+            <Card className="group flex h-full flex-col gap-3 p-5 transition-colors hover:border-primary/40">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">{label}</span>
+                <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="size-5" />
+                </span>
               </div>
-            </div>
-            <h3 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, color: card.color }}>
               {loading ? (
-                <span style={{ fontSize: '1.5rem', color: 'var(--text-secondary)' }}>...</span>
-              ) : card.value}
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Cliquez pour voir la liste →
-            </span>
-          </div>
+                <Skeleton className="h-10 w-16" />
+              ) : (
+                <span className="font-display text-4xl font-extrabold text-primary tabular-nums">{value}</span>
+              )}
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-accent">
+                Voir la liste <ArrowRight className="size-3" />
+              </span>
+            </Card>
+          </Link>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="glass-card" style={{ marginTop: '1.5rem' }}>
-        <h3 style={{ fontWeight: 600, marginBottom: '1.5rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.8rem' }}>
-          ⚡ Actions Rapides
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          {quickActions.map(action => (
-            <button
-              key={action.path}
-              onClick={() => router.push(action.path)}
-              style={{
-                padding: '1rem 1.5rem',
-                background: 'none',
-                border: `1px solid ${action.color}40`,
-                borderRadius: '12px',
-                color: action.color,
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                textAlign: 'left'
-              }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = `${action.color}15`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; }}
+      {/* Actions rapides */}
+      <Card className="mt-5 p-6">
+        <h2 className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+          Actions rapides
+        </h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {actions.map(({ label, href, Icon }) => (
+            <Link
+              key={label}
+              href={href}
+              className="flex items-center gap-3 rounded-lg border border-input px-4 py-3 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-secondary"
             >
-              {action.label}
-            </button>
+              <Icon className="size-4 shrink-0 text-primary" />
+              {label}
+            </Link>
           ))}
         </div>
-      </div>
-
-      {/* Derniers élèves — section future */}
-      <div className="glass-card" style={{ marginTop: '1.5rem', opacity: 0.6 }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>📋 Inscriptions récentes</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Cette section affichera les 5 derniers élèves inscrits — à venir dans une prochaine version.</p>
-      </div>
+      </Card>
     </div>
   );
 }
