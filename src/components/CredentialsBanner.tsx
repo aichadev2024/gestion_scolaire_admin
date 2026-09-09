@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Check, Copy, KeyRound, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type Props = {
   /** Ex. « Élève Awa Traoré créé ». */
@@ -31,60 +33,35 @@ export default function CredentialsBanner({ title, username, password, onClose }
   return (
     <div
       role="status"
-      style={{
-        border: '1px solid rgba(5, 205, 153, 0.4)',
-        background: 'rgba(5, 205, 153, 0.08)',
-        borderRadius: 'var(--radius-md)',
-        padding: '1rem 1.25rem',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '1rem',
-      }}
+      className="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-success/30 bg-success/[0.08] px-5 py-4"
     >
-      <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-          ✅ {title}
+      <div className="min-w-0 flex-1 basis-64">
+        <div className="mb-1 flex items-center gap-1.5 font-semibold text-foreground">
+          <KeyRound className="size-4 text-success" /> {title}
         </div>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+        <p className="mb-2 text-sm text-muted-foreground">
           Notez ces identifiants : le mot de passe ne sera plus affiché. L&apos;utilisateur devra le
           changer à la première connexion.
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '0.5rem 1.25rem',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: '0.95rem',
-            color: 'var(--text-primary)',
-          }}
-        >
+        </p>
+        <div className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-sm text-foreground">
           {username && (
             <span>
-              <span style={{ color: 'var(--text-secondary)' }}>Identifiant&nbsp;:</span> {username}
+              <span className="text-muted-foreground">Identifiant&nbsp;:</span> {username}
             </span>
           )}
           <span>
-            <span style={{ color: 'var(--text-secondary)' }}>Mot de passe&nbsp;:</span>{' '}
-            <strong>{password}</strong>
+            <span className="text-muted-foreground">Mot de passe&nbsp;:</span> <strong>{password}</strong>
           </span>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-        <button type="button" onClick={copier} className="btn-secondary" style={{ width: 'auto', fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
-          {copied ? 'Copié ✓' : 'Copier'}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn-secondary"
-          style={{ width: 'auto', fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
-          aria-label="Fermer"
-        >
-          Fermer
-        </button>
+      <div className="flex shrink-0 gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={copier}>
+          {copied ? <Check /> : <Copy />}
+          {copied ? 'Copié' : 'Copier'}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onClose} aria-label="Fermer">
+          <X /> Fermer
+        </Button>
       </div>
     </div>
   );

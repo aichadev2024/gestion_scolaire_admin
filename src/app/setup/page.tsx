@@ -2,8 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/auth.service';
-import Head from 'next/head';
+import { AlertCircle, Eye, EyeOff, PartyPopper } from 'lucide-react';
+import { AuthShell, AuthHeader } from '@/components/ui/auth-shell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Field } from '@/components/ui/form-field';
 
 export default function SetupPage() {
   const router = useRouter();
@@ -18,8 +23,8 @@ export default function SetupPage() {
       telephone: '',
       adresse: '',
       genre: 'M',
-      dateNaissance: ''
-    }
+      dateNaissance: '',
+    },
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,12 +33,9 @@ export default function SetupPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name in formData.profil) {
-      setFormData(prev => ({
-        ...prev,
-        profil: { ...prev.profil, [name]: value }
-      }));
+      setFormData((prev) => ({ ...prev, profil: { ...prev.profil, [name]: value } }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -43,11 +45,12 @@ export default function SetupPage() {
     setLoading(true);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api';
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api';
       const response = await fetch(`${apiBase}/auth/register-first-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'ADMIN' })
+        body: JSON.stringify({ ...formData, role: 'ADMIN' }),
       });
 
       if (!response.ok) {
@@ -56,11 +59,9 @@ export default function SetupPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 3000);
-    } catch (err: any) {
-      setError(err.message || 'Erreur inattendue.');
+      setTimeout(() => router.push('/login'), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inattendue.');
     } finally {
       setLoading(false);
     }
@@ -68,135 +69,110 @@ export default function SetupPage() {
 
   if (success) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-secondary)', padding: '2rem' }}>
-        <div className="glass-card" style={{ maxWidth: '450px', width: '100%', textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--primary-color)', marginBottom: '1rem' }}>Félicitations ! 🎉</h2>
-          <p>Le compte Administrateur a été créé avec succès.</p>
-          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Redirection vers la page de connexion...</p>
+      <AuthShell>
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-3 flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <PartyPopper className="size-7" />
+          </div>
+          <h2 className="font-display text-xl font-extrabold text-primary">Félicitations&nbsp;!</h2>
+          <p className="mt-2 text-sm text-foreground">Le compte administrateur a été créé avec succès.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Redirection vers la page de connexion…</p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, var(--bg-secondary) 0%, #e0e5f5 100%)',
-      padding: '2rem'
-    }}>
-      <Head>
-        <title>Configuration Initiale | Netaa</title>
-      </Head>
+    <AuthShell wide>
+      <AuthHeader
+        title="Configuration initiale"
+        description="Bienvenue sur Netaa École ! Créez le tout premier compte administrateur de l'école."
+      />
 
-      <div className="glass-card" style={{ maxWidth: '500px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-color)', marginBottom: '0.5rem' }}>
-            Configuration Initiale
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Bienvenue sur Netaa ! Créez le tout premier compte Administrateur de l'école.
-          </p>
+      {error && (
+        <Alert tone="error" className="mb-5" icon={<AlertCircle className="size-4" />}>
+          {error}
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <Field label="Prénom">
+          <Input name="prenom" value={formData.profil.prenom} onChange={handleChange} required />
+        </Field>
+        <Field label="Nom">
+          <Input name="nom" value={formData.profil.nom} onChange={handleChange} required />
+        </Field>
+
+        <Field label="Nom d'utilisateur">
+          <Input
+            name="username"
+            placeholder="admin123"
+            value={formData.username}
+            onChange={handleChange}
+            required
+          />
+        </Field>
+        <Field label="Email de connexion">
+          <Input
+            type="email"
+            name="email"
+            placeholder="admin@ecole.com"
+            value={formData.email}
+            onChange={handleChange}
+          />
+        </Field>
+
+        <Field label="Mot de passe *" className="sm:col-span-2">
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              name="motDePasse"
+              value={formData.motDePasse}
+              onChange={handleChange}
+              required
+              minLength={6}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+        </Field>
+
+        <Field label="Téléphone">
+          <Input name="telephone" value={formData.profil.telephone} onChange={handleChange} required />
+        </Field>
+        <Field label="Genre">
+          <Select name="genre" value={formData.profil.genre} onChange={handleChange} required>
+            <option value="M">Masculin</option>
+            <option value="F">Féminin</option>
+          </Select>
+        </Field>
+
+        <Field label="Date de naissance">
+          <Input
+            type="date"
+            name="dateNaissance"
+            value={formData.profil.dateNaissance}
+            onChange={handleChange}
+            required
+          />
+        </Field>
+        <Field label="Adresse">
+          <Input name="adresse" value={formData.profil.adresse} onChange={handleChange} required />
+        </Field>
+
+        <div className="sm:col-span-2">
+          <Button type="submit" className="w-full" loading={loading}>
+            Créer l&apos;administrateur
+          </Button>
         </div>
-
-        {error && (
-          <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
-              <label className="input-label">Prénom</label>
-              <input type="text" name="prenom" className="input-field" value={formData.profil.prenom} onChange={handleChange} required />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Nom</label>
-              <input type="text" name="nom" className="input-field" value={formData.profil.nom} onChange={handleChange} required />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
-              <label className="input-label">Nom d'utilisateur</label>
-              <input type="text" name="username" className="input-field" placeholder="admin123" value={formData.username} onChange={handleChange} required />
-            </div>
-            
-            <div className="input-group">
-              <label className="input-label">Email de connexion</label>
-              <input type="email" name="email" className="input-field" placeholder="admin@ecole.com" value={formData.email} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Mot de passe *</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="motDePasse"
-                className="input-field"
-                value={formData.motDePasse}
-                onChange={handleChange}
-                required
-                minLength={6}
-                style={{ paddingRight: '2.5rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '1.1rem',
-                  color: 'var(--text-secondary)',
-                  padding: '2px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                title={showPassword ? 'Masquer' : 'Afficher'}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
-              <label className="input-label">Téléphone</label>
-              <input type="text" name="telephone" className="input-field" value={formData.profil.telephone} onChange={handleChange} required />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Genre</label>
-              <select name="genre" className="input-field" value={formData.profil.genre} onChange={handleChange} required>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Date de naissance</label>
-            <input type="date" name="dateNaissance" className="input-field" value={formData.profil.dateNaissance} onChange={handleChange} required />
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Adresse</label>
-            <input type="text" name="adresse" className="input-field" value={formData.profil.adresse} onChange={handleChange} required />
-          </div>
-
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
-            {loading ? 'Création en cours...' : 'Créer l\'administrateur'}
-          </button>
-        </form>
-      </div>
-    </div>
+      </form>
+    </AuthShell>
   );
 }

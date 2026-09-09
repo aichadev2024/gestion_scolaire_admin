@@ -1,10 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AlertCircle, ArrowLeft, Mail, Wrench } from 'lucide-react';
 import { authService } from '@/services/auth.service';
-import Head from 'next/head';
+import { errorMessage } from '@/lib/errors';
+import { AuthShell, AuthHeader } from '@/components/ui/auth-shell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -23,79 +28,78 @@ export default function ForgotPasswordPage() {
     try {
       const res = await authService.forgotPassword(email);
       setSuccessMsg(res.message);
-      if (res.dev_token) {
-        setDevToken(res.dev_token);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la demande. Veuillez réessayer.');
+      if (res.dev_token) setDevToken(res.dev_token);
+    } catch (err) {
+      setError(errorMessage(err, 'Erreur lors de la demande. Veuillez réessayer.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, var(--bg-secondary) 0%, #e0e5f5 100%)',
-      padding: '2rem'
-    }}>
-      <Head>
-        <title>Mot de passe oublié | Netaa</title>
-      </Head>
+    <AuthShell>
+      <AuthHeader
+        title="Mot de passe oublié ?"
+        description={
+          <>
+            Entrez votre adresse email pour recevoir un lien de réinitialisation.
+            <br />
+            <span className="text-xs italic">
+              Si aucune adresse email n&apos;est associée à votre compte, contactez l&apos;administration.
+            </span>
+          </>
+        }
+      />
 
-      <div className="glass-card" style={{ maxWidth: '450px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)', marginBottom: '0.5rem' }}>
-            Mot de passe oublié ?
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Entrez votre adresse email pour recevoir un lien de réinitialisation. <br/>
-            <span style={{ fontSize: '0.8rem', fontStyle: 'italic' }}>Note : Si vous n'avez pas d'adresse email associée à votre compte, veuillez contacter l'administration.</span>
-          </p>
-        </div>
-
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
-        {successMsg && <div style={{ backgroundColor: '#d1fae5', color: '#047857', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>{successMsg}</div>}
-
-        {/* DEVELOPER MODE ONLY - TO BE REMOVED IN PROD */}
-        {devToken && (
-          <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid #fcd34d' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>🔧 Mode Dev (Mail non configuré)</p>
-            <p>Voici votre lien de réinitialisation généré :</p>
-            <Link href={`/reset-password?token=${devToken}`} style={{ color: '#0369a1', wordBreak: 'break-all' }}>
-              /reset-password?token={devToken}
-            </Link>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label className="input-label" htmlFor="email">Adresse Email</label>
-            <input
-              id="email"
-              type="email"
-              className="input-field"
-              placeholder="votre@email.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
-            {loading ? 'Envoi en cours...' : 'Envoyer le lien'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <Link href="/login" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>
-            ← Retour à la connexion
+      {error && (
+        <Alert tone="error" className="mb-5" icon={<AlertCircle className="size-4" />}>
+          {error}
+        </Alert>
+      )}
+      {successMsg && (
+        <Alert tone="success" className="mb-5" icon={<Mail className="size-4" />}>
+          {successMsg}
+        </Alert>
+      )}
+      {devToken && (
+        <Alert tone="warning" className="mb-5" icon={<Wrench className="size-4" />}>
+          <span className="font-semibold">Mode Dev (mail non configuré)</span> — lien généré :{' '}
+          <Link
+            href={`/reset-password?token=${devToken}`}
+            className="break-all font-medium text-primary underline"
+          >
+            /reset-password?token={devToken}
           </Link>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="email">Adresse email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="votre@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
+
+        <Button type="submit" className="w-full" loading={loading}>
+          Envoyer le lien
+        </Button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:underline"
+        >
+          <ArrowLeft className="size-3.5" /> Retour à la connexion
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   );
 }

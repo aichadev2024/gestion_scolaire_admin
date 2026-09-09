@@ -1,11 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { Building2, GraduationCap, IdCard, Loader2, Printer, School, TriangleAlert } from 'lucide-react';
 import { eleveService } from '@/services/eleve.service';
 import { classeService } from '@/services/classe.service';
 import { authService } from '@/services/auth.service';
 import { Eleve, Classe } from '@/types';
+import { cn } from '@/lib/utils';
 import CarteEleveCard from '@/components/CarteEleveCard';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Field } from '@/components/ui/form-field';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CartesScolairesPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
@@ -31,14 +40,14 @@ export default function CartesScolairesPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [cls, eleves] = await Promise.all([
-          classeService.getClasses(),
-          eleveService.getEleves()
-        ]);
+        const [cls, eleves] = await Promise.all([classeService.getClasses(), eleveService.getEleves()]);
         setClasses(cls);
         setAllEleves(eleves);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+      } catch {
+        toast.error('Impossible de charger les données.');
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -48,15 +57,17 @@ export default function CartesScolairesPage() {
       setFilteredEleves([]);
       setSelectedEleveId('');
     } else {
-      const list = allEleves.filter(e => String(e.classeId) === selectedClasseId && e.statut === 'ACTIF');
+      const list = allEleves.filter((e) => String(e.classeId) === selectedClasseId && e.statut === 'ACTIF');
       setFilteredEleves(list);
       setSelectedEleveId('');
     }
   }, [selectedClasseId, allEleves]);
 
-  const elevesToShow: Eleve[] = mode === 'LOT'
-    ? filteredEleves
-    : allEleves.filter(e => String(e.id) === selectedEleveId);
+  const elevesToShow: Eleve[] =
+    mode === 'LOT' ? filteredEleves : allEleves.filter((e) => String(e.id) === selectedEleveId);
+
+  const etablissementLabel =
+    nomEcole || authService.getCurrentUser()?.etablissementNom || 'ÉTABLISSEMENT SCOLAIRE';
 
   const handleExportPDF = async () => {
     if (elevesToShow.length === 0) return;
@@ -74,7 +85,8 @@ export default function CartesScolairesPage() {
       const PAGE_W = 210;
 
       const cardsPerRow = Math.floor((PAGE_W - MARGIN_MM) / (CARD_W_MM + MARGIN_MM));
-      let col = 0, row = 0;
+      let col = 0,
+        row = 0;
 
       for (let i = 0; i < elevesToShow.length; i++) {
         const eleve = elevesToShow[i];
@@ -106,150 +118,170 @@ export default function CartesScolairesPage() {
           // A4 fits ~4 rows of cards (with margins)
           if (row >= 4 && i < elevesToShow.length - 1) {
             pdf.addPage();
-            row = 0; col = 0;
+            row = 0;
+            col = 0;
           }
         }
       }
 
-      const filename = mode === 'LOT'
-        ? `cartes_classe_${classes.find(c => String(c.id) === selectedClasseId)?.nom || 'export'}_${anneeScolaire.replace('/', '-')}.pdf`
-        : `carte_${elevesToShow[0]?.matricule || 'eleve'}.pdf`;
+      const filename =
+        mode === 'LOT'
+          ? `cartes_classe_${classes.find((c) => String(c.id) === selectedClasseId)?.nom || 'export'}_${anneeScolaire.replace('/', '-')}.pdf`
+          : `carte_${elevesToShow[0]?.matricule || 'eleve'}.pdf`;
 
       pdf.save(filename);
+      toast.success('PDF généré.');
     } catch (e) {
       console.error('Erreur export PDF', e);
+      toast.error("Erreur lors de l'export PDF.");
     } finally {
       setPdfLoading(false);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Cartes Scolaires</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Générez et exportez les cartes scolaires numériques au format CR80 (crédit).
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          {elevesToShow.length > 0 && (
-            <>
-              <button onClick={handlePrint} style={{ padding: '0.75rem 1.25rem', border: '1px solid rgba(27,54,93,0.3)', color: 'var(--primary-color)', background: 'rgba(27,54,93,0.06)', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
-                🖨️ Imprimer
-              </button>
-              <button onClick={handleExportPDF} className="btn-primary" style={{ width: 'auto' }} disabled={pdfLoading}>
-                {pdfLoading ? '⏳ Génération PDF...' : `📄 Exporter PDF (${elevesToShow.length} carte${elevesToShow.length > 1 ? 's' : ''})`}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Cartes scolaires"
+        description="Générez et exportez les cartes scolaires numériques au format CR80 (carte de crédit)."
+      >
+        {elevesToShow.length > 0 && (
+          <>
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer /> Imprimer
+            </Button>
+            <Button onClick={handleExportPDF} loading={pdfLoading}>
+              <IdCard />
+              {pdfLoading
+                ? 'Génération…'
+                : `Exporter PDF (${elevesToShow.length} carte${elevesToShow.length > 1 ? 's' : ''})`}
+            </Button>
+          </>
+        )}
+      </PageHeader>
 
-      {/* Mode selector */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(163,174,209,0.2)', paddingBottom: '0' }}>
-        {(['LOT', 'INDIVIDUEL'] as const).map(m => (
-          <button key={m} onClick={() => setMode(m)} style={{
-            padding: '0.75rem 1.5rem', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem',
-            color: mode === m ? 'var(--primary-color)' : 'var(--text-secondary)',
-            borderBottom: mode === m ? '2px solid var(--primary-color)' : '2px solid transparent', transition: 'all 0.2s'
-          }}>
-            {m === 'LOT' ? '🏫 Par classe (lot)' : '👤 Élève individuel'}
-          </button>
+      {/* Sélecteur de mode */}
+      <div className="mb-6 flex gap-2">
+        {(['LOT', 'INDIVIDUEL'] as const).map((m) => (
+          <Button key={m} variant={mode === m ? 'default' : 'outline'} size="sm" onClick={() => setMode(m)}>
+            {m === 'LOT' ? <School /> : <GraduationCap />}
+            {m === 'LOT' ? 'Par classe (lot)' : 'Élève individuel'}
+          </Button>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ padding: '0.6rem 1rem', background: 'rgba(27,54,93,0.06)', borderRadius: '10px', border: '1px solid rgba(27,54,93,0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '240px' }}>
-          <span style={{ fontSize: '1.4rem' }}>🏛️</span>
+      {/* Filtres */}
+      <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl border border-border bg-card p-4">
+        <div className="flex min-w-56 items-center gap-3 rounded-lg border border-primary/20 bg-primary/[0.06] px-3 py-2">
+          <Building2 className="size-6 shrink-0 text-primary" />
           <div>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Établissement Détecté</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: 800 }}>{nomEcole || authService.getCurrentUser()?.etablissementNom || 'Lycée Massa Makan Diabaté (Bamako)'}</div>
+            <div className="text-[0.65rem] font-bold uppercase tracking-wide text-muted-foreground">
+              Établissement détecté
+            </div>
+            <div className="text-sm font-extrabold text-primary">{etablissementLabel}</div>
           </div>
         </div>
-        <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: '220px' }}>
-          <label className="input-label">🏫 Classe</label>
-          <select className="input-field" value={selectedClasseId} onChange={e => setSelectedClasseId(e.target.value)}>
+        <Field label="Classe" className="min-w-52 flex-1">
+          <Select value={selectedClasseId} onChange={(e) => setSelectedClasseId(e.target.value)}>
             <option value="">— Sélectionnez une classe —</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>)}
-          </select>
-        </div>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nom} ({c.anneeScolaire})
+              </option>
+            ))}
+          </Select>
+        </Field>
         {mode === 'INDIVIDUEL' && (
-          <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: '220px' }}>
-            <label className="input-label">🎓 Élève</label>
-            <select className="input-field" value={selectedEleveId} onChange={e => setSelectedEleveId(e.target.value)} disabled={!selectedClasseId}>
+          <Field label="Élève" className="min-w-52 flex-1">
+            <Select
+              value={selectedEleveId}
+              onChange={(e) => setSelectedEleveId(e.target.value)}
+              disabled={!selectedClasseId}
+            >
               <option value="">— Sélectionnez un élève —</option>
-              {filteredEleves.map(e => <option key={e.id} value={e.id}>{e.profil.nom} {e.profil.prenom} ({e.matricule})</option>)}
-            </select>
-          </div>
+              {filteredEleves.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.profil.nom} {e.profil.prenom} ({e.matricule})
+                </option>
+              ))}
+            </Select>
+          </Field>
         )}
         {selectedClasseId && mode === 'LOT' && (
-          <div style={{ padding: '0.5rem 1rem', background: 'rgba(5,205,153,0.1)', border: '1px solid rgba(5,205,153,0.3)', borderRadius: '8px', color: '#05cd99', fontWeight: 700, fontSize: '0.85rem' }}>
-            ✅ {filteredEleves.length} élève(s) actif(s) trouvé(s)
-          </div>
+          <span className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm font-bold text-success">
+            {filteredEleves.length} élève(s) actif(s)
+          </span>
         )}
       </div>
 
-      {/* Cards preview */}
+      {/* Aperçu des cartes */}
       {loading ? (
-        <div className="glass-card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-          Chargement des données...
+        <div className="flex flex-wrap gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[204px] w-[323px] rounded-[10px]" />
+          ))}
         </div>
       ) : elevesToShow.length === 0 ? (
-        <div className="glass-card" style={{ padding: '5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🪪</div>
-          <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-            {!selectedClasseId
+        <EmptyState
+          icon={<IdCard />}
+          title={
+            !selectedClasseId
               ? 'Sélectionnez une classe pour générer les cartes.'
               : mode === 'INDIVIDUEL' && !selectedEleveId
                 ? 'Sélectionnez un élève.'
-                : 'Aucun élève actif dans cette classe.'}
-          </p>
-          {selectedClasseId && filteredEleves.length === 0 && (
-            <p style={{ fontSize: '0.875rem', color: '#ee5d50' }}>⚠️ Aucun élève actif affecté à cette classe.</p>
-          )}
-        </div>
+                : 'Aucun élève actif dans cette classe.'
+          }
+          description={
+            selectedClasseId && filteredEleves.length === 0
+              ? 'Aucun élève actif affecté à cette classe.'
+              : undefined
+          }
+        />
       ) : (
         <>
-          {/* Stats bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '0.75rem 1.25rem', background: 'rgba(27,54,93,0.06)', borderRadius: '10px', border: '1px solid rgba(27,54,93,0.15)' }}>
-            <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>
-              🪪 {elevesToShow.length} carte{elevesToShow.length > 1 ? 's' : ''} générée{elevesToShow.length > 1 ? 's' : ''}
+          {/* Barre de stats */}
+          <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-primary/15 bg-primary/[0.06] px-4 py-3 text-sm">
+            <span className="font-bold text-primary">
+              {elevesToShow.length} carte{elevesToShow.length > 1 ? 's' : ''} générée
+              {elevesToShow.length > 1 ? 's' : ''}
             </span>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>· Année scolaire : {anneeScolaire}</span>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>· Format : CR80 (85.6 × 54 mm)</span>
+            <span className="text-muted-foreground">Année scolaire : {anneeScolaire}</span>
+            <span className="text-muted-foreground">Format : CR80 (85.6 × 54 mm)</span>
           </div>
 
-          {/* Cards grid */}
-          <div id="cartes-print-zone" style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
-            {elevesToShow.map(eleve => (
-              <div key={eleve.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {/* Grille de cartes */}
+          <div id="cartes-print-zone" className="flex flex-wrap gap-6">
+            {elevesToShow.map((eleve) => (
+              <div key={eleve.id} className="flex flex-col gap-2">
                 <CarteEleveCard
-                  ref={el => { if (el) carteRefs.current.set(eleve.matricule, el); }}
+                  ref={(el) => {
+                    if (el) carteRefs.current.set(eleve.matricule, el);
+                  }}
                   eleve={eleve}
-                  etablissementNom={nomEcole || authService.getCurrentUser()?.etablissementNom || 'ÉTABLISSEMENT SCOLAIRE'}
+                  etablissementNom={etablissementLabel}
                   anneeScolaire={anneeScolaire}
                   version={1}
                 />
-                {eleve.profil?.photoUrl === null || eleve.profil?.photoUrl === undefined ? (
-                  <div style={{ width: '323px', padding: '0.4rem 0.75rem', background: 'rgba(255,206,32,0.1)', border: '1px solid rgba(255,206,32,0.3)', borderRadius: '6px', fontSize: '0.75rem', color: '#d97706', fontWeight: 600 }}>
-                    ⚠️ Photo manquante — visuel générique utilisé
+                {eleve.profil?.photoUrl == null && (
+                  <div
+                    className={cn(
+                      'flex w-[323px] items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 px-3 py-1.5',
+                      'text-xs font-semibold text-gold-foreground',
+                    )}
+                  >
+                    <TriangleAlert className="size-3.5 shrink-0 text-gold" />
+                    Photo manquante — visuel générique utilisé
                   </div>
-                ) : null}
+                )}
               </div>
             ))}
           </div>
         </>
       )}
 
-      {/* Print CSS */}
+      {/* CSS d'impression */}
       <style>{`
         @media print {
           body { background: white !important; color: black !important; }

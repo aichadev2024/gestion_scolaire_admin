@@ -3,8 +3,14 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
-import Head from 'next/head';
+import { errorMessage } from '@/lib/errors';
+import { AuthShell, AuthHeader } from '@/components/ui/auth-shell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -13,14 +19,13 @@ function ResetPasswordForm() {
 
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState('');
   const [confirmMotDePasse, setConfirmMotDePasse] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setError('Lien de réinitialisation invalide ou manquant.');
-    }
+    if (!token) setError('Lien de réinitialisation invalide ou manquant.');
   }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,15 +42,12 @@ function ResetPasswordForm() {
     }
 
     setLoading(true);
-
     try {
       await authService.resetPassword({ token, nouveauMotDePasse });
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 4000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la réinitialisation.');
+      setTimeout(() => router.push('/login'), 4000);
+    } catch (err) {
+      setError(errorMessage(err, 'Erreur lors de la réinitialisation.'));
     } finally {
       setLoading(false);
     }
@@ -53,86 +55,94 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-secondary)', padding: '2rem' }}>
-        <div className="glass-card" style={{ maxWidth: '450px', width: '100%', textAlign: 'center' }}>
-          <h2 style={{ color: '#047857', marginBottom: '1rem' }}>Mot de passe modifié ! ✅</h2>
-          <p>Votre mot de passe a été mis à jour avec succès.</p>
-          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Vous allez être redirigé vers la page de connexion...</p>
+      <AuthShell>
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-3 flex size-14 items-center justify-center rounded-full bg-success/10 text-success">
+            <CheckCircle2 className="size-7" />
+          </div>
+          <h2 className="font-display text-xl font-extrabold text-success">Mot de passe modifié</h2>
+          <p className="mt-2 text-sm text-foreground">Votre mot de passe a été mis à jour avec succès.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Redirection vers la page de connexion…</p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, var(--bg-secondary) 0%, #e0e5f5 100%)',
-      padding: '2rem'
-    }}>
-      <Head>
-        <title>Nouveau mot de passe | Netaa</title>
-      </Head>
+    <AuthShell>
+      <AuthHeader
+        title="Nouveau mot de passe"
+        description="Choisissez un nouveau mot de passe sécurisé pour votre compte."
+      />
 
-      <div className="glass-card" style={{ maxWidth: '450px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)', marginBottom: '0.5rem' }}>
-            Nouveau mot de passe
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Choisissez un nouveau mot de passe sécurisé pour votre compte.
-          </p>
+      {error && (
+        <Alert tone="error" className="mb-5" icon={<AlertCircle className="size-4" />}>
+          {error}
+        </Alert>
+      )}
+
+      {!token ? (
+        <div className="text-center">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          >
+            <ArrowLeft className="size-3.5" /> Retour à la connexion
+          </Link>
         </div>
-
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
-
-        {!token ? (
-          <div style={{ textAlign: 'center' }}>
-            <Link href="/login" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>Retour à la connexion</Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label className="input-label" htmlFor="nouveau">Nouveau mot de passe</label>
-              <input
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="nouveau">Nouveau mot de passe</Label>
+            <div className="relative">
+              <Input
                 id="nouveau"
-                type="password"
-                className="input-field"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 placeholder="••••••••"
                 value={nouveauMotDePasse}
-                onChange={e => setNouveauMotDePasse(e.target.value)}
+                onChange={(e) => setNouveauMotDePasse(e.target.value)}
                 required
+                className="pr-10"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
             </div>
+          </div>
 
-            <div className="input-group">
-              <label className="input-label" htmlFor="confirm">Confirmer le mot de passe</label>
-              <input
-                id="confirm"
-                type="password"
-                className="input-field"
-                placeholder="••••••••"
-                value={confirmMotDePasse}
-                onChange={e => setConfirmMotDePasse(e.target.value)}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm">Confirmer le mot de passe</Label>
+            <Input
+              id="confirm"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="••••••••"
+              value={confirmMotDePasse}
+              onChange={(e) => setConfirmMotDePasse(e.target.value)}
+              required
+            />
+          </div>
 
-            <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
-              {loading ? 'Enregistrement...' : 'Mettre à jour mon mot de passe'}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+          <Button type="submit" className="w-full" loading={loading}>
+            Mettre à jour mon mot de passe
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '3rem' }}>Chargement...</div>}>
+    <Suspense
+      fallback={<div className="p-12 text-center text-sm text-muted-foreground">Chargement…</div>}
+    >
       <ResetPasswordForm />
     </Suspense>
   );

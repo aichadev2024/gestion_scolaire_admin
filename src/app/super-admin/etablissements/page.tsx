@@ -1,8 +1,42 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { etablissementService, Etablissement, CreateEtablissementRequest } from '@/services/etablissement.service';
-import Head from 'next/head';
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
+import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Plus, Search } from 'lucide-react';
+import {
+  etablissementService,
+  Etablissement,
+  CreateEtablissementRequest,
+} from '@/services/etablissement.service';
+import { errorMessage } from '@/lib/errors';
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Field } from '@/components/ui/form-field';
+import { Alert } from '@/components/ui/alert';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+
+const EMPTY_FORM: CreateEtablissementRequest = {
+  nomEtablissement: '',
+  codeEtablissement: '',
+  emailContact: '',
+  telephone: '',
+  adresse: '',
+  planTarifaire: 'PRO',
+  adminUsername: '',
+  adminEmail: '',
+  adminMotDePasse: '',
+  adminProfil: { nom: '', prenom: '', telephone: '', adresse: '', genre: 'M', dateNaissance: '1990-01-01' },
+};
+
+const STATUTS = ['TOUS', 'ACTIF', 'SUSPENDU', 'CLOTURE'] as const;
 
 export default function SuperAdminEtablissementsPage() {
   const [etablissements, setEtablissements] = useState<Etablissement[]>([]);
@@ -13,50 +47,36 @@ export default function SuperAdminEtablissementsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
-
-  const [formData, setFormData] = useState<CreateEtablissementRequest>({
-    nomEtablissement: '',
-    codeEtablissement: '',
-    emailContact: '',
-    telephone: '',
-    adresse: '',
-    planTarifaire: 'PRO',
-    adminUsername: '',
-    adminEmail: '',
-    adminMotDePasse: '',
-    adminProfil: {
-      nom: '',
-      prenom: '',
-      telephone: '',
-      adresse: '',
-      genre: 'M',
-      dateNaissance: '1990-01-01'
-    }
-  });
+  const [formData, setFormData] = useState<CreateEtablissementRequest>(EMPTY_FORM);
+  const [nowMs, setNowMs] = useState(0);
 
   useEffect(() => {
-    chargerEtablissements();
+    setNowMs(Date.now());
   }, []);
 
-  const chargerEtablissements = async () => {
+  const chargerEtablissements = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await etablissementService.listerTous();
-      setEtablissements(data);
-    } catch (err: any) {
+      setEtablissements(await etablissementService.listerTous());
+    } catch {
       setError('Erreur lors du chargement des établissements.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    chargerEtablissements();
+  }, [chargerEtablissements]);
 
   const handleStatutChange = async (id: number, nouveauStatut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE') => {
     try {
       await etablissementService.modifierStatut(id, nouveauStatut);
+      toast.success(`Statut mis à jour : ${nouveauStatut}.`);
       chargerEtablissements();
-    } catch (err: any) {
-      alert('Erreur lors du changement de statut');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors du changement de statut.'));
     }
   };
 
@@ -65,403 +85,394 @@ export default function SuperAdminEtablissementsPage() {
     setSubmitting(true);
     try {
       await etablissementService.creer(formData);
+      toast.success('Établissement et compte administrateur créés.');
       setModalOpen(false);
-      setFormData({
-        nomEtablissement: '',
-        codeEtablissement: '',
-        emailContact: '',
-        telephone: '',
-        adresse: '',
-        planTarifaire: 'PRO',
-        adminUsername: '',
-        adminEmail: '',
-        adminMotDePasse: '',
-        adminProfil: {
-          nom: '',
-          prenom: '',
-          telephone: '',
-          adresse: '',
-          genre: 'M',
-          dateNaissance: '1990-01-01'
-        }
-      });
+      setFormData(EMPTY_FORM);
       chargerEtablissements();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la création de l\'établissement');
+    } catch (err) {
+      toast.error(errorMessage(err, "Erreur lors de la création de l'établissement."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Filtered List
-  const filteredEtablissements = etablissements.filter(e => {
-    const matchSearch = e.nom.toLowerCase().includes(search.toLowerCase()) || e.code.toLowerCase().includes(search.toLowerCase());
-    const matchStatut = filterStatut === 'TOUS' || e.statut === filterStatut;
-    return matchSearch && matchStatut;
-  });
-
-  // Metrics
-  const totalEtablissements = etablissements.length;
-  const actifsCount = etablissements.filter(e => e.statut === 'ACTIF').length;
-  const suspendusCount = etablissements.filter(e => e.statut === 'SUSPENDU').length;
-  const proCount = etablissements.filter(e => e.planTarifaire === 'PRO' || e.planTarifaire === 'ENTERPRISE').length;
-
-  const handleTelechargerRecu = async (id: number, nomEtablissement: string) => {
+  const handleTelechargerRecu = async (id: number, nom: string) => {
     try {
       const blob = await etablissementService.telechargerRecuPdf(id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Recu_Abonnement_${nomEtablissement.replace(/\s+/g, '_')}.pdf`;
+      a.download = `Recu_Abonnement_${nom.replace(/\s+/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
+      a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Erreur lors du téléchargement du reçu PDF');
+      toast.error(errorMessage(err, 'Erreur lors du téléchargement du reçu PDF.'));
     }
   };
 
+  const filtered = etablissements.filter((e) => {
+    const q = search.toLowerCase();
+    const matchSearch = e.nom.toLowerCase().includes(q) || e.code.toLowerCase().includes(q);
+    const matchStatut = filterStatut === 'TOUS' || e.statut === filterStatut;
+    return matchSearch && matchStatut;
+  });
+
+  const total = etablissements.length;
+  const actifs = etablissements.filter((e) => e.statut === 'ACTIF').length;
+  const suspendus = etablissements.filter((e) => e.statut === 'SUSPENDU').length;
+  const proCount = etablissements.filter(
+    (e) => e.planTarifaire === 'PRO' || e.planTarifaire === 'ENTERPRISE',
+  ).length;
+
+  const metrics = [
+    { label: 'Total établissements', value: total, Icon: Building2, accent: 'text-primary' },
+    { label: 'Écoles actives', value: actifs, Icon: CheckCircle2, accent: 'text-success' },
+    { label: 'Suspendus / inactifs', value: suspendus, Icon: Ban, accent: 'text-destructive' },
+    { label: 'Sur plan Pro / Enterprise', value: proCount, Icon: Building2, accent: 'text-accent' },
+  ];
+
+  const statutBadge = (s: Etablissement['statut']) =>
+    s === 'ACTIF' ? (
+      <Badge variant="success">Actif</Badge>
+    ) : s === 'SUSPENDU' ? (
+      <Badge variant="destructive">Suspendu</Badge>
+    ) : (
+      <Badge variant="secondary">Clôturé</Badge>
+    );
+
+  const expirationCell = (e: Etablissement, nowMs: number) => {
+    if (!e.dateExpirationAbonnement) return <span className="text-muted-foreground">1 an par défaut</span>;
+    const exp = new Date(e.dateExpirationAbonnement);
+    const diffDays = Math.ceil((exp.getTime() - nowMs) / (1000 * 3600 * 24));
+    const dateStr = exp.toLocaleDateString('fr-FR');
+    if (diffDays < 0) return <Badge variant="destructive">Expiré ({dateStr})</Badge>;
+    if (diffDays <= 15) return <Badge variant="warning">Expire dans {diffDays}j</Badge>;
+    return <span className="text-success">Valide ({dateStr})</span>;
+  };
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
-      <Head>
-        <title>Gestion des Établissements | Super-Admin SaaS</title>
-      </Head>
+    <div>
+      <PageHeader
+        title="Établissements clients"
+        description="Gestion centralisée des sous-domaines, licences et comptes administrateurs d'écoles."
+      >
+        <Button onClick={() => setModalOpen(true)}>
+          <Plus /> Nouvel établissement client
+        </Button>
+      </PageHeader>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary-color, #4318ff)' }}>
-            🏛️ Établissements Clients (Multi-Tenant)
-          </h1>
-          <p style={{ color: 'var(--text-secondary, #a3aed0)', fontSize: '0.9rem' }}>
-            Gestion centralisée des sous-domaines, licences et comptes administrateurs d'écoles.
-          </p>
-        </div>
-        <button className="btn-primary" style={{ width: 'auto', backgroundColor: '#6366f1' }} onClick={() => setModalOpen(true)}>
-          + Nouvel Établissement Client
-        </button>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(({ label, value, Icon, accent }) => (
+          <Card key={label} className="flex flex-col gap-2 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
+              <Icon className={cn('size-5', accent)} />
+            </div>
+            <div className={cn('text-2xl font-extrabold', accent)}>{loading ? '…' : value}</div>
+          </Card>
+        ))}
       </div>
 
-      {/* KPI Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #6366f1' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TOTAL ÉTABLISSEMENTS</span>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.5rem 0 0 0', color: '#6366f1' }}>{totalEtablissements}</h2>
-        </div>
-        <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ÉCOLES ACTIVES</span>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.5rem 0 0 0', color: '#10b981' }}>{actifsCount}</h2>
-        </div>
-        <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #ef4444' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>SUSPENDUS / INACTIFS</span>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.5rem 0 0 0', color: '#ef4444' }}>{suspendusCount}</h2>
-        </div>
-        <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ÉCOLES SUR PLAN PRO</span>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.5rem 0 0 0', color: '#8b5cf6' }}>{proCount}</h2>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', padding: '1rem 1.5rem' }}>
-        <div style={{ flex: 1, minWidth: '240px' }}>
-          <input
-            type="text"
-            className="input-field"
-            placeholder="🔍 Rechercher par nom ou code (ex: jules-verne)..."
+      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Rechercher par nom ou code (ex : jules-verne)…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ marginBottom: 0 }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Statut:</span>
-          {['TOUS', 'ACTIF', 'SUSPENDU', 'CLOTURE'].map(st => (
-            <button
+        <div className="flex flex-wrap items-center gap-1.5">
+          {STATUTS.map((st) => (
+            <Button
               key={st}
+              size="sm"
+              variant={filterStatut === st ? 'default' : 'outline'}
               onClick={() => setFilterStatut(st)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                backgroundColor: filterStatut === st ? '#6366f1' : 'rgba(163,174,209,0.15)',
-                color: filterStatut === st ? '#ffffff' : 'var(--text-secondary)'
-              }}
             >
               {st}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {error && (
-        <div style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', padding: '1rem', borderRadius: '10px', marginBottom: '1.5rem' }}>
+        <Alert tone="error" className="mt-4">
           {error}
-        </div>
+        </Alert>
       )}
 
-      {/* Main Table */}
-      {loading ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-          Chargement des établissements...
-        </div>
-      ) : (
-        <div className="glass-card" style={{ overflowX: 'auto', padding: 0 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid rgba(163,174,209,0.2)', color: 'var(--text-secondary)', backgroundColor: 'rgba(163,174,209,0.05)' }}>
-                <th style={{ padding: '1rem 1.25rem' }}>Établissement</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Sous-domaine</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Admin Principal</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Plan</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Fin d'Abonnement</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Statut</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Contact</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEtablissements.map(e => (
-                <tr key={e.id} style={{ borderBottom: '1px solid rgba(163,174,209,0.1)' }}>
-                  <td style={{ padding: '1rem 1.25rem', fontWeight: 'bold' }}>
-                    {e.nom}
-                    {e.dateCreation && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                        Créé le {new Date(e.dateCreation).toLocaleDateString('fr-FR')}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem' }}>
-                    <code style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
-                      {e.code}.netaa-ecole.com
-                    </code>
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>
-                    {e.adminNomComplet ? (
-                      <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>👤 {e.adminNomComplet}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#6366f1' }}>@{e.adminUsername}</div>
-                        {e.adminEmail && <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>✉️ {e.adminEmail}</div>}
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>Non assigné</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem' }}>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                      background: e.planTarifaire === 'ENTERPRISE' ? 'rgba(139,92,246,0.15)' : e.planTarifaire === 'PRO' ? 'rgba(99,102,241,0.15)' : 'rgba(163,174,209,0.15)',
-                      color: e.planTarifaire === 'ENTERPRISE' ? '#8b5cf6' : e.planTarifaire === 'PRO' ? '#6366f1' : 'var(--text-secondary)'
-                    }}>
-                      {e.planTarifaire}
-                    </span>
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>
-                    {e.dateExpirationAbonnement ? (
-                      (() => {
-                        const expDate = new Date(e.dateExpirationAbonnement);
-                        const now = new Date();
-                        const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
-                        const dateStr = expDate.toLocaleDateString('fr-FR');
-                        
-                        if (diffDays < 0) {
-                          return <span style={{ color: '#ef4444', fontWeight: 700, backgroundColor: 'rgba(239,68,68,0.1)', padding: '4px 8px', borderRadius: '6px' }}>⛔ Expiré ({dateStr})</span>;
-                        } else if (diffDays <= 15) {
-                          return <span style={{ color: '#f59e0b', fontWeight: 700, backgroundColor: 'rgba(245,158,11,0.1)', padding: '4px 8px', borderRadius: '6px' }}>⚠️ Expire dans {diffDays}j ({dateStr})</span>;
-                        } else {
-                          return <span style={{ color: '#10b981', fontWeight: 600 }}>Valide ({dateStr})</span>;
-                        }
-                      })()
-                    ) : (
-                      <span style={{ color: 'var(--text-secondary)' }}>1 An par défaut</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem' }}>
-                    {e.statut === 'ACTIF' && <span style={{ color: '#10b981', fontWeight: 700 }}>● Actif</span>}
-                    {e.statut === 'SUSPENDU' && <span style={{ color: '#ef4444', fontWeight: 700 }}>⛔ Suspendu</span>}
-                    {e.statut === 'CLOTURE' && <span style={{ color: '#64748b', fontWeight: 700 }}>✖ Clôturé</span>}
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>
-                    {e.emailContact || 'N/A'}<br/>
-                    <span style={{ color: 'var(--text-secondary)' }}>📞 {e.telephone || 'N/A'}</span>
-                  </td>
-                  <td style={{ padding: '1rem 1.25rem' }}>
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => handleTelechargerRecu(e.id, e.nom)}
-                        title="Télécharger / Imprimer l'attestation et reçu de paiement PDF"
-                        style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)', padding: '5px 9px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
-                      >
-                        📄 Reçu PDF
-                      </button>
-                      {e.statut === 'ACTIF' ? (
-                        <button
-                          onClick={() => handleStatutChange(e.id, 'SUSPENDU')}
-                          style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '5px 9px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
-                        >
-                          Suspendre
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleStatutChange(e.id, 'ACTIF')}
-                          style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', padding: '5px 9px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
-                        >
-                          Activer
-                        </button>
+      <div className="mt-4">
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Building2 />}
+            title="Aucun établissement ne correspond aux critères"
+            description="Ajustez la recherche ou le filtre de statut."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Établissement</TableHead>
+                  <TableHead>Sous-domaine</TableHead>
+                  <TableHead>Admin principal</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Fin d&apos;abonnement</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell>
+                      <div className="font-semibold text-foreground">{e.nom}</div>
+                      {e.dateCreation && (
+                        <div className="text-xs text-muted-foreground">
+                          Créé le {new Date(e.dateCreation).toLocaleDateString('fr-FR')}
+                        </div>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredEtablissements.length === 0 && (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    Aucun établissement ne correspond aux critères de recherche.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    </TableCell>
+                    <TableCell>
+                      <code className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        {e.code}.netaa-ecole.com
+                      </code>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {e.adminNomComplet ? (
+                        <div>
+                          <div className="font-semibold text-foreground">{e.adminNomComplet}</div>
+                          <div className="text-xs text-primary">@{e.adminUsername}</div>
+                          {e.adminEmail && (
+                            <div className="text-xs text-muted-foreground">{e.adminEmail}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="italic text-muted-foreground">Non assigné</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={e.planTarifaire === 'ENTERPRISE' ? 'default' : 'secondary'}>
+                        {e.planTarifaire}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{expirationCell(e, nowMs)}</TableCell>
+                    <TableCell>{statutBadge(e.statut)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {e.emailContact || 'N/A'}
+                      <br />
+                      {e.telephone || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleTelechargerRecu(e.id, e.nom)}
+                          title="Télécharger l'attestation et le reçu de paiement PDF"
+                        >
+                          <FileDown /> Reçu PDF
+                        </Button>
+                        {e.statut === 'ACTIF' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleStatutChange(e.id, 'SUSPENDU')}
+                          >
+                            Suspendre
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-success hover:bg-success/10 hover:text-success"
+                            onClick={() => handleStatutChange(e.id, 'ACTIF')}
+                          >
+                            Activer
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
 
-      {/* Modal Création Établissement */}
-      {modalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div className="glass-card" style={{ maxWidth: '650px', width: '100%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(99,102,241,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ color: '#6366f1', fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>🏛️ Créer un Nouvel Établissement</h2>
-              <button onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>✕</button>
-            </div>
+      {/* Modal création */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Créer un nouvel établissement</DialogTitle>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit}>
-              <h3 style={{ fontSize: '0.85rem', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>1. INFORMATIONS ÉCOLE & ABONNEMENT</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="input-group">
-                  <label className="input-label">Nom de l'Établissement *</label>
-                  <input type="text" className="input-field" placeholder="Ex: Lycée Jules Verne" required
-                    value={formData.nomEtablissement} onChange={e => setFormData({...formData, nomEtablissement: e.target.value})} />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Code / Sous-domaine (Optionnel)</label>
-                  <input type="text" className="input-field" placeholder="Ex: jules-verne (généré si vide)"
-                    value={formData.codeEtablissement} onChange={e => setFormData({...formData, codeEtablissement: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} />
-                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Généré automatiquement à partir du nom si laissé vide</small>
-                </div>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <fieldset className="grid gap-4 sm:grid-cols-2">
+              <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
+                1. Informations école &amp; abonnement
+              </legend>
+              <Field label="Nom de l'établissement *">
+                <Input
+                  placeholder="Ex : Lycée Jules Verne"
+                  required
+                  value={formData.nomEtablissement}
+                  onChange={(e) => setFormData({ ...formData, nomEtablissement: e.target.value })}
+                />
+              </Field>
+              <Field label="Code / sous-domaine" hint="Généré depuis le nom si laissé vide.">
+                <Input
+                  placeholder="Ex : jules-verne"
+                  value={formData.codeEtablissement}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      codeEtablissement: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Email de contact">
+                <Input
+                  type="email"
+                  placeholder="contact@julesverne.com"
+                  value={formData.emailContact}
+                  onChange={(e) => setFormData({ ...formData, emailContact: e.target.value })}
+                />
+              </Field>
+              <Field label="Téléphone établissement">
+                <Input
+                  placeholder="+223 70 00 00 00"
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                />
+              </Field>
+              <Field label="Plan tarifaire">
+                <Select
+                  value={formData.planTarifaire}
+                  onChange={(e) => setFormData({ ...formData, planTarifaire: e.target.value })}
+                >
+                  <option value="STARTER">Starter (50 000 FCFA/mois)</option>
+                  <option value="PRO">Pro (75 000 FCFA/mois)</option>
+                </Select>
+              </Field>
+              <Field label="Date de fin d'abonnement" hint="Par défaut : 1 an à compter de la création.">
+                <Input
+                  type="date"
+                  value={
+                    formData.dateExpirationAbonnement
+                      ? formData.dateExpirationAbonnement.substring(0, 10)
+                      : ''
+                  }
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      dateExpirationAbonnement: e.target.value ? `${e.target.value}T23:59:59` : '',
+                    })
+                  }
+                />
+              </Field>
+            </fieldset>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="input-group">
-                  <label className="input-label">Email de Contact</label>
-                  <input type="email" className="input-field" placeholder="contact@julesverne.com"
-                    value={formData.emailContact} onChange={e => setFormData({...formData, emailContact: e.target.value})} />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Téléphone Établissement 📞</label>
-                  <input type="text" className="input-field" placeholder="+223 70 00 00 00"
-                    value={formData.telephone} onChange={e => setFormData({...formData, telephone: e.target.value})} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="input-group">
-                  <label className="input-label">Plan Tarifaire</label>
-                  <select className="input-field" value={formData.planTarifaire} onChange={e => setFormData({...formData, planTarifaire: e.target.value})}>
-                    <option value="STARTER">Starter (50 000 FCFA/mois)</option>
-                    <option value="PRO">Pro (75 000 FCFA/mois)</option>
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Date Fin d'Abonnement 📅</label>
-                  <input type="date" className="input-field"
-                    value={formData.dateExpirationAbonnement ? formData.dateExpirationAbonnement.substring(0, 10) : ''}
-                    onChange={e => setFormData({...formData, dateExpirationAbonnement: e.target.value ? `${e.target.value}T23:59:59` : ''})} />
-                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Par défaut: 1 an à compter de la création</small>
-                </div>
-              </div>
-
-              <h3 style={{ fontSize: '0.85rem', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1.5rem', marginBottom: '1rem' }}>2. PREMIER ADMINISTRATEUR ÉCOLE</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="input-group">
-                  <label className="input-label">Prénom Admin *</label>
-                  <input type="text" className="input-field" required
-                    value={formData.adminProfil.prenom} onChange={e => setFormData({...formData, adminProfil: {...formData.adminProfil, prenom: e.target.value}})} />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Nom Admin *</label>
-                  <input type="text" className="input-field" required
-                    value={formData.adminProfil.nom} onChange={e => setFormData({...formData, adminProfil: {...formData.adminProfil, nom: e.target.value}})} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="input-group">
-                  <label className="input-label">Nom d'utilisateur (Login) *</label>
-                  <input type="text" className="input-field" placeholder="admin.julesverne" required
-                    value={formData.adminUsername} onChange={e => setFormData({
+            <fieldset className="grid gap-4 sm:grid-cols-2">
+              <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
+                2. Premier administrateur école
+              </legend>
+              <Field label="Prénom admin *">
+                <Input
+                  required
+                  value={formData.adminProfil.prenom}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      adminProfil: { ...formData.adminProfil, prenom: e.target.value },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Nom admin *">
+                <Input
+                  required
+                  value={formData.adminProfil.nom}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      adminProfil: { ...formData.adminProfil, nom: e.target.value },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Nom d'utilisateur (login) *">
+                <Input
+                  placeholder="admin.julesverne"
+                  required
+                  value={formData.adminUsername}
+                  onChange={(e) =>
+                    setFormData({
                       ...formData,
                       adminUsername: e.target.value,
-                      adminEmail: formData.adminEmail || `${e.target.value}@${formData.codeEtablissement || 'ecole'}.netaa-ecole.com`
-                    })} />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Email de l'Admin</label>
-                  <input type="email" className="input-field" placeholder="admin@julesverne.netaa-ecole.com"
-                    value={formData.adminEmail} onChange={e => setFormData({...formData, adminEmail: e.target.value})} />
-                </div>
-              </div>
-
-              <div className="input-group" style={{ marginTop: '1rem' }}>
-                <label className="input-label">Mot de passe Initial *</label>
-                <div style={{ position: 'relative' }}>
-                  <input
+                      adminEmail:
+                        formData.adminEmail ||
+                        `${e.target.value}@${formData.codeEtablissement || 'ecole'}.netaa-ecole.com`,
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Email de l'admin">
+                <Input
+                  type="email"
+                  placeholder="admin@julesverne.netaa-ecole.com"
+                  value={formData.adminEmail}
+                  onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
+                />
+              </Field>
+              <Field label="Mot de passe initial *" className="sm:col-span-2">
+                <div className="relative">
+                  <Input
                     type={showAdminPassword ? 'text' : 'password'}
-                    className="input-field"
                     required
                     minLength={6}
                     placeholder="••••••••"
                     value={formData.adminMotDePasse}
-                    onChange={e => setFormData({...formData, adminMotDePasse: e.target.value})}
-                    style={{ paddingRight: '2.5rem' }}
+                    onChange={(e) => setFormData({ ...formData, adminMotDePasse: e.target.value })}
+                    className="pr-10"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowAdminPassword(!showAdminPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.1rem',
-                      color: 'var(--text-secondary)',
-                      padding: '2px',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                    title={showAdminPassword ? 'Masquer' : 'Afficher'}
+                    onClick={() => setShowAdminPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                    aria-label={showAdminPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   >
-                    {showAdminPassword ? '🙈' : '👁️'}
+                    {showAdminPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
-              </div>
+              </Field>
+            </fieldset>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                <button type="button" onClick={() => setModalOpen(false)} style={{ padding: '0.75rem 1.5rem', background: 'none', border: '1px solid rgba(163,174,209,0.3)', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                  Annuler
-                </button>
-                <button type="submit" className="btn-primary" style={{ width: 'auto', backgroundColor: '#6366f1' }} disabled={submitting}>
-                  {submitting ? 'Création en cours...' : '✓ Créer l\'Établissement & Admin'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" loading={submitting}>
+                Créer l&apos;établissement &amp; l&apos;admin
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

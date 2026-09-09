@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { CheckCircle2, ShieldX, TriangleAlert } from 'lucide-react';
 import api from '@/services/api';
 import { Eleve } from '@/types';
+import { Logo } from '@/components/logo';
 
 export default function VerifyPage() {
   const params = useParams();
@@ -17,80 +19,75 @@ export default function VerifyPage() {
     const verify = async () => {
       try {
         const all = await api.get<Eleve[]>('/eleves');
-        const found = all.data.find(e => e.matricule === matricule);
+        const found = all.data.find((e) => e.matricule === matricule);
         if (found) setEleve(found);
         else setNotFound(true);
-      } catch { setNotFound(true); }
-      finally { setLoading(false); }
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
     };
     verify();
   }, [matricule]);
 
-  const statut = eleve?.statut || '';
-  const isActif = statut === 'ACTIF';
+  const isActif = (eleve?.statut || '') === 'ACTIF';
+
+  const rows = [
+    { label: 'Nom & prénom', value: `${eleve?.profil?.nom?.toUpperCase() ?? ''} ${eleve?.profil?.prenom ?? ''}`.trim() },
+    { label: 'Matricule', value: eleve?.matricule, mono: true },
+    { label: 'Classe', value: eleve?.classeNom || 'Non affecté' },
+    { label: 'Statut', value: eleve?.statut },
+  ];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0f2140 0%, #1B365D 60%, #0f2140 100%)',
-      padding: '2rem',
-      fontFamily: "'Inter', sans-serif"
-    }}>
-      <div style={{ maxWidth: '420px', width: '100%' }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img src="/logo.png" alt="Netaa" style={{ height: '55px', objectFit: 'contain', filter: 'brightness(10)' }} />
-          <div style={{ color: '#E5A93C', fontSize: '11px', fontWeight: 800, letterSpacing: '0.15em', marginTop: '8px' }}>VÉRIFICATION DE CARTE SCOLAIRE</div>
+    <div className="flex min-h-screen items-center justify-center bg-primary p-6">
+      <div className="w-full max-w-md">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Logo markClassName="h-14 w-14" showEcole={false} className="[&_span]:text-primary-foreground" />
+          <div className="mt-2 font-mono text-[0.7rem] font-bold uppercase tracking-[0.2em] text-gold">
+            Vérification de carte scolaire
+          </div>
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '2rem', color: 'white' }}>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-primary-foreground backdrop-blur">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.6)' }}>
-              ⏳ Vérification en cours...
+            <div className="py-10 text-center text-sm text-primary-foreground/60">
+              Vérification en cours…
             </div>
           ) : notFound ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
-              <h2 style={{ color: '#ee5d50', fontWeight: 700, marginBottom: '0.5rem' }}>Carte invalide</h2>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
-                Aucun élève trouvé avec le matricule <strong style={{ color: 'white' }}>{matricule}</strong>.
+            <div className="py-8 text-center">
+              <ShieldX className="mx-auto mb-3 size-12 text-destructive" />
+              <h2 className="mb-1 text-lg font-bold text-destructive">Carte invalide</h2>
+              <p className="text-sm text-primary-foreground/50">
+                Aucun élève trouvé avec le matricule <strong className="text-primary-foreground">{matricule}</strong>.
               </p>
             </div>
           ) : (
             <>
-              {/* Status badge */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                <div style={{
-                  padding: '0.5rem 1.5rem',
-                  borderRadius: '30px',
-                  background: isActif ? 'rgba(5,205,153,0.15)' : 'rgba(238,93,80,0.15)',
-                  border: `2px solid ${isActif ? '#05cd99' : '#ee5d50'}`,
-                  color: isActif ? '#05cd99' : '#ee5d50',
-                  fontWeight: 800,
-                  fontSize: '1rem',
-                  letterSpacing: '0.08em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  {isActif ? '✅' : '⛔'} {isActif ? 'CARTE VALIDE' : 'CARTE EXPIRÉE / ARCHIVÉE'}
+              <div className="mb-6 flex justify-center">
+                <div
+                  className={`inline-flex items-center gap-2 rounded-full border-2 px-5 py-2 text-sm font-extrabold tracking-wide ${
+                    isActif
+                      ? 'border-success bg-success/15 text-success'
+                      : 'border-destructive bg-destructive/15 text-destructive'
+                  }`}
+                >
+                  {isActif ? <CheckCircle2 className="size-4" /> : <ShieldX className="size-4" />}
+                  {isActif ? 'CARTE VALIDE' : 'CARTE EXPIRÉE / ARCHIVÉE'}
                 </div>
               </div>
 
-              {/* Student info */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {[
-                  { label: 'Nom & Prénom', value: `${eleve?.profil?.nom?.toUpperCase()} ${eleve?.profil?.prenom}` },
-                  { label: 'Matricule', value: eleve?.matricule, mono: true },
-                  { label: 'Classe', value: eleve?.classeNom || 'Non affecté' },
-                  { label: 'Statut', value: eleve?.statut },
-                ].map(row => (
-                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', fontWeight: 600 }}>{row.label}</span>
-                    <span style={{ color: row.mono ? '#E5A93C' : 'white', fontWeight: 700, fontFamily: row.mono ? 'monospace' : 'inherit', fontSize: row.mono ? '0.9rem' : '0.875rem' }}>
+              <div className="flex flex-col gap-3">
+                {rows.map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-center justify-between rounded-lg bg-white/5 px-4 py-3"
+                  >
+                    <span className="text-xs font-semibold text-primary-foreground/50">{row.label}</span>
+                    <span
+                      className={`text-sm font-bold ${row.mono ? 'font-mono text-gold' : 'text-primary-foreground'}`}
+                    >
                       {row.value || '—'}
                     </span>
                   </div>
@@ -98,16 +95,17 @@ export default function VerifyPage() {
               </div>
 
               {!isActif && (
-                <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', background: 'rgba(238,93,80,0.1)', border: '1px solid rgba(238,93,80,0.3)', borderRadius: '8px', color: '#ee5d50', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center' }}>
-                  ⚠️ Cette carte n'est plus valide. L'élève n'est plus actif dans le système.
+                <div className="mt-6 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs font-semibold text-destructive">
+                  <TriangleAlert className="size-4 shrink-0" />
+                  Cette carte n&apos;est plus valide. L&apos;élève n&apos;est plus actif dans le système.
                 </div>
               )}
             </>
           )}
         </div>
 
-        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', marginTop: '1.5rem' }}>
-          Netaa — Gestion Scolaire Numérique · Vérification automatisée
+        <p className="mt-6 text-center text-xs text-primary-foreground/30">
+          Netaa École — Gestion scolaire numérique · Vérification automatisée
         </p>
       </div>
     </div>

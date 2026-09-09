@@ -1,27 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { ClipboardList, Plus } from 'lucide-react';
 import { classeService } from '@/services/classe.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
 import { eleveService } from '@/services/eleve.service';
 import { noteService } from '@/services/note.service';
 import { Classe, Eleve, Note } from '@/types';
+import { errorMessage } from '@/lib/errors';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Field } from '@/components/ui/form-field';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-function getCategoryForClasse(c?: Classe) {
+function categoriePourClasse(c?: Classe): 'LYCEE' | 'COLLEGE' | 'PRIMAIRE' | 'MATERNELLE' | 'ALL' {
   if (!c) return 'ALL';
-  const text = `${c.niveauNom || ''} ${c.nom || ''}`.toLowerCase();
-  if (text.includes('lycée') || text.includes('lycee') || text.includes('10è') || text.includes('11è') || text.includes('12è') || text.includes('term') || text.includes('2nde') || text.includes('1ère s') || text.includes('1ère l') || text.includes('tse') || text.includes('tsexp') || text.includes('tseco') || text.includes('tss')) {
-    return 'LYCEE';
-  }
-  if (text.includes('collège') || text.includes('college') || text.includes('7è') || text.includes('8è') || text.includes('9è') || text.includes('6è')) {
-    return 'COLLEGE';
-  }
-  if (text.includes('maternelle') || text.includes('petite') || text.includes('moyenne') || text.includes('grande')) {
-    return 'MATERNELLE';
-  }
-  if (text.includes('primaire') || text.includes('1ère a') || text.includes('2ème a') || text.includes('3ème a') || text.includes('4ème a') || text.includes('5ème a') || text.includes('6ème a') || text.includes('cp') || text.includes('ce1') || text.includes('ce2') || text.includes('cm1') || text.includes('cm2')) {
-    return 'PRIMAIRE';
-  }
+  const t = `${c.niveauNom || ''} ${c.nom || ''}`.toLowerCase();
+  if (/lyc[ée]e|10è|11è|12è|term|2nde|1ère s|1ère l|ts[esco]/.test(t)) return 'LYCEE';
+  if (/coll[èe]ge|6è|7è|8è|9è/.test(t)) return 'COLLEGE';
+  if (/maternelle|petite|moyenne|grande/.test(t)) return 'MATERNELLE';
+  if (/primaire|cp|ce1|ce2|cm1|cm2|[1-6](ère|ème) a/.test(t)) return 'PRIMAIRE';
   return 'ALL';
 }
 
@@ -35,72 +38,64 @@ export default function NotesPage() {
   const [selectedMatiereId, setSelectedMatiereId] = useState('');
   const [selectedPeriode, setSelectedPeriode] = useState('TRIMESTRE_1');
 
-  // New Note Form State
   const [valeur, setValeur] = useState<number | ''>('');
-  const [noteMax, setNoteMax] = useState<number>(20);
+  const [noteMax, setNoteMax] = useState(20);
   const [typeEvaluation, setTypeEvaluation] = useState('DEVOIR');
   const [appreciation, setAppreciation] = useState('');
   const [targetEleveId, setTargetEleveId] = useState<number | null>(null);
-  
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    classeService.getClasses().then(setClasses).catch(console.error);
+    classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
   }, []);
 
-  useEffect(() => {
-    if (selectedClasseId) {
-      classeMatiereService.getByClasse(Number(selectedClasseId)).then(setMatieres).catch(console.error);
-      eleveService.getEleves().then(res => 
-        setEleves(res.filter(e => 
-          (String(e.classeId) === selectedClasseId || String((e as any).classe?.id) === selectedClasseId) &&
-          (!e.statut || e.statut.toUpperCase() === 'ACTIF')
-        ))
-      ).catch(console.error);
+  const loadNotes = useCallback(() => {
+    if (!selectedMatiereId) {
+      setExistingNotes([]);
+      return;
+    }
+    noteService
+      .getNotesClasseMatiere(Number(selectedMatiereId))
+      .then((res) => setExistingNotes(res.filter((n) => n.periode === selectedPeriode)))
+      .catch(() => toast.error('Impossible de charger les notes.'));
+  }, [selectedMatiereId, selectedPeriode]);
 
-      const foundClasse = classes.find(c => String(c.id) === selectedClasseId);
-      if (foundClasse) {
-        const cat = getCategoryForClasse(foundClasse);
-        if (cat === 'LYCEE') {
-          setSelectedPeriode('TRIMESTRE_1');
-        } else {
-          setSelectedPeriode('COMPOSITION_1');
-        }
-      }
-    } else {
+  useEffect(() => {
+    if (!selectedClasseId) {
       setMatieres([]);
       setEleves([]);
+      return;
     }
+    classeMatiereService.getByClasse(Number(selectedClasseId)).then(setMatieres).catch(() => {});
+    eleveService
+      .getEleves()
+      .then((res) =>
+        setEleves(
+          res.filter(
+            (e) =>
+              String(e.classeId) === selectedClasseId &&
+              (!e.statut || e.statut.toUpperCase() === 'ACTIF'),
+          ),
+        ),
+      )
+      .catch(() => {});
+
+    const cat = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
+    setSelectedPeriode(cat === 'LYCEE' ? 'TRIMESTRE_1' : 'COMPOSITION_1');
   }, [selectedClasseId, classes]);
 
   useEffect(() => {
-    if (selectedMatiereId && selectedPeriode) {
-      loadNotes();
-    } else {
-      setExistingNotes([]);
-    }
-  }, [selectedMatiereId, selectedPeriode]);
+    loadNotes();
+  }, [loadNotes]);
 
-  const loadNotes = () => {
-    if (selectedMatiereId) {
-      noteService.getNotesClasseMatiere(Number(selectedMatiereId))
-        .then(res => setExistingNotes(res.filter(n => n.periode === selectedPeriode)))
-        .catch(console.error);
-    }
-  };
-
-  const selectedClasseObj = classes.find(c => String(c.id) === selectedClasseId);
-  const currentCategory = getCategoryForClasse(selectedClasseObj);
+  const currentCategory = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
 
   const handleSaveNote = async (eleveId: number) => {
     if (valeur === '' || valeur < 0 || valeur > noteMax) {
-      setErrorMsg('La note doit être comprise entre 0 et ' + noteMax);
+      toast.error(`La note doit être comprise entre 0 et ${noteMax}.`);
       return;
     }
-    setLoading(true);
-    setErrorMsg('');
+    setSaving(true);
     try {
       await noteService.ajouterNote({
         eleveId,
@@ -109,140 +104,162 @@ export default function NotesPage() {
         typeEvaluation,
         valeur: Number(valeur),
         noteMax: Number(noteMax),
-        appreciation
+        appreciation,
       });
-      setSuccessMsg('Note enregistrée avec succès !');
+      toast.success('Note enregistrée.');
       setTargetEleveId(null);
       setValeur('');
       setAppreciation('');
       loadNotes();
-      setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (e: any) {
-      setErrorMsg(e.response?.data?.message || 'Erreur lors de l\'enregistrement de la note');
+    } catch (e) {
+      toast.error(errorMessage(e, "Erreur lors de l'enregistrement de la note"));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
     <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Saisie des Notes</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Ajoutez ou consultez les notes par classe et matière.</p>
-      </div>
+      <PageHeader
+        title="Saisie des notes"
+        description="Ajoutez et consultez les notes par classe, matière et période."
+      />
 
-      {/* Selectors */}
-      <div className="glass-card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-        <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
-          <label className="input-label">Classe</label>
-          <select className="input-field" value={selectedClasseId} onChange={e => { setSelectedClasseId(e.target.value); setSelectedMatiereId(''); }}>
+      <div className="mb-6 grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
+        <Field label="Classe">
+          <Select
+            value={selectedClasseId}
+            onChange={(e) => {
+              setSelectedClasseId(e.target.value);
+              setSelectedMatiereId('');
+            }}
+          >
             <option value="">— Sélectionner —</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
-        </div>
-        <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
-          <label className="input-label">Matière</label>
-          <select className="input-field" value={selectedMatiereId} onChange={e => setSelectedMatiereId(e.target.value)} disabled={!selectedClasseId}>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>{c.nom}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Matière">
+          <Select value={selectedMatiereId} onChange={(e) => setSelectedMatiereId(e.target.value)} disabled={!selectedClasseId}>
             <option value="">— Sélectionner —</option>
-            {matieres.map(m => <option key={m.id} value={m.id}>{m.matiere.nom} (Coef {m.coefficient})</option>)}
-          </select>
-        </div>
-        <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
-          <label className="input-label">Période d'Évaluation</label>
-          <select className="input-field" value={selectedPeriode} onChange={e => setSelectedPeriode(e.target.value)}>
-            {(currentCategory === 'PRIMAIRE' || currentCategory === 'MATERNELLE' || currentCategory === 'COLLEGE' || currentCategory === 'ALL') && (
-              <optgroup label="📋 Compositions (1ère à 6ème Année)">
-                <option value="COMPOSITION_1">Composition N° 1</option>
-                <option value="COMPOSITION_2">Composition N° 2</option>
-                <option value="COMPOSITION_3">Composition N° 3</option>
-                <option value="COMPOSITION_4">Composition N° 4</option>
-                <option value="COMPOSITION_5">Composition N° 5</option>
-                <option value="COMPOSITION_6">Composition N° 6</option>
+            {matieres.map((m) => (
+              <option key={m.id} value={m.id}>{m.matiere.nom} (coef {m.coefficient})</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Période">
+          <Select value={selectedPeriode} onChange={(e) => setSelectedPeriode(e.target.value)}>
+            {['PRIMAIRE', 'MATERNELLE', 'COLLEGE', 'ALL'].includes(currentCategory) && (
+              <optgroup label="Compositions">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
+                ))}
               </optgroup>
             )}
-            {(currentCategory === 'LYCEE' || currentCategory === 'COLLEGE' || currentCategory === 'ALL') && (
-              <optgroup label="📅 Trimestres">
-                <option value="TRIMESTRE_1">1er Trimestre</option>
-                <option value="TRIMESTRE_2">2ème Trimestre</option>
-                <option value="TRIMESTRE_3">3ème Trimestre</option>
+            {['LYCEE', 'COLLEGE', 'ALL'].includes(currentCategory) && (
+              <optgroup label="Trimestres">
+                <option value="TRIMESTRE_1">1er trimestre</option>
+                <option value="TRIMESTRE_2">2e trimestre</option>
+                <option value="TRIMESTRE_3">3e trimestre</option>
               </optgroup>
             )}
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
 
-      {errorMsg && <div style={{ padding: '1rem', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', marginBottom: '1rem' }}>{errorMsg}</div>}
-      {successMsg && <div style={{ padding: '1rem', background: '#d1fae5', color: '#047857', borderRadius: '8px', marginBottom: '1rem' }}>{successMsg}</div>}
-
-      {/* Eleves List */}
-      {selectedClasseId && selectedMatiereId && (
-        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Matricule</th>
-                <th>Élève</th>
-                <th>Notes existantes</th>
-                <th style={{ width: '300px' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eleves.map(eleve => {
-                const notesEleve = existingNotes.filter(n => (n.eleveId || (n as any).eleve?.id) === eleve.id);
-                const isTarget = targetEleveId === eleve.id;
-
-                return (
-                  <tr key={eleve.id}>
-                    <td><span style={{ fontFamily: 'monospace', color: 'var(--primary-color)' }}>{eleve.matricule}</span></td>
-                    <td style={{ fontWeight: 600 }}>{eleve.profil?.nom ? eleve.profil.nom.toUpperCase() : ''} {eleve.profil?.prenom || ''}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {notesEleve.length === 0 ? <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Aucune note</span> : 
-                          notesEleve.map((n, i) => (
-                            <span key={i} style={{ padding: '2px 6px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.8rem' }}>
-                              {n.valeur}/{n.noteMax} ({n.typeEvaluation ? n.typeEvaluation.substring(0,3) : 'Dev'})
-                            </span>
-                          ))
-                        }
-                      </div>
-                    </td>
-                    <td>
-                      {!isTarget ? (
-                        <button onClick={() => setTargetEleveId(eleve.id)} className="btn-primary" style={{ padding: '0.5rem', fontSize: '0.8rem', width: 'auto' }}>
-                          + Ajouter Note
-                        </button>
+      {!selectedClasseId || !selectedMatiereId ? (
+        <EmptyState
+          icon={<ClipboardList />}
+          title="Choisissez une classe et une matière"
+          description="La liste des élèves et leurs notes apparaîtra ici."
+        />
+      ) : eleves.length === 0 ? (
+        <EmptyState icon={<ClipboardList />} title="Aucun élève actif dans cette classe" />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Matricule</TableHead>
+              <TableHead>Élève</TableHead>
+              <TableHead>Notes ({selectedPeriode.replace('_', ' ').toLowerCase()})</TableHead>
+              <TableHead className="w-[320px]">Nouvelle note</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {eleves.map((eleve) => {
+              const notesEleve = existingNotes.filter((n) => n.eleveId === eleve.id);
+              const isTarget = targetEleveId === eleve.id;
+              return (
+                <TableRow key={eleve.id}>
+                  <TableCell>
+                    <span className="font-mono text-xs text-primary">{eleve.matricule}</span>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {eleve.profil?.nom?.toUpperCase()} {eleve.profil?.prenom}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      {notesEleve.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">Aucune note</span>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px' }}>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input type="number" className="input-field" placeholder="Note" value={valeur} onChange={e => setValeur(e.target.value ? Number(e.target.value) : '')} style={{ width: '70px', padding: '0.4rem' }} />
-                            <span style={{ alignSelf: 'center' }}>/</span>
-                            <input type="number" className="input-field" value={noteMax} onChange={e => setNoteMax(Number(e.target.value))} style={{ width: '70px', padding: '0.4rem' }} />
-                          </div>
-                          <select className="input-field" value={typeEvaluation} onChange={e => setTypeEvaluation(e.target.value)} style={{ padding: '0.4rem' }}>
-                            <option value="DEVOIR">Devoir</option>
-                            <option value="EXAMEN">Examen</option>
-                            <option value="PARTICIPATION">Participation</option>
-                          </select>
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            <button onClick={() => handleSaveNote(eleve.id)} disabled={loading} className="btn-primary" style={{ padding: '0.4rem', fontSize: '0.8rem' }}>
-                              Enregistrer
-                            </button>
-                            <button onClick={() => setTargetEleveId(null)} style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', background: 'transparent' }}>
-                              Annuler
-                            </button>
-                          </div>
-                        </div>
+                        notesEleve.map((n, i) => (
+                          <Badge key={i} variant="secondary">
+                            {n.valeur}/{n.noteMax}
+                            <span className="ml-1 opacity-70">{n.typeEvaluation?.slice(0, 3)}</span>
+                          </Badge>
+                        ))
                       )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {eleves.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Aucun élève actif dans cette classe.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {!isTarget ? (
+                      <Button size="sm" variant="outline" onClick={() => setTargetEleveId(eleve.id)}>
+                        <Plus /> Ajouter
+                      </Button>
+                    ) : (
+                      <div className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            className="h-9 w-20"
+                            placeholder="Note"
+                            value={valeur}
+                            onChange={(e) => setValeur(e.target.value ? Number(e.target.value) : '')}
+                          />
+                          <span className="text-muted-foreground">/</span>
+                          <Input
+                            type="number"
+                            className="h-9 w-20"
+                            value={noteMax}
+                            onChange={(e) => setNoteMax(Number(e.target.value))}
+                          />
+                        </div>
+                        <Select
+                          className="h-9"
+                          value={typeEvaluation}
+                          onChange={(e) => setTypeEvaluation(e.target.value)}
+                        >
+                          <option value="DEVOIR">Devoir</option>
+                          <option value="EXAMEN">Examen</option>
+                          <option value="PARTICIPATION">Participation</option>
+                        </Select>
+                        <div className="flex gap-2">
+                          <Button size="sm" loading={saving} onClick={() => handleSaveNote(eleve.id)}>
+                            Enregistrer
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setTargetEleveId(null)}>
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       )}
     </div>
   );

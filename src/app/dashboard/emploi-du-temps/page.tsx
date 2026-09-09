@@ -1,53 +1,52 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { CalendarDays, Clock, Coffee, MapPin, Plus, User, X } from 'lucide-react';
 import { emploiDuTempsService, EmploiDuTempsItem } from '@/services/emploiDuTemps.service';
 import { classeService } from '@/services/classe.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
 import { Classe } from '@/types';
+import { errorMessage } from '@/lib/errors';
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Field, FormError } from '@/components/ui/form-field';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-const JOURS_LABELS = ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-const COLORS = [
-  { bg: 'rgba(67,24,255,0.08)',  border: 'rgba(67,24,255,0.4)',  text: 'var(--primary-color)' },
-  { bg: 'rgba(5,205,153,0.08)',  border: 'rgba(5,205,153,0.4)',  text: '#05cd99' },
-  { bg: 'rgba(255,206,32,0.08)', border: 'rgba(255,206,32,0.4)', text: '#d97706' },
-  { bg: 'rgba(238,93,80,0.08)',  border: 'rgba(238,93,80,0.4)',  text: '#ee5d50' },
-  { bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.4)', text: '#8b5cf6' },
+const JOURS = ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+const PRESETS = [
+  { name: 'Récréation', debut: '10:00', fin: '10:15', type: 'RECREATION', salle: 'Cour de récréation' },
+  { name: 'Pause déjeuner', debut: '12:00', fin: '13:00', type: 'DEJEUNER', salle: 'Réfectoire / cantine' },
+  { name: 'Pause de 15h', debut: '15:00', fin: '15:15', type: 'RECREATION', salle: 'Cour de récréation' },
 ];
-
-const QUICK_PRESETS = [
-  { label: '☕ Récréation (10h00 - 10h15)', name: 'Récréation', debut: '10:00', fin: '10:15', type: 'RECREATION', salle: 'Cour de Récréation' },
-  { label: '🍱 Pause Déjeuner (12h00 - 13h00)', name: 'Pause Déjeuner', debut: '12:00', fin: '13:00', type: 'DEJEUNER', salle: 'Réfectoire / Cantine' },
-  { label: '🥤 Pause de l\'après-midi (15h00 - 15h15)', name: 'Pause de 15h', debut: '15:00', fin: '15:15', type: 'RECREATION', salle: 'Cour de Récréation' }
-];
-
-const matiereColor = (matiereId: number) => COLORS[matiereId % COLORS.length];
+const FORM_EMPTY = {
+  classeMatiereId: '',
+  jourSemaine: '1',
+  heureDebut: '08:00',
+  heureFin: '10:00',
+  salle: '',
+  libellePause: 'Récréation',
+};
 
 export default function EmploiDuTempsPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
-  const [selectedClasseId, setSelectedClasseId] = useState<string>('');
+  const [selectedClasseId, setSelectedClasseId] = useState('');
   const [emplois, setEmplois] = useState<EmploiDuTempsItem[]>([]);
   const [classeMatieres, setClasseMatieres] = useState<ClasseMatiereItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
   const [typeCreneau, setTypeCreneau] = useState<'COURS' | 'RECREATION' | 'DEJEUNER' | 'PAUSE'>('COURS');
-
-  const [formData, setFormData] = useState({
-    classeMatiereId: '',
-    jourSemaine: '1',
-    heureDebut: '08:00',
-    heureFin: '10:00',
-    salle: '',
-    libellePause: 'Récréation'
-  });
+  const [formData, setFormData] = useState(FORM_EMPTY);
 
   useEffect(() => {
-    classeService.getClasses().then(setClasses).catch(console.error);
+    classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
   }, []);
 
   useEffect(() => {
@@ -57,70 +56,62 @@ export default function EmploiDuTempsPage() {
       return;
     }
     setLoading(true);
-
     Promise.all([
       emploiDuTempsService.getByClasse(parseInt(selectedClasseId)),
-      classeMatiereService.getByClasse(parseInt(selectedClasseId))
+      classeMatiereService.getByClasse(parseInt(selectedClasseId)),
     ])
-      .then(([emploisData, cmData]) => {
-        setEmplois(emploisData);
-        setClasseMatieres(cmData);
+      .then(([e, cm]) => {
+        setEmplois(e);
+        setClasseMatieres(cm);
       })
-      .catch(console.error)
+      .catch(() => toast.error("Impossible de charger l'emploi du temps."))
       .finally(() => setLoading(false));
   }, [selectedClasseId]);
 
-  const applyPreset = (preset: typeof QUICK_PRESETS[0]) => {
-    setTypeCreneau(preset.type as any);
-    setFormData(prev => ({
-      ...prev,
-      libellePause: preset.name,
-      heureDebut: preset.debut,
-      heureFin: preset.fin,
-      salle: preset.salle
-    }));
+  const applyPreset = (p: (typeof PRESETS)[number]) => {
+    setTypeCreneau(p.type as 'RECREATION' | 'DEJEUNER');
+    setFormData((prev) => ({ ...prev, libellePause: p.name, heureDebut: p.debut, heureFin: p.fin, salle: p.salle }));
+  };
+
+  const openForm = () => {
+    setFormData(FORM_EMPTY);
+    setTypeCreneau('COURS');
+    setError('');
+    setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (typeCreneau === 'COURS' && !formData.classeMatiereId) {
-      setError('Veuillez sélectionner une matière pour ce cours.');
+      setError('Sélectionnez une matière pour ce cours.');
       return;
     }
-
     const cId = parseInt(selectedClasseId);
-    if (!cId || isNaN(cId)) {
-      setError('Veuillez sélectionner une classe valide.');
+    if (!cId) {
+      setError('Sélectionnez une classe valide.');
       return;
     }
+    const formatTime = (t: string) => (!t ? '08:00:00' : t.length === 5 ? `${t}:00` : t);
 
-    const formatTime = (t: string) => {
-      if (!t) return '08:00:00';
-      return t.length === 5 ? `${t}:00` : t;
-    };
-
-    setSubmitting(true); setError(''); setSuccess('');
+    setSubmitting(true);
+    setError('');
     try {
       await emploiDuTempsService.create({
         classeId: cId,
-        classeMatiereId: typeCreneau === 'COURS' && formData.classeMatiereId ? parseInt(formData.classeMatiereId) : undefined,
-        typeCreneau: typeCreneau,
-        libellePause: typeCreneau !== 'COURS' ? (formData.libellePause || 'Récréation') : undefined,
+        classeMatiereId:
+          typeCreneau === 'COURS' && formData.classeMatiereId ? parseInt(formData.classeMatiereId) : undefined,
+        typeCreneau,
+        libellePause: typeCreneau !== 'COURS' ? formData.libellePause || 'Récréation' : undefined,
         jourSemaine: parseInt(formData.jourSemaine),
         heureDebut: formatTime(formData.heureDebut),
         heureFin: formatTime(formData.heureFin),
-        salle: formData.salle || (typeCreneau !== 'COURS' ? 'Cour / Cantine' : 'Salle de Classe')
+        salle: formData.salle || (typeCreneau !== 'COURS' ? 'Cour / cantine' : 'Salle de classe'),
       });
-      setSuccess(typeCreneau === 'COURS' ? 'Cours planifié avec succès !' : `Pause "${formData.libellePause}" (${formData.heureDebut} - ${formData.heureFin}) ajoutée avec succès !`);
-      setFormData({ classeMatiereId: '', jourSemaine: '1', heureDebut: '08:00', heureFin: '10:00', salle: '', libellePause: 'Récréation' });
+      toast.success(typeCreneau === 'COURS' ? 'Cours planifié.' : `Pause « ${formData.libellePause} » ajoutée.`);
       setShowForm(false);
-
-      if (selectedClasseId) {
-        const updated = await emploiDuTempsService.getByClasse(parseInt(selectedClasseId));
-        setEmplois(updated);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la création du créneau');
+      setEmplois(await emploiDuTempsService.getByClasse(cId));
+    } catch (err) {
+      setError(errorMessage(err, 'Erreur lors de la création du créneau'));
     } finally {
       setSubmitting(false);
     }
@@ -130,267 +121,212 @@ export default function EmploiDuTempsPage() {
     if (!confirm('Supprimer ce créneau ?')) return;
     try {
       await emploiDuTempsService.delete(id);
-      setEmplois(prev => prev.filter(e => e.id !== id));
-    } catch { setError('Erreur lors de la suppression'); }
+      setEmplois((prev) => prev.filter((e) => e.id !== id));
+      toast.success('Créneau supprimé.');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors de la suppression'));
+    }
   };
 
-  // Group emplois by day for grid view
-  const byJour: Record<number, EmploiDuTempsItem[]> = {};
-  for (let j = 1; j <= 6; j++) { byJour[j] = []; }
-  emplois.forEach(e => {
-    if (!byJour[e.jourSemaine]) byJour[e.jourSemaine] = [];
-    byJour[e.jourSemaine].push(e);
-    byJour[e.jourSemaine].sort((a, b) => a.heureDebut.localeCompare(b.heureDebut));
+  const byJour: Record<number, EmploiDuTempsItem[]> = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+  emplois.forEach((e) => {
+    (byJour[e.jourSemaine] ??= []).push(e);
   });
+  Object.values(byJour).forEach((list) => list.sort((a, b) => a.heureDebut.localeCompare(b.heureDebut)));
+  const todayDow = new Date().getDay();
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Emplois du Temps & Pauses</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Vue hebdomadaire, cours et créneaux de récréation/pause par classe.</p>
-        </div>
-        <button
-          className="btn-primary"
-          style={{ width: 'auto', backgroundColor: '#8b5cf6' }}
-          onClick={() => setShowForm(!showForm)}
-          disabled={!selectedClasseId}
-        >
-          {showForm ? '✕ Annuler' : '+ Nouveau Créneau / Pause'}
-        </button>
-      </div>
+      <PageHeader
+        title="Emploi du temps"
+        description="Vue hebdomadaire des cours et des pauses, par classe."
+      >
+        <Button onClick={openForm} disabled={!selectedClasseId}>
+          <Plus /> Nouveau créneau
+        </Button>
+      </PageHeader>
 
-      {/* Selector */}
-      <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: '250px' }}>
-          <label className="input-label">🏫 Sélectionnez une classe</label>
-          <select className="input-field" value={selectedClasseId} onChange={e => setSelectedClasseId(e.target.value)}>
+      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+        <Field label="Classe" className="min-w-56 flex-1">
+          <Select value={selectedClasseId} onChange={(e) => setSelectedClasseId(e.target.value)}>
             <option value="">— Choisir une classe —</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>)}
-          </select>
-        </div>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>
+            ))}
+          </Select>
+        </Field>
         {selectedClasseId && (
-          <div style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(139,92,246,0.1)', borderRadius: '8px', color: '#8b5cf6', fontWeight: 600, fontSize: '0.9rem' }}>
-            {emplois.length} créneau(x) planifié(s)
-          </div>
+          <span className="rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+            {emplois.length} créneau(x)
+          </span>
         )}
       </div>
 
-      {/* Add form */}
-      {showForm && (
-        <div className="glass-card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h2 style={{ fontSize: '1.1rem', margin: 0 }}>➕ Ajouter un créneau ou une pause</h2>
-            
-            {/* Toggle Type */}
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => setTypeCreneau('COURS')}
-                style={{
-                  padding: '6px 14px', borderRadius: '20px', border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-                  backgroundColor: typeCreneau === 'COURS' ? '#8b5cf6' : 'rgba(163,174,209,0.15)',
-                  color: typeCreneau === 'COURS' ? '#fff' : 'var(--text-secondary)'
-                }}
+      {!selectedClasseId ? (
+        <EmptyState icon={<CalendarDays />} title="Sélectionnez une classe" description="Pour afficher et gérer son emploi du temps." />
+      ) : loading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full" />
+          ))}
+        </div>
+      ) : emplois.length === 0 ? (
+        <EmptyState
+          icon={<CalendarDays />}
+          title="Aucun créneau pour cette classe"
+          action={<Button onClick={openForm}><Plus /> Ajouter un créneau</Button>}
+        />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((jour) => (
+            <div key={jour}>
+              <div
+                className={cn(
+                  'mb-2 rounded-lg px-3 py-2 text-center text-sm font-semibold',
+                  jour === todayDow ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground',
+                )}
               >
-                📚 Cours d'Enseignement
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeCreneau('RECREATION')}
-                style={{
-                  padding: '6px 14px', borderRadius: '20px', border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-                  backgroundColor: typeCreneau !== 'COURS' ? '#d97706' : 'rgba(163,174,209,0.15)',
-                  color: typeCreneau !== 'COURS' ? '#fff' : 'var(--text-secondary)'
-                }}
-              >
-                ☕ Récréation / Pause / Repas
-              </button>
+                {JOURS[jour]}
+              </div>
+              <div className="flex flex-col gap-2">
+                {byJour[jour].length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                    Libre
+                  </div>
+                ) : (
+                  byJour[jour].map((slot) => {
+                    const isPause =
+                      slot.typeCreneau !== 'COURS' || !slot.classeMatiere;
+                    return (
+                      <div
+                        key={slot.id}
+                        className={cn(
+                          'relative rounded-lg border p-3',
+                          isPause ? 'border-accent/40 bg-accent/8' : 'border-primary/30 bg-primary/8',
+                        )}
+                      >
+                        <div className={cn('mb-1 flex items-center gap-1.5 text-sm font-semibold', isPause ? 'text-accent' : 'text-primary')}>
+                          {isPause ? <Coffee className="size-3.5" /> : <CalendarDays className="size-3.5" />}
+                          {isPause ? slot.libellePause || 'Pause' : slot.classeMatiere?.matiere?.nom || 'Matière'}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="size-3" />
+                          {slot.heureDebut?.substring(0, 5)} – {slot.heureFin?.substring(0, 5)}
+                        </div>
+                        {slot.salle && (
+                          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="size-3" />
+                            {slot.salle}
+                          </div>
+                        )}
+                        {!isPause && slot.classeMatiere?.enseignant?.profil && (
+                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <User className="size-3" />
+                            {slot.classeMatiere.enseignant.profil.prenom} {slot.classeMatiere.enseignant.profil.nom}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleDelete(slot.id)}
+                          className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground opacity-60 hover:bg-secondary hover:text-destructive hover:opacity-100"
+                          title="Supprimer"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* Formulaire créneau */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ajouter un créneau</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={typeCreneau === 'COURS' ? 'default' : 'outline'}
+              onClick={() => setTypeCreneau('COURS')}
+            >
+              Cours
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={typeCreneau !== 'COURS' ? 'accent' : 'outline'}
+              onClick={() => setTypeCreneau('RECREATION')}
+            >
+              <Coffee /> Pause / repas
+            </Button>
           </div>
 
-          {/* Quick Preset Shortcuts for Pauses */}
           {typeCreneau !== 'COURS' && (
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Raccourcis rapides :</span>
-              {QUICK_PRESETS.map(p => (
+            <div className="flex flex-wrap gap-1.5">
+              {PRESETS.map((p) => (
                 <button
                   key={p.name}
                   type="button"
                   onClick={() => applyPreset(p)}
-                  style={{
-                    padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(217,119,6,0.3)',
-                    backgroundColor: 'rgba(217,119,6,0.08)', color: '#d97706', fontSize: '0.75rem',
-                    cursor: 'pointer', fontWeight: 500
-                  }}
+                  className="rounded-md border border-accent/30 bg-accent/8 px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/15"
                 >
-                  {p.label}
+                  {p.name} ({p.debut}–{p.fin})
                 </button>
               ))}
             </div>
           )}
 
-          {error && <div style={{ color: '#ee5d50', padding: '0.75rem', borderRadius: '8px', background: 'rgba(238,93,80,0.1)', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
+          <FormError message={error} />
 
-          <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-            
+          <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             {typeCreneau === 'COURS' ? (
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label">Matière & Enseignant *</label>
-                <select
-                  className="input-field"
-                  value={formData.classeMatiereId}
-                  onChange={e => setFormData({ ...formData, classeMatiereId: e.target.value })}
-                  required
-                >
+              <Field label="Matière & enseignant *" className="sm:col-span-2">
+                <Select value={formData.classeMatiereId} onChange={(e) => setFormData({ ...formData, classeMatiereId: e.target.value })} required>
                   <option value="">— Sélectionner —</option>
-                  {classeMatieres.map(cm => (
+                  {classeMatieres.map((cm) => (
                     <option key={cm.id} value={cm.id}>
-                      {cm.matiere?.nom || 'Matière'} ({cm.enseignant?.profil ? `${cm.enseignant.profil.prenom} ${cm.enseignant.profil.nom}` : 'Sans enseignant'})
+                      {cm.matiere?.nom} (
+                      {cm.enseignant?.profil ? `${cm.enseignant.profil.prenom} ${cm.enseignant.profil.nom}` : 'sans enseignant'}
+                      )
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </Field>
             ) : (
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label">Nom de la Pause / Récréation *</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={formData.libellePause}
-                  onChange={e => setFormData({ ...formData, libellePause: e.target.value })}
-                  placeholder="Ex: Récréation, Pause Déjeuner, Pause Prière..."
-                  required
-                />
-              </div>
+              <Field label="Nom de la pause *" className="sm:col-span-2">
+                <Input value={formData.libellePause} onChange={(e) => setFormData({ ...formData, libellePause: e.target.value })} placeholder="Récréation, pause déjeuner, pause prière…" required />
+              </Field>
             )}
-
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Jour de la semaine</label>
-              <select className="input-field" value={formData.jourSemaine} onChange={e => setFormData({ ...formData, jourSemaine: e.target.value })}>
-                {[1,2,3,4,5,6].map(j => <option key={j} value={j}>{JOURS_LABELS[j]}</option>)}
-              </select>
-            </div>
-
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Heure de début (Manuelle) *</label>
-              <input type="time" className="input-field" value={formData.heureDebut} onChange={e => setFormData({ ...formData, heureDebut: e.target.value })} required style={{ border: '2px solid rgba(217,119,6,0.3)' }} />
-            </div>
-
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Heure de fin (Manuelle) *</label>
-              <input type="time" className="input-field" value={formData.heureFin} onChange={e => setFormData({ ...formData, heureFin: e.target.value })} required style={{ border: '2px solid rgba(217,119,6,0.3)' }} />
-            </div>
-
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">Lieu / Salle</label>
-              <input type="text" className="input-field" value={formData.salle} onChange={e => setFormData({ ...formData, salle: e.target.value })} placeholder={typeCreneau === 'COURS' ? 'Ex: Salle 101' : 'Ex: Cour de Récréation'} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-end', gridColumn: '1 / -1', justifyContent: 'flex-end' }}>
-              <button type="submit" className="btn-primary" style={{ width: 'auto', minWidth: '220px', backgroundColor: typeCreneau === 'COURS' ? '#8b5cf6' : '#d97706' }} disabled={submitting}>
-                {submitting ? 'Enregistrement...' : typeCreneau === 'COURS' ? '✓ Planifier le cours' : `☕ Enregistrer la pause (${formData.heureDebut} - ${formData.heureFin})`}
-              </button>
-            </div>
+            <Field label="Jour">
+              <Select value={formData.jourSemaine} onChange={(e) => setFormData({ ...formData, jourSemaine: e.target.value })}>
+                {[1, 2, 3, 4, 5, 6].map((j) => (
+                  <option key={j} value={j}>{JOURS[j]}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Salle / lieu">
+              <Input value={formData.salle} onChange={(e) => setFormData({ ...formData, salle: e.target.value })} placeholder={typeCreneau === 'COURS' ? 'Salle 101' : 'Cour de récréation'} />
+            </Field>
+            <Field label="Heure de début *">
+              <Input type="time" value={formData.heureDebut} onChange={(e) => setFormData({ ...formData, heureDebut: e.target.value })} required />
+            </Field>
+            <Field label="Heure de fin *">
+              <Input type="time" value={formData.heureFin} onChange={(e) => setFormData({ ...formData, heureFin: e.target.value })} required />
+            </Field>
+            <DialogFooter className="sm:col-span-2">
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button type="submit" loading={submitting}>{typeCreneau === 'COURS' ? 'Planifier le cours' : 'Enregistrer la pause'}</Button>
+            </DialogFooter>
           </form>
-        </div>
-      )}
-
-      {success && <div style={{ color: '#05cd99', padding: '1rem', borderRadius: '8px', background: 'rgba(5,205,153,0.1)', marginBottom: '1rem' }}>{success}</div>}
-
-      {/* Timetable Grid */}
-      {!selectedClasseId ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📅</div>
-          <p style={{ fontSize: '1.1rem' }}>Sélectionnez une classe ci-dessus pour afficher et gérer son emploi du temps.</p>
-        </div>
-      ) : loading ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-          Chargement de l'emploi du temps...
-        </div>
-      ) : (
-        <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-            {[1,2,3,4,5,6].map(jour => (
-              <div key={jour}>
-                <div style={{
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  borderRadius: '10px 10px 0 0',
-                  background: jour === new Date().getDay() ? 'var(--primary-color)' : 'rgba(163,174,209,0.1)',
-                  color: jour === new Date().getDay() ? 'white' : 'var(--text-secondary)',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  marginBottom: '0.5rem',
-                  borderBottom: jour === new Date().getDay() ? 'none' : '1px solid rgba(163,174,209,0.2)'
-                }}>
-                  {JOURS_LABELS[jour]}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {byJour[jour].length === 0 ? (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', opacity: 0.5, border: '1px dashed rgba(163,174,209,0.3)', borderRadius: '8px' }}>
-                      Libre
-                    </div>
-                  ) : (
-                    byJour[jour].map(slot => {
-                      const isPause = slot.typeCreneau === 'RECREATION' || slot.typeCreneau === 'DEJEUNER' || slot.typeCreneau === 'PAUSE' || !slot.classeMatiere;
-                      const c = isPause 
-                        ? { bg: 'rgba(217,119,6,0.1)', border: 'rgba(217,119,6,0.4)', text: '#d97706' }
-                        : (slot.classeMatiere?.matiere?.id ? matiereColor(slot.classeMatiere.matiere.id) : COLORS[0]);
-
-                      return (
-                        <div key={slot.id} style={{
-                          padding: '0.75rem',
-                          borderRadius: '8px',
-                          backgroundColor: c.bg,
-                          border: `1px solid ${c.border}`,
-                          position: 'relative'
-                        }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: c.text, marginBottom: '0.25rem' }}>
-                            {isPause ? (
-                              <span>☕ {slot.libellePause || 'Récréation / Pause'}</span>
-                            ) : (
-                              <span>📚 {slot.classeMatiere?.matiere?.nom || 'Matière'}</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                            🕐 {slot.heureDebut?.substring(0,5)} – {slot.heureFin?.substring(0,5)}
-                          </div>
-                          {slot.salle && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                              📍 {slot.salle}
-                            </div>
-                          )}
-                          {!isPause && slot.classeMatiere?.enseignant?.profil && (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                              👤 {slot.classeMatiere.enseignant.profil.prenom} {slot.classeMatiere.enseignant.profil.nom}
-                            </div>
-                          )}
-                          <button onClick={() => handleDelete(slot.id)} style={{
-                            position: 'absolute', top: '4px', right: '4px',
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#ee5d50', fontSize: '0.75rem', opacity: 0.6,
-                            padding: '2px 6px', borderRadius: '4px'
-                          }} title="Supprimer ce créneau">✕</button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {emplois.length === 0 && (
-            <div style={{ textAlign: 'center', marginTop: '2rem', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📅</div>
-              Aucun créneau créé pour cette classe.
-            </div>
-          )}
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,334 +2,224 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Ban,
+  Building2,
+  CheckCircle2,
+  Coins,
+  Plus,
+  ScrollText,
+  Settings,
+  School,
+} from 'lucide-react';
 import { etablissementService, Etablissement } from '@/services/etablissement.service';
-import Head from 'next/head';
+import { authService } from '@/services/auth.service';
+import { PageHeader } from '@/components/ui/page-header';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const PLAN_MRR: Record<string, number> = { STARTER: 50000, PRO: 75000, ENTERPRISE: 120000 };
 
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [etablissements, setEtablissements] = useState<Etablissement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userNomComplet, setUserNomComplet] = useState<string>('Super-Admin');
+  const [userNomComplet, setUserNomComplet] = useState('Super-Admin');
 
   useEffect(() => {
-    const { authService } = require('@/services/auth.service');
     const user = authService.getCurrentUser();
     if (user) {
       const name = [user.prenom, user.nom].filter(Boolean).join(' ');
       setUserNomComplet(name || user.username || 'Super-Admin');
     }
-
-    etablissementService.listerTous()
+    etablissementService
+      .listerTous()
       .then(setEtablissements)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  // Compute MRR (Monthly Recurring Revenue) Estimation
-  const calculateMRR = () => {
-    return etablissements.reduce((acc, curr) => {
-      if (curr.statut !== 'ACTIF') return acc;
-      if (curr.planTarifaire === 'STARTER') return acc + 50000;
-      if (curr.planTarifaire === 'PRO') return acc + 75000;
-      return acc + 50000;
-    }, 0);
-  };
-
   const total = etablissements.length;
-  const actifs = etablissements.filter(e => e.statut === 'ACTIF').length;
-  const suspendus = etablissements.filter(e => e.statut === 'SUSPENDU').length;
-  const mrr = calculateMRR();
+  const actifs = etablissements.filter((e) => e.statut === 'ACTIF').length;
+  const suspendus = etablissements.filter((e) => e.statut === 'SUSPENDU').length;
+  const mrr = etablissements.reduce(
+    (acc, e) => (e.statut === 'ACTIF' ? acc + (PLAN_MRR[e.planTarifaire] ?? PLAN_MRR.STARTER) : acc),
+    0,
+  );
+  const starterCount = etablissements.filter((e) => e.planTarifaire === 'STARTER').length;
+  const proCount = etablissements.filter((e) => e.planTarifaire === 'PRO').length;
+
+  const metrics = [
+    {
+      label: 'Revenu mensuel (MRR)',
+      value: loading ? '…' : `${mrr.toLocaleString('fr-FR')} FCFA`,
+      hint: 'Estimation sur les comptes actifs',
+      Icon: Coins,
+      accent: 'text-primary',
+    },
+    {
+      label: 'Établissements totaux',
+      value: loading ? '…' : total,
+      hint: 'Sous-domaines configurés',
+      Icon: Building2,
+      accent: 'text-foreground',
+    },
+    {
+      label: 'Écoles actives',
+      value: loading ? '…' : actifs,
+      hint: 'Accès et services fonctionnels',
+      Icon: CheckCircle2,
+      accent: 'text-success',
+    },
+    {
+      label: 'Comptes suspendus',
+      value: loading ? '…' : suspendus,
+      hint: 'Accès temporairement bloqués',
+      Icon: Ban,
+      accent: 'text-destructive',
+    },
+  ];
+
+  const shortcuts = [
+    { label: 'Gérer les établissements', href: '/super-admin/etablissements', Icon: Building2 },
+    { label: "Journaux d'audit", href: '/super-admin/journal', Icon: ScrollText },
+    { label: 'Paramètres SaaS', href: '/super-admin/settings', Icon: Settings },
+    { label: "Tester l'accès école", href: '/dashboard', Icon: School },
+  ];
+
+  const statutBadge = (s: Etablissement['statut']) =>
+    s === 'ACTIF' ? (
+      <Badge variant="success">Actif</Badge>
+    ) : s === 'SUSPENDU' ? (
+      <Badge variant="destructive">Suspendu</Badge>
+    ) : (
+      <Badge variant="secondary">Clôturé</Badge>
+    );
 
   return (
     <div>
-      <Head>
-        <title>Super-Admin SaaS | Vue d'ensemble</title>
-      </Head>
+      <PageHeader title={`Bonjour, ${userNomComplet}`} description="Vue globale multi-tenant : abonnements, revenus et santé des établissements abonnés.">
+        <Button onClick={() => router.push('/super-admin/etablissements')}>
+          <Plus /> Ajouter un établissement client
+        </Button>
+      </PageHeader>
 
-      {/* Hero Header */}
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
-            ⚡ Bonjour, {userNomComplet} 👋
-          </h1>
-          <p style={{ color: '#94a3b8', marginTop: '0.4rem', fontSize: '0.95rem' }}>
-            Vue globale des performances multi-tenant, abonnements et santé des établissements abonnés.
-          </p>
-        </div>
-        <button
-          onClick={() => router.push('/super-admin/etablissements')}
-          style={{
-            backgroundColor: '#6366f1',
-            color: '#ffffff',
-            border: 'none',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '10px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
-            transition: 'transform 0.2s'
-          }}
-          onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
-          onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
-        >
-          + Ajouter un Établissement Client
-        </button>
-      </div>
-
-      {/* Key Metric Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
-        
-        {/* MRR Card */}
-        <div style={{
-          backgroundColor: '#0f172a',
-          border: '1px solid rgba(99,102,241,0.3)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>REVENU MENSUEL (MRR)</span>
-            <span style={{ fontSize: '1.25rem' }}>💰</span>
-          </div>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 800, margin: '0.75rem 0 0.25rem 0', color: '#6366f1' }}>
-            {mrr.toLocaleString('fr-FR')} <span style={{ fontSize: '1rem', color: '#94a3b8' }}>FCFA / mois</span>
-          </h2>
-          <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>● Estimation basée sur les comptes actifs</span>
-        </div>
-
-        {/* Total Schools */}
-        <div style={{
-          backgroundColor: '#0f172a',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '16px',
-          padding: '1.5rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ÉTABLISSEMENTS TOTAUX</span>
-            <span style={{ fontSize: '1.25rem' }}>🏛️</span>
-          </div>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 800, margin: '0.75rem 0 0.25rem 0', color: '#ffffff' }}>
-            {loading ? '...' : total}
-          </h2>
-          <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Sous-domaines configurés sur la plateforme</span>
-        </div>
-
-        {/* Active Schools */}
-        <div style={{
-          backgroundColor: '#0f172a',
-          border: '1px solid rgba(16,185,129,0.3)',
-          borderRadius: '16px',
-          padding: '1.5rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ÉCOLES ACTIVES</span>
-            <span style={{ fontSize: '1.25rem' }}>✅</span>
-          </div>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 800, margin: '0.75rem 0 0.25rem 0', color: '#10b981' }}>
-            {loading ? '...' : actifs}
-          </h2>
-          <span style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>Accès et services fonctionnels</span>
-        </div>
-
-        {/* Suspended Schools */}
-        <div style={{
-          backgroundColor: '#0f172a',
-          border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: '16px',
-          padding: '1.5rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>COMPTES SUSPENDUS</span>
-            <span style={{ fontSize: '1.25rem' }}>⛔</span>
-          </div>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 800, margin: '0.75rem 0 0.25rem 0', color: '#ef4444' }}>
-            {loading ? '...' : suspendus}
-          </h2>
-          <span style={{ fontSize: '0.8rem', color: '#fca5a5' }}>Accès temporairement bloqués</span>
-        </div>
-
-      </div>
-
-      {/* Plan Distribution Overview */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-        
-        {/* Quick Plan Breakdown */}
-        <div style={{ backgroundColor: '#0f172a', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 1.25rem 0', color: '#f8fafc' }}>
-            📊 Répartition des Abonnements
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Plan Starter (50 000 FCFA/mois)</span>
-                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>
-                  {etablissements.filter(e => e.planTarifaire === 'STARTER').length} école(s)
-                </span>
-              </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${total ? (etablissements.filter(e => e.planTarifaire === 'STARTER').length / total) * 100 : 0}%`, height: '100%', backgroundColor: '#a5b4fc' }} />
-              </div>
+      {/* Chiffres clés */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(({ label, value, hint, Icon, accent }) => (
+          <Card key={label} className="flex flex-col gap-2 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
+              <Icon className={`size-5 ${accent}`} />
             </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Plan Pro (75 000 FCFA/mois)</span>
-                <span style={{ color: '#6366f1', fontWeight: 700 }}>
-                  {etablissements.filter(e => e.planTarifaire === 'PRO').length} école(s)
-                </span>
-              </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${total ? (etablissements.filter(e => e.planTarifaire === 'PRO').length / total) * 100 : 0}%`, height: '100%', backgroundColor: '#6366f1' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions Shortcuts */}
-        <div style={{ backgroundColor: '#0f172a', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 1.25rem 0', color: '#f8fafc' }}>
-            ⚡ Raccourcis Administrateur
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-            <button
-              onClick={() => router.push('/super-admin/etablissements')}
-              style={{
-                padding: '1rem',
-                backgroundColor: 'rgba(99,102,241,0.1)',
-                border: '1px solid rgba(99,102,241,0.3)',
-                borderRadius: '12px',
-                color: '#a5b4fc',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              🏛️ Gérer les Établissements →
-            </button>
-            <button
-              onClick={() => router.push('/super-admin/journal')}
-              style={{
-                padding: '1rem',
-                backgroundColor: 'rgba(168,85,247,0.1)',
-                border: '1px solid rgba(168,85,247,0.3)',
-                borderRadius: '12px',
-                color: '#c084fc',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              📜 Voir Journaux d'Audit →
-            </button>
-            <button
-              onClick={() => router.push('/super-admin/settings')}
-              style={{
-                padding: '1rem',
-                backgroundColor: 'rgba(16,185,129,0.1)',
-                border: '1px solid rgba(16,185,129,0.3)',
-                borderRadius: '12px',
-                color: '#6ee7b7',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              ⚙️ Paramètres SaaS →
-            </button>
-            <button
-              onClick={() => router.push('/dashboard')}
-              style={{
-                padding: '1rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px',
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              🏫 Tester l'Accès École →
-            </button>
-          </div>
-        </div>
-
+            <div className={`text-2xl font-extrabold ${accent}`}>{value}</div>
+            <span className="text-xs text-muted-foreground">{hint}</span>
+          </Card>
+        ))}
       </div>
 
-      {/* Recent Schools Table Preview */}
-      <div style={{ backgroundColor: '#0f172a', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
-            📋 Derniers Établissements Inscrits
-          </h3>
-          <button
-            onClick={() => router.push('/super-admin/etablissements')}
-            style={{ background: 'none', border: 'none', color: '#6366f1', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
-          >
-            Voir la liste complète ({etablissements.length}) →
-          </button>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {/* Répartition abonnements */}
+        <Card className="p-6">
+          <h3 className="mb-4 text-sm font-bold text-foreground">Répartition des abonnements</h3>
+          <div className="flex flex-col gap-4">
+            {[
+              { label: 'Plan Starter (50 000 FCFA/mois)', count: starterCount, cls: 'bg-primary/50' },
+              { label: 'Plan Pro (75 000 FCFA/mois)', count: proCount, cls: 'bg-primary' },
+            ].map((row) => (
+              <div key={row.label}>
+                <div className="mb-1.5 flex justify-between text-sm">
+                  <span className="font-medium text-muted-foreground">{row.label}</span>
+                  <span className="font-bold text-primary">{row.count} école(s)</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={`h-full ${row.cls}`}
+                    style={{ width: `${total ? (row.count / total) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Raccourcis */}
+        <Card className="p-6">
+          <h3 className="mb-4 text-sm font-bold text-foreground">Raccourcis administrateur</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {shortcuts.map(({ label, href, Icon }) => (
+              <Link
+                key={label}
+                href={href}
+                className="flex items-center gap-2.5 rounded-lg border border-border bg-secondary/40 p-3.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-secondary"
+              >
+                <Icon className="size-4 shrink-0 text-primary" />
+                {label}
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Derniers établissements */}
+      <Card className="mt-6 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-bold text-foreground">Derniers établissements inscrits</h3>
+          <Button variant="link" size="sm" onClick={() => router.push('/super-admin/etablissements')}>
+            Voir la liste complète ({total}) →
+          </Button>
         </div>
 
         {loading ? (
-          <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Chargement des données...</p>
-        ) : etablissements.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🏛️</div>
-            Aucun établissement client enregistré pour le moment.
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-11 w-full" />
+            ))}
           </div>
+        ) : etablissements.length === 0 ? (
+          <EmptyState icon={<Building2 />} title="Aucun établissement client enregistré pour le moment." />
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>
-                <th style={{ padding: '0.85rem 1rem' }}>Nom</th>
-                <th style={{ padding: '0.85rem 1rem' }}>Sous-Domaine</th>
-                <th style={{ padding: '0.85rem 1rem' }}>Plan</th>
-                <th style={{ padding: '0.85rem 1rem' }}>Statut</th>
-                <th style={{ padding: '0.85rem 1rem' }}>Contact</th>
-              </tr>
-            </thead>
-            <tbody>
-              {etablissements.slice(0, 5).map(e => (
-                <tr key={e.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#f8fafc' }}>{e.nom}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    <code style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>
-                      {e.code}.netaa-ecole.com
-                    </code>
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    <span style={{
-                      padding: '3px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700,
-                      backgroundColor: e.planTarifaire === 'ENTERPRISE' ? 'rgba(168,85,247,0.2)' : 'rgba(99,102,241,0.2)',
-                      color: e.planTarifaire === 'ENTERPRISE' ? '#c084fc' : '#a5b4fc'
-                    }}>
-                      {e.planTarifaire}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    {e.statut === 'ACTIF' && <span style={{ color: '#10b981', fontWeight: 700 }}>● Actif</span>}
-                    {e.statut === 'SUSPENDU' && <span style={{ color: '#ef4444', fontWeight: 700 }}>⛔ Suspendu</span>}
-                    {e.statut === 'CLOTURE' && <span style={{ color: '#94a3b8', fontWeight: 700 }}>✖ Clôturé</span>}
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem', color: '#94a3b8' }}>
-                    {e.emailContact || 'Non renseigné'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Sous-domaine</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Contact</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {etablissements.slice(0, 5).map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-semibold text-foreground">{e.nom}</TableCell>
+                    <TableCell>
+                      <code className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">
+                        {e.code}.netaa-ecole.com
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={e.planTarifaire === 'ENTERPRISE' ? 'default' : 'secondary'}>
+                        {e.planTarifaire}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{statutBadge(e.statut)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {e.emailContact || 'Non renseigné'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Head from 'next/head';
+import { AlertCircle, ArrowRight, Crown, Eye, EyeOff, Lock, PartyPopper } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import { AuthShell } from '@/components/ui/auth-shell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Field } from '@/components/ui/form-field';
 
 export default function SetupSuperAdminPage() {
   const router = useRouter();
@@ -14,11 +20,13 @@ export default function SetupSuperAdminPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    authService.checkSuperAdminExists().then(res => {
-      if (res?.exists) {
-        setAlreadyExists(true);
-      }
-    }).catch(console.error).finally(() => setChecking(false));
+    authService
+      .checkSuperAdminExists()
+      .then((res) => {
+        if (res?.exists) setAlreadyExists(true);
+      })
+      .catch(console.error)
+      .finally(() => setChecking(false));
   }, []);
 
   const [formData, setFormData] = useState({
@@ -32,8 +40,8 @@ export default function SetupSuperAdminPage() {
       telephone: '',
       adresse: 'Siège Netaa SaaS',
       genre: 'M',
-      dateNaissance: '1990-01-01'
-    }
+      dateNaissance: '1990-01-01',
+    },
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,12 +50,9 @@ export default function SetupSuperAdminPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name in formData.profil) {
-      setFormData(prev => ({
-        ...prev,
-        profil: { ...prev.profil, [name]: value }
-      }));
+      setFormData((prev) => ({ ...prev, profil: { ...prev.profil, [name]: value } }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -65,9 +70,9 @@ export default function SetupSuperAdminPage() {
     }
 
     setLoading(true);
-
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api';
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL || 'https://gestion-scolaire-backend-x0hy.onrender.com/api';
       const response = await fetch(`${apiBase}/auth/register-super-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,8 +81,8 @@ export default function SetupSuperAdminPage() {
           email: formData.email,
           motDePasse: formData.motDePasse,
           role: 'SUPER_ADMIN',
-          profil: formData.profil
-        })
+          profil: formData.profil,
+        }),
       });
 
       if (!response.ok) {
@@ -86,11 +91,9 @@ export default function SetupSuperAdminPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 3500);
-    } catch (err: any) {
-      setError(err.message || 'Erreur inattendue lors de l\'inscription.');
+      setTimeout(() => router.push('/login'), 3500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inattendue lors de l'inscription.");
     } finally {
       setLoading(false);
     }
@@ -98,219 +101,168 @@ export default function SetupSuperAdminPage() {
 
   if (checking) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0b0f19' }}>
-        <p style={{ color: '#6366f1' }}>Vérification des autorisations...</p>
-      </div>
+      <AuthShell>
+        <p className="text-center text-sm text-muted-foreground">Vérification des autorisations…</p>
+      </AuthShell>
     );
   }
 
   if (alreadyExists) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #0b0f19 0%, #1e1b4b 100%)', padding: '2rem' }}>
-        <div className="glass-card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center', backgroundColor: '#0f172a', border: '1px solid rgba(239,68,68,0.4)', padding: '2.5rem', borderRadius: '16px', color: '#ffffff' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔒</div>
-          <h2 style={{ color: '#ef4444', marginBottom: '0.75rem', fontSize: '1.4rem', fontWeight: 800 }}>
-            Création Super-Admin Verrouillée
+      <AuthShell>
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-3 flex size-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <Lock className="size-7" />
+          </div>
+          <h2 className="font-display text-xl font-extrabold text-destructive">
+            Création Super-Admin verrouillée
           </h2>
-          <p style={{ color: '#cbd5e1', fontSize: '0.925rem', lineHeight: '1.6' }}>
-            Un compte Super-Admin maître existe déjà sur la plateforme Netaa. Pour des raisons de sécurité et d'exclusivité, aucun autre compte Super-Admin ne peut être créé via cette page.
+          <p className="mt-2 text-sm text-muted-foreground">
+            Un compte Super-Admin maître existe déjà sur la plateforme Netaa. Pour des raisons de
+            sécurité et d&apos;exclusivité, aucun autre compte Super-Admin ne peut être créé via cette
+            page.
           </p>
-          <Link href="/login" className="btn-primary" style={{ display: 'inline-block', marginTop: '1.75rem', backgroundColor: '#6366f1', padding: '0.8rem 1.75rem', textDecoration: 'none' }}>
-            ← Se Connecter
-          </Link>
+          <Button asChild className="mt-6">
+            <Link href="/login">
+              <ArrowRight className="size-4 rotate-180" /> Se connecter
+            </Link>
+          </Button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (success) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-secondary, #0b0f19)', padding: '2rem' }}>
-        <div className="glass-card" style={{ maxWidth: '480px', width: '100%', textAlign: 'center', backgroundColor: '#0f172a', border: '1px solid rgba(99,102,241,0.4)', padding: '2.5rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
-          <h2 style={{ color: '#6366f1', marginBottom: '0.75rem', fontSize: '1.5rem', fontWeight: 800 }}>
-            Compte Super-Admin Créé avec Succès !
+      <AuthShell>
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-3 flex size-14 items-center justify-center rounded-full bg-gold/15 text-gold">
+            <PartyPopper className="size-7" />
+          </div>
+          <h2 className="font-display text-xl font-extrabold text-primary">
+            Compte Super-Admin créé
           </h2>
-          <p style={{ color: '#cbd5e1', fontSize: '0.95rem' }}>
-            Félicitations, votre espace d'administration globale est configuré.
+          <p className="mt-2 text-sm text-foreground">
+            Votre espace d&apos;administration globale est configuré.
           </p>
-          <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>
-            Redirection automatique vers la page de connexion...
+          <p className="mt-1 text-xs text-muted-foreground">
+            Redirection automatique vers la page de connexion…
           </p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0b0f19 0%, #1e1b4b 100%)',
-      padding: '2rem'
-    }}>
-      <Head>
-        <title>Inscription Super-Admin | Netaa SaaS</title>
-      </Head>
-
-      <div className="glass-card" style={{ maxWidth: '560px', width: '100%', backgroundColor: '#0f172a', border: '1px solid rgba(99,102,241,0.3)', color: '#ffffff' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>👑</div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6366f1', marginBottom: '0.4rem' }}>
-            Inscription Super-Admin SaaS
-          </h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-            Créez vos identifiants maître pour superviser la plateforme et les établissements abonnés.
-          </p>
+    <AuthShell wide>
+      <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-gold/15 text-gold">
+          <Crown className="size-7" />
         </div>
-
-        {error && (
-          <div style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', padding: '0.85rem', borderRadius: '10px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          
-          <h3 style={{ fontSize: '0.85rem', color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-            1. INFORMATIONS PERSONNELLES
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Prénom *</label>
-              <input type="text" name="prenom" className="input-field" placeholder="Ex: Aïcha" value={formData.profil.prenom} onChange={handleChange} required style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }} />
-            </div>
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Nom *</label>
-              <input type="text" name="nom" className="input-field" placeholder="Ex: Diarra" value={formData.profil.nom} onChange={handleChange} required style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Téléphone</label>
-              <input type="text" name="telephone" className="input-field" placeholder="+223 70 00 00 00" value={formData.profil.telephone} onChange={handleChange} style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }} />
-            </div>
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Genre</label>
-              <select name="genre" className="input-field" value={formData.profil.genre} onChange={handleChange} style={{ backgroundColor: '#1e293b', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }}>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
-              </select>
-            </div>
-          </div>
-
-          <h3 style={{ fontSize: '0.85rem', color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1.25rem', marginBottom: '1rem' }}>
-            2. IDENTIFIANTS MAÎTRE (LOGINS)
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Nom d'utilisateur (Username) *</label>
-              <input type="text" name="username" className="input-field" placeholder="ex: super.aicha" value={formData.username} onChange={handleChange} required style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }} />
-            </div>
-
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Email Professionnel *</label>
-              <input type="email" name="email" className="input-field" placeholder="aicha@netaa-ecole.com" value={formData.email} onChange={handleChange} required style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {/* Password input with eye toggle */}
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Mot de Passe *</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="motDePasse"
-                  className="input-field"
-                  placeholder="••••••••"
-                  value={formData.motDePasse}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)', paddingRight: '2.5rem' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem',
-                    color: '#94a3b8',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  title={showPassword ? 'Masquer' : 'Afficher'}
-                >
-                  {showPassword ? '🙈' : '👁️'}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password input with eye toggle */}
-            <div className="input-group">
-              <label className="input-label" style={{ color: '#cbd5e1' }}>Confirmer le Mot de Passe *</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmMotDePasse"
-                  className="input-field"
-                  placeholder="••••••••"
-                  value={formData.confirmMotDePasse}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)', paddingRight: '2.5rem' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem',
-                    color: '#94a3b8',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  title={showConfirmPassword ? 'Masquer' : 'Afficher'}
-                >
-                  {showConfirmPassword ? '🙈' : '👁️'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1.5rem', backgroundColor: '#6366f1', width: '100%', padding: '0.85rem' }}>
-            {loading ? 'Création de votre compte Super-Admin...' : '👑 Créer mon Compte Super-Admin'}
-          </button>
-
-          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-            <Link href="/login" style={{ color: '#94a3b8', fontSize: '0.85rem', textDecoration: 'underline' }}>
-              Déjà inscrit ? Se connecter →
-            </Link>
-          </div>
-        </form>
+        <h1 className="font-display text-xl font-extrabold text-primary">
+          Inscription Super-Admin SaaS
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Créez vos identifiants maître pour superviser la plateforme et les établissements abonnés.
+        </p>
       </div>
-    </div>
+
+      {error && (
+        <Alert tone="error" className="mb-5" icon={<AlertCircle className="size-4" />}>
+          {error}
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <fieldset className="grid gap-4 sm:grid-cols-2">
+          <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
+            1. Informations personnelles
+          </legend>
+          <Field label="Prénom *">
+            <Input name="prenom" placeholder="Ex : Aïcha" value={formData.profil.prenom} onChange={handleChange} required />
+          </Field>
+          <Field label="Nom *">
+            <Input name="nom" placeholder="Ex : Diarra" value={formData.profil.nom} onChange={handleChange} required />
+          </Field>
+          <Field label="Téléphone">
+            <Input name="telephone" placeholder="+223 70 00 00 00" value={formData.profil.telephone} onChange={handleChange} />
+          </Field>
+          <Field label="Genre">
+            <Select name="genre" value={formData.profil.genre} onChange={handleChange}>
+              <option value="M">Masculin</option>
+              <option value="F">Féminin</option>
+            </Select>
+          </Field>
+        </fieldset>
+
+        <fieldset className="grid gap-4 sm:grid-cols-2">
+          <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
+            2. Identifiants maître
+          </legend>
+          <Field label="Nom d'utilisateur *">
+            <Input name="username" placeholder="ex : super.aicha" value={formData.username} onChange={handleChange} required />
+          </Field>
+          <Field label="Email professionnel *">
+            <Input type="email" name="email" placeholder="aicha@netaa-ecole.com" value={formData.email} onChange={handleChange} required />
+          </Field>
+
+          <Field label="Mot de passe *">
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                name="motDePasse"
+                placeholder="••••••••"
+                value={formData.motDePasse}
+                onChange={handleChange}
+                required
+                minLength={6}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </Field>
+
+          <Field label="Confirmer le mot de passe *">
+            <div className="relative">
+              <Input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmMotDePasse"
+                placeholder="••••••••"
+                value={formData.confirmMotDePasse}
+                onChange={handleChange}
+                required
+                minLength={6}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </Field>
+        </fieldset>
+
+        <Button type="submit" className="w-full" loading={loading}>
+          <Crown /> Créer mon compte Super-Admin
+        </Button>
+
+        <div className="text-center">
+          <Link href="/login" className="text-sm text-muted-foreground underline hover:text-foreground">
+            Déjà inscrit ? Se connecter →
+          </Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

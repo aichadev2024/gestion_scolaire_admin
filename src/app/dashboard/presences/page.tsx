@@ -1,150 +1,171 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { presenceService, PresenceItem, PresenceEnseignantItem } from '@/services/presence.service';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { CalendarClock, CheckSquare, GraduationCap, UsersRound } from 'lucide-react';
+import { presenceService, PresenceItem } from '@/services/presence.service';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
 import { enseignantService } from '@/services/enseignant.service';
 import { Classe, Eleve, Enseignant } from '@/types';
+import { errorMessage } from '@/lib/errors';
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Field } from '@/components/ui/form-field';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const STATUTS: Record<string, { label: string; color: string; bg: string; emoji: string }> = {
-  PRESENT: { label: 'Présent', color: '#05cd99', bg: 'rgba(5,205,153,0.1)', emoji: '✅' },
-  ABSENT:  { label: 'Absent',  color: '#ee5d50', bg: 'rgba(238,93,80,0.1)',  emoji: '❌' },
-  RETARD:  { label: 'Retard',  color: '#d97706', bg: 'rgba(255,206,32,0.1)', emoji: '⏰' },
-  CONGE:   { label: 'En Congé', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', emoji: '🏖️' }
+type Statut = 'PRESENT' | 'ABSENT' | 'RETARD' | 'CONGE';
+const STATUTS: Record<Statut, { label: string }> = {
+  PRESENT: { label: 'Présent' },
+  ABSENT: { label: 'Absent' },
+  RETARD: { label: 'Retard' },
+  CONGE: { label: 'Congé' },
 };
+const badgeVariant = (s: string): 'success' | 'destructive' | 'warning' | 'secondary' =>
+  s === 'PRESENT' ? 'success' : s === 'ABSENT' ? 'destructive' : s === 'RETARD' ? 'warning' : 'secondary';
+
+function StatutPicker<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap justify-center gap-1.5">
+      {options.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onChange(s)}
+          className={cn(
+            'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+            value === s
+              ? s === 'PRESENT'
+                ? 'border-success bg-success/10 text-success'
+                : s === 'ABSENT'
+                  ? 'border-destructive bg-destructive/10 text-destructive'
+                  : s === 'RETARD'
+                    ? 'border-warning bg-warning/15 text-warning-foreground'
+                    : 'border-primary bg-primary/10 text-primary'
+              : 'border-border text-muted-foreground hover:bg-secondary',
+          )}
+        >
+          {STATUTS[s as Statut]?.label ?? s}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function PresencesPage() {
+  const [tab, setTab] = useState<'APPEL' | 'ENSEIGNANTS' | 'HISTORIQUE'>('APPEL');
   const [classes, setClasses] = useState<Classe[]>([]);
   const [eleves, setEleves] = useState<Eleve[]>([]);
-  const [selectedClasseId, setSelectedClasseId] = useState<string>('');
+  const [selectedClasseId, setSelectedClasseId] = useState('');
   const [appel, setAppel] = useState<Record<number, 'PRESENT' | 'ABSENT' | 'RETARD'>>({});
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
-  const [historyEleveId, setHistoryEleveId] = useState<string>('');
+
+  const [enseignants, setEnseignants] = useState<Enseignant[]>([]);
+  const [appelEns, setAppelEns] = useState<Record<number, { statut: Statut; heureArrivee: string }>>({});
+  const [loadingEns, setLoadingEns] = useState(false);
+
+  const [historyEleveId, setHistoryEleveId] = useState('');
   const [history, setHistory] = useState<PresenceItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [tab, setTab] = useState<'APPEL' | 'ENSEIGNANTS' | 'HISTORIQUE'>('APPEL');
-
-  // Enseignants State
-  const [enseignants, setEnseignants] = useState<Enseignant[]>([]);
-  const [appelEnseignants, setAppelEnseignants] = useState<Record<number, { statut: 'PRESENT' | 'ABSENT' | 'RETARD' | 'CONGE'; heureArrivee: string }>>({});
-  const [loadingEnseignants, setLoadingEnseignants] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const cls = await classeService.getClasses();
-        setClasses(cls);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    };
-    fetchClasses();
+    classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
   }, []);
 
-  // When tab switches to ENSEIGNANTS, load teachers and today's attendance
-  useEffect(() => {
-    if (tab === 'ENSEIGNANTS') {
-      loadEnseignantsData();
-    }
-  }, [tab]);
-
-  const loadEnseignantsData = async () => {
-    setLoadingEnseignants(true);
+  const loadEnseignantsData = useCallback(async () => {
+    setLoadingEns(true);
     try {
       const [profs, presencesProfs] = await Promise.all([
         enseignantService.getEnseignants(),
-        presenceService.getPresencesEnseignants(today)
+        presenceService.getPresencesEnseignants(today),
       ]);
       setEnseignants(profs);
-
-      const mapAppel: Record<number, { statut: 'PRESENT' | 'ABSENT' | 'RETARD' | 'CONGE'; heureArrivee: string }> = {};
-      profs.forEach(p => {
-        const existing = presencesProfs.find(pr => pr.enseignant?.id === p.id);
-        mapAppel[p.id] = {
-          statut: (existing?.statut as any) || 'PRESENT',
-          heureArrivee: existing?.heureArrivee || '07:45'
+      const map: Record<number, { statut: Statut; heureArrivee: string }> = {};
+      profs.forEach((p) => {
+        const existing = presencesProfs.find((pr) => pr.enseignant?.id === p.id);
+        map[p.id] = {
+          statut: (existing?.statut as Statut) || 'PRESENT',
+          heureArrivee: existing?.heureArrivee || '07:45',
         };
       });
-      setAppelEnseignants(mapAppel);
-    } catch (e) { console.error(e); }
-    finally { setLoadingEnseignants(false); }
-  };
+      setAppelEns(map);
+    } catch {
+      toast.error('Impossible de charger les enseignants.');
+    } finally {
+      setLoadingEns(false);
+    }
+  }, [today]);
 
-  // When a class is selected, load its students
   useEffect(() => {
-    if (!selectedClasseId) { setEleves([]); setAppel({}); return; }
-    const fetchEleves = async () => {
-      try {
-        const all = await eleveService.getEleves();
-        const filtered = all.filter(e => e.classeId === parseInt(selectedClasseId));
+    if (tab === 'ENSEIGNANTS') loadEnseignantsData();
+  }, [tab, loadEnseignantsData]);
+
+  useEffect(() => {
+    if (!selectedClasseId) {
+      setEleves([]);
+      setAppel({});
+      return;
+    }
+    eleveService
+      .getEleves()
+      .then((all) => {
+        const filtered = all.filter((e) => e.classeId === parseInt(selectedClasseId));
         setEleves(filtered);
-        const initial: Record<number, 'PRESENT' | 'ABSENT' | 'RETARD'> = {};
-        filtered.forEach(e => { initial[e.id] = 'PRESENT'; });
-        setAppel(initial);
-      } catch (e) { console.error(e); }
-    };
-    fetchEleves();
+        setAppel(Object.fromEntries(filtered.map((e) => [e.id, 'PRESENT' as const])));
+      })
+      .catch(() => toast.error('Impossible de charger les élèves.'));
   }, [selectedClasseId]);
-
-  const handleStatut = (eleveId: number, statut: 'PRESENT' | 'ABSENT' | 'RETARD') => {
-    setAppel(prev => ({ ...prev, [eleveId]: statut }));
-  };
-
-  const handleStatutEnseignant = (enseignantId: number, statut: 'PRESENT' | 'ABSENT' | 'RETARD' | 'CONGE') => {
-    setAppelEnseignants(prev => ({
-      ...prev,
-      [enseignantId]: { ...prev[enseignantId], statut }
-    }));
-  };
-
-  const handleHeureArriveeEnseignant = (enseignantId: number, heureArrivee: string) => {
-    setAppelEnseignants(prev => ({
-      ...prev,
-      [enseignantId]: { ...prev[enseignantId], heureArrivee }
-    }));
-  };
 
   const handleSubmitAppel = async () => {
     if (!selectedClasseId || eleves.length === 0) return;
-    setSubmitting(true); setError(''); setSuccess('');
+    setSubmitting(true);
     try {
-      const promises = eleves.map(e =>
-        presenceService.enregistrer({
-          eleveId: e.id,
-          date: today,
-          statut: appel[e.id] || 'PRESENT'
-        })
+      await Promise.all(
+        eleves.map((e) =>
+          presenceService.enregistrer({ eleveId: e.id, date: today, statut: appel[e.id] || 'PRESENT' }),
+        ),
       );
-      await Promise.all(promises);
-      setSuccess(`✅ Appel de ${eleves.length} élève(s) enregistré avec succès pour le ${today} !`);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors de l'enregistrement de l'appel");
+      toast.success(`Appel enregistré (${eleves.length} élèves) pour le ${today}.`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Erreur lors de l'enregistrement de l'appel"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSubmitAppelEnseignants = async () => {
+  const handleSubmitAppelEns = async () => {
     if (enseignants.length === 0) return;
-    setSubmitting(true); setError(''); setSuccess('');
+    setSubmitting(true);
     try {
-      const promises = enseignants.map(e =>
-        presenceService.enregistrerEnseignant({
-          enseignantId: e.id,
-          date: today,
-          statut: appelEnseignants[e.id]?.statut || 'PRESENT',
-          heureArrivee: appelEnseignants[e.id]?.heureArrivee || '07:45'
-        })
+      await Promise.all(
+        enseignants.map((e) =>
+          presenceService.enregistrerEnseignant({
+            enseignantId: e.id,
+            date: today,
+            statut: appelEns[e.id]?.statut || 'PRESENT',
+            heureArrivee: appelEns[e.id]?.heureArrivee || '07:45',
+          }),
+        ),
       );
-      await Promise.all(promises);
-      setSuccess(`✅ Pointage de ${enseignants.length} enseignant(s) enregistré avec succès pour le ${today} !`);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors du pointage des enseignants");
+      toast.success(`Pointage enregistré (${enseignants.length} enseignants) pour le ${today}.`);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors du pointage des enseignants'));
     } finally {
       setSubmitting(false);
     }
@@ -154,281 +175,226 @@ export default function PresencesPage() {
     if (!historyEleveId) return;
     setHistoryLoading(true);
     try {
-      const data = await presenceService.getByEleve(parseInt(historyEleveId));
-      setHistory(data);
-    } catch (e) { console.error(e); }
-    finally { setHistoryLoading(false); }
+      setHistory(await presenceService.getByEleve(parseInt(historyEleveId)));
+    } catch (err) {
+      toast.error(errorMessage(err, "Impossible de charger l'historique"));
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
-  const presentCount = Object.values(appel).filter(s => s === 'PRESENT').length;
-  const absentCount  = Object.values(appel).filter(s => s === 'ABSENT').length;
-  const retardCount  = Object.values(appel).filter(s => s === 'RETARD').length;
+  const count = (s: string) => Object.values(appel).filter((v) => v === s).length;
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestion des Présences & Pointage</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>
-          Effectuez l'appel des élèves et le pointage de présence des enseignants.
-        </p>
+      <PageHeader
+        title="Présences & pointage"
+        description="Appel des élèves, pointage des enseignants, historique."
+      />
+
+      <div className="mb-6 flex gap-1 border-b border-border">
+        {(
+          [
+            ['APPEL', 'Appel élèves', GraduationCap],
+            ['ENSEIGNANTS', 'Enseignants', UsersRound],
+            ['HISTORIQUE', 'Historique', CalendarClock],
+          ] as const
+        ).map(([t, label, Icon]) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={cn(
+              'inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
+              tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Icon className="size-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid rgba(163,174,209,0.2)', paddingBottom: '0' }}>
-        <button onClick={() => setTab('APPEL')} style={{
-          padding: '0.75rem 1.5rem', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
-          color: tab === 'APPEL' ? 'var(--primary-color)' : 'var(--text-secondary)',
-          borderBottom: tab === 'APPEL' ? '2px solid var(--primary-color)' : '2px solid transparent'
-        }}>
-          🎓 Appel Élèves
-        </button>
-
-        <button onClick={() => setTab('ENSEIGNANTS')} style={{
-          padding: '0.75rem 1.5rem', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
-          color: tab === 'ENSEIGNANTS' ? '#d97706' : 'var(--text-secondary)',
-          borderBottom: tab === 'ENSEIGNANTS' ? '2px solid #d97706' : '2px solid transparent'
-        }}>
-          👨‍🏫 Présences Enseignants
-        </button>
-
-        <button onClick={() => setTab('HISTORIQUE')} style={{
-          padding: '0.75rem 1.5rem', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
-          color: tab === 'HISTORIQUE' ? '#05cd99' : 'var(--text-secondary)',
-          borderBottom: tab === 'HISTORIQUE' ? '2px solid #05cd99' : '2px solid transparent'
-        }}>
-          📊 Historique Élèves
-        </button>
-      </div>
-
-      {/* ===== TAB: APPEL ÉLÈVES ===== */}
+      {/* ─── Appel élèves ─── */}
       {tab === 'APPEL' && (
-        <div>
-          <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: '250px' }}>
-              <label className="input-label">📅 Date du jour</label>
-              <input type="text" className="input-field" value={today} readOnly style={{ backgroundColor: 'rgba(163,174,209,0.05)', cursor: 'not-allowed' }} />
-            </div>
-            <div className="input-group" style={{ marginBottom: 0, flex: 2, minWidth: '250px' }}>
-              <label className="input-label">🏫 Sélectionnez la classe</label>
-              <select className="input-field" value={selectedClasseId} onChange={e => setSelectedClasseId(e.target.value)}>
+        <div className="space-y-5">
+          <div className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
+            <Field label="Date">
+              <Input value={today} readOnly className="cursor-not-allowed bg-muted" />
+            </Field>
+            <Field label="Classe" className="sm:col-span-2">
+              <Select value={selectedClasseId} onChange={(e) => setSelectedClasseId(e.target.value)}>
                 <option value="">— Choisir une classe —</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>)}
-              </select>
-            </div>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>
+                ))}
+              </Select>
+            </Field>
           </div>
 
           {eleves.length > 0 && (
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Présents', count: presentCount, color: '#05cd99', bg: 'rgba(5,205,153,0.1)' },
-                { label: 'Absents',  count: absentCount,  color: '#ee5d50', bg: 'rgba(238,93,80,0.1)' },
-                { label: 'Retards',  count: retardCount,  color: '#d97706', bg: 'rgba(255,206,32,0.1)' }
-              ].map(s => (
-                <div key={s.label} style={{ flex: 1, minWidth: '120px', padding: '1rem 1.5rem', borderRadius: '12px', backgroundColor: s.bg, border: `1px solid ${s.color}30`, textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: s.color }}>{s.count}</div>
-                  <div style={{ fontSize: '0.8rem', color: s.color, fontWeight: 600 }}>{s.label}</div>
+                ['Présents', count('PRESENT'), 'text-success'],
+                ['Absents', count('ABSENT'), 'text-destructive'],
+                ['Retards', count('RETARD'), 'text-warning-foreground'],
+              ].map(([label, n, cls]) => (
+                <div key={label as string} className="rounded-xl border border-border bg-card p-4 text-center">
+                  <div className={cn('font-display text-2xl font-extrabold tabular-nums', cls as string)}>{n}</div>
+                  <div className="text-xs text-muted-foreground">{label as string}</div>
                 </div>
               ))}
             </div>
           )}
 
-          {error && <div style={{ color: '#ee5d50', padding: '1rem', borderRadius: '8px', background: 'rgba(238,93,80,0.1)', marginBottom: '1rem' }}>{error}</div>}
-          {success && <div style={{ color: '#05cd99', padding: '1rem', borderRadius: '8px', background: 'rgba(5,205,153,0.1)', marginBottom: '1rem' }}>{success}</div>}
-
           {!selectedClasseId ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏫</div>
-              <p>Sélectionnez une classe pour démarrer l'appel.</p>
-            </div>
+            <EmptyState icon={<CheckSquare />} title="Sélectionnez une classe" description="Pour démarrer l'appel du jour." />
           ) : eleves.length === 0 ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎓</div>
-              <p>Aucun élève assigné à cette classe.</p>
-            </div>
+            <EmptyState icon={<GraduationCap />} title="Aucun élève dans cette classe" />
           ) : (
             <>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '50px' }}>#</th>
-                      <th>Élève</th>
-                      <th>Matricule</th>
-                      <th style={{ textAlign: 'center' }}>Statut de présence</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eleves.map((eleve, idx) => {
-                      const statut = appel[eleve.id] || 'PRESENT';
-                      return (
-                        <tr key={eleve.id} style={{ backgroundColor: statut === 'ABSENT' ? 'rgba(238,93,80,0.03)' : statut === 'RETARD' ? 'rgba(255,206,32,0.03)' : undefined }}>
-                          <td style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{idx + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{eleve.profil.nom} {eleve.profil.prenom}</td>
-                          <td><span className="badge badge-primary">{eleve.matricule}</span></td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                              {(['PRESENT', 'ABSENT', 'RETARD'] as const).map(s => (
-                                <button key={s} onClick={() => handleStatut(eleve.id, s)} style={{
-                                  padding: '0.4rem 0.9rem',
-                                  borderRadius: '8px',
-                                  border: `2px solid ${statut === s ? STATUTS[s].color : 'transparent'}`,
-                                  backgroundColor: statut === s ? STATUTS[s].bg : 'rgba(163,174,209,0.05)',
-                                  color: statut === s ? STATUTS[s].color : 'var(--text-secondary)',
-                                  fontWeight: statut === s ? 700 : 400,
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem'
-                                }}>
-                                  {STATUTS[s].emoji} {STATUTS[s].label}
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn-primary" onClick={handleSubmitAppel} disabled={submitting} style={{ width: 'auto', minWidth: '200px', fontSize: '1rem', padding: '0.875rem 2rem' }}>
-                  {submitting ? '⏳ Enregistrement...' : `✓ Valider l'appel (${eleves.length} élèves)`}
-                </button>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Élève</TableHead>
+                    <TableHead>Matricule</TableHead>
+                    <TableHead className="text-center">Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eleves.map((eleve, idx) => (
+                    <TableRow key={eleve.id}>
+                      <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="font-medium">{eleve.profil.nom} {eleve.profil.prenom}</TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs text-primary">{eleve.matricule}</span>
+                      </TableCell>
+                      <TableCell>
+                        <StatutPicker
+                          options={['PRESENT', 'ABSENT', 'RETARD'] as const}
+                          value={appel[eleve.id] || 'PRESENT'}
+                          onChange={(v) => setAppel((p) => ({ ...p, [eleve.id]: v }))}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex justify-end">
+                <Button loading={submitting} onClick={handleSubmitAppel}>
+                  Valider l&apos;appel ({eleves.length} élèves)
+                </Button>
               </div>
             </>
           )}
         </div>
       )}
 
-      {/* ===== TAB: PRÉSENCES ENSEIGNANTS ===== */}
+      {/* ─── Enseignants ─── */}
       {tab === 'ENSEIGNANTS' && (
-        <div>
-          <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
             <div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#d97706' }}>👨‍🏫 Pointage Quotidien du Corps Enseignant</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>Date de pointage : <strong>{today}</strong></p>
+              <h2 className="font-display text-lg font-bold text-primary">Pointage quotidien</h2>
+              <p className="text-sm text-muted-foreground">Date : <strong>{today}</strong></p>
             </div>
-            <button className="btn-primary" onClick={handleSubmitAppelEnseignants} disabled={submitting || enseignants.length === 0} style={{ width: 'auto', backgroundColor: '#d97706' }}>
-              {submitting ? 'Enregistrement...' : `✓ Valider le pointage (${enseignants.length} profs)`}
-            </button>
+            <Button loading={submitting} disabled={enseignants.length === 0} onClick={handleSubmitAppelEns}>
+              Valider le pointage ({enseignants.length})
+            </Button>
           </div>
 
-          {error && <div style={{ color: '#ee5d50', padding: '1rem', borderRadius: '8px', background: 'rgba(238,93,80,0.1)', marginBottom: '1rem' }}>{error}</div>}
-          {success && <div style={{ color: '#05cd99', padding: '1rem', borderRadius: '8px', background: 'rgba(5,205,153,0.1)', marginBottom: '1rem' }}>{success}</div>}
-
-          {loadingEnseignants ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-              Chargement des enseignants...
+          {loadingEns ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
             </div>
           ) : enseignants.length === 0 ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👨‍🏫</div>
-              <p>Aucun enseignant enregistré dans l'établissement.</p>
-            </div>
+            <EmptyState icon={<UsersRound />} title="Aucun enseignant enregistré" />
           ) : (
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Matricule</th>
-                    <th>Enseignant</th>
-                    <th>Téléphone</th>
-                    <th>Heure d'arrivée</th>
-                    <th style={{ textAlign: 'center' }}>Statut de Présence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {enseignants.map(p => {
-                    const current = appelEnseignants[p.id] || { statut: 'PRESENT', heureArrivee: '07:45' };
-                    return (
-                      <tr key={p.id}>
-                        <td><span className="badge badge-success">{p.matricule}</span></td>
-                        <td style={{ fontWeight: 600 }}>{p.profil?.nom} {p.profil?.prenom}</td>
-                        <td style={{ color: 'var(--text-secondary)' }}>📞 {p.profil?.telephone || 'N/A'}</td>
-                        <td>
-                          <input
-                            type="time"
-                            className="input-field"
-                            style={{ width: '110px', padding: '4px 8px', marginBottom: 0 }}
-                            value={current.heureArrivee}
-                            onChange={e => handleHeureArriveeEnseignant(p.id, e.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                            {(['PRESENT', 'ABSENT', 'RETARD', 'CONGE'] as const).map(st => (
-                              <button key={st} onClick={() => handleStatutEnseignant(p.id, st)} style={{
-                                padding: '0.4rem 0.8rem',
-                                borderRadius: '8px',
-                                border: `2px solid ${current.statut === st ? STATUTS[st].color : 'transparent'}`,
-                                backgroundColor: current.statut === st ? STATUTS[st].bg : 'rgba(163,174,209,0.05)',
-                                color: current.statut === st ? STATUTS[st].color : 'var(--text-secondary)',
-                                fontWeight: current.statut === st ? 700 : 400,
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}>
-                                {STATUTS[st].emoji} {STATUTS[st].label}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Matricule</TableHead>
+                  <TableHead>Enseignant</TableHead>
+                  <TableHead>Arrivée</TableHead>
+                  <TableHead className="text-center">Statut</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {enseignants.map((p) => {
+                  const cur = appelEns[p.id] || { statut: 'PRESENT' as Statut, heureArrivee: '07:45' };
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <span className="font-mono text-xs text-primary">{p.matricule}</span>
+                      </TableCell>
+                      <TableCell className="font-medium">{p.profil?.nom} {p.profil?.prenom}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="time"
+                          className="h-9 w-28"
+                          value={cur.heureArrivee}
+                          onChange={(e) =>
+                            setAppelEns((prev) => ({ ...prev, [p.id]: { ...cur, heureArrivee: e.target.value } }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <StatutPicker
+                          options={['PRESENT', 'ABSENT', 'RETARD', 'CONGE'] as const}
+                          value={cur.statut}
+                          onChange={(v) => setAppelEns((prev) => ({ ...prev, [p.id]: { ...cur, statut: v } }))}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </div>
       )}
 
-      {/* ===== TAB: HISTORIQUE ÉLÈVES ===== */}
+      {/* ─── Historique ─── */}
       {tab === 'HISTORIQUE' && (
-        <div>
-          <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div className="input-group" style={{ marginBottom: 0, flex: 2, minWidth: '250px' }}>
-              <label className="input-label">🎓 ID ou Matricule de l'Élève</label>
-              <input type="number" className="input-field" placeholder="Ex: 1" value={historyEleveId} onChange={e => setHistoryEleveId(e.target.value)} />
-            </div>
-            <button className="btn-primary" onClick={loadHistory} disabled={!historyEleveId || historyLoading} style={{ width: 'auto', marginBottom: 0 }}>
-              {historyLoading ? '...' : 'Voir l\'historique'}
-            </button>
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+            <Field label="ID de l'élève" className="min-w-56 flex-1">
+              <Input type="number" placeholder="Ex : 1" value={historyEleveId} onChange={(e) => setHistoryEleveId(e.target.value)} />
+            </Field>
+            <Button onClick={loadHistory} loading={historyLoading} disabled={!historyEleveId}>
+              Voir l&apos;historique
+            </Button>
           </div>
 
           {history.length === 0 ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-              <p>Saisissez un identifiant d'élève et cliquez sur "Voir l'historique".</p>
-            </div>
+            <EmptyState icon={<CalendarClock />} title="Aucun historique" description="Saisissez un identifiant d'élève puis lancez la recherche." />
           ) : (
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Matière</th>
-                    <th>Statut</th>
-                    <th>Justifié ?</th>
-                    <th>Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map(p => {
-                    const s = STATUTS[p.statut] || STATUTS['PRESENT'];
-                    return (
-                      <tr key={p.id}>
-                        <td style={{ fontWeight: 500 }}>{new Date(p.date).toLocaleDateString('fr-FR')}</td>
-                        <td>{p.classeMatiere?.matiere?.nom || '—'}</td>
-                        <td><span className="badge" style={{ backgroundColor: s.bg, color: s.color }}>{s.emoji} {s.label}</span></td>
-                        <td>{p.estJustifie ? <span style={{ color: '#05cd99' }}>✓ Oui</span> : <span style={{ color: 'var(--text-secondary)' }}>Non</span>}</td>
-                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{p.notesJustification || '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Matière</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Justifié</TableHead>
+                  <TableHead>Note</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{new Date(p.date).toLocaleDateString('fr-FR')}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.classeMatiere?.matiere?.nom || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant={badgeVariant(p.statut)}>{STATUTS[p.statut as Statut]?.label ?? p.statut}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{p.estJustifie ? 'Oui' : 'Non'}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.notesJustification || '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </div>
       )}

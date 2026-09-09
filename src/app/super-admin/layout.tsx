@@ -3,14 +3,31 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import {
+  Building2,
+  Crown,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  ScrollText,
+  Settings,
+  Undo2,
+} from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Logo } from '@/components/logo';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-export default function SuperAdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const NAV = [
+  { label: 'Dashboard', path: '/super-admin', icon: LayoutDashboard },
+  { label: 'Établissements', path: '/super-admin/etablissements', icon: Building2 },
+  { label: "Journaux d'audit", path: '/super-admin/journal', icon: ScrollText },
+  { label: 'Configuration SaaS', path: '/super-admin/settings', icon: Settings },
+];
+
+export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isChangePwdOpen, setIsChangePwdOpen] = useState(false);
@@ -20,137 +37,64 @@ export default function SuperAdminLayout({
     router.push('/login');
   };
 
-  const navLinks = [
-    { label: '📊 Dashboard', path: '/super-admin' },
-    { label: '🏛️ Établissements', path: '/super-admin/etablissements' },
-    { label: '📜 Journaux d\'Audit', path: '/super-admin/journal' },
-    { label: '⚙️ Configuration SaaS', path: '/super-admin/settings' },
-  ];
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-secondary, #0b0f19)', color: 'var(--text-primary, #f8fafc)', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Super Admin Topbar Header */}
-      <header style={{
-        backgroundColor: '#0f172a',
-        color: '#ffffff',
-        padding: '0.85rem 2rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{
-            fontSize: '1.25rem',
-            fontWeight: 800,
-            background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '-0.02em'
-          }}>
-            🎓 Netaa School — Super-Admin SaaS
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur">
+        <div className="mx-auto flex max-w-[1300px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <Logo markClassName="h-8 w-8" showEcole={false} />
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-wide text-gold-foreground">
+              <Crown className="size-3.5 text-gold" /> Super-Admin SaaS
+            </span>
           </div>
-          <span style={{
-            fontSize: '0.75rem',
-            backgroundColor: 'rgba(99,102,241,0.2)',
-            color: '#a5b4fc',
-            border: '1px solid rgba(99,102,241,0.4)',
-            padding: '2px 10px',
-            borderRadius: '12px',
-            fontWeight: 600
-          }}>
-            Multi-Tenant Core
-          </span>
-        </div>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          {navLinks.map(link => {
-            const isActive = pathname === link.path;
-            return (
-              <Link
-                key={link.path}
-                href={link.path}
-                style={{
-                  color: isActive ? '#ffffff' : '#94a3b8',
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.875rem',
-                  textDecoration: 'none',
-                  padding: '0.5rem 0.85rem',
-                  borderRadius: '8px',
-                  backgroundColor: isActive ? 'rgba(99,102,241,0.25)' : 'transparent',
-                  border: isActive ? '1px solid rgba(99,102,241,0.4)' : '1px solid transparent',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {link.label}
+          <nav className="flex flex-1 flex-wrap items-center gap-1">
+            {NAV.map((link) => {
+              const active = pathname === link.path;
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.path}
+                  href={link.path}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard">
+                <Undo2 /> Vue école
               </Link>
-            );
-          })}
-
-          <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255,255,255,0.15)', margin: '0 0.5rem' }} />
-
-          <Link
-            href="/dashboard"
-            style={{
-              color: '#cbd5e1',
-              fontWeight: 500,
-              fontSize: '0.8rem',
-              textDecoration: 'none',
-              padding: '0.4rem 0.75rem',
-              borderRadius: '6px',
-              backgroundColor: 'rgba(255,255,255,0.05)'
-            }}
-          >
-            ↩ Vue École
-          </Link>
-          <button
-            onClick={() => setIsChangePwdOpen(true)}
-            style={{
-              backgroundColor: 'rgba(99,102,241,0.15)',
-              color: '#a5b4fc',
-              border: '1px solid rgba(99,102,241,0.3)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              transition: 'background 0.2s'
-            }}
-          >
-            🔑 Mot de passe
-          </button>
-          <button
-            onClick={handleLogout}
-            style={{
-              backgroundColor: 'rgba(239,68,68,0.15)',
-              color: '#fca5a5',
-              border: '1px solid rgba(239,68,68,0.3)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              transition: 'background 0.2s'
-            }}
-          >
-            Déconnexion 🚪
-          </button>
-        </nav>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsChangePwdOpen(true)}>
+              <KeyRound /> Mot de passe
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut /> Déconnexion
+            </Button>
+          </div>
+        </div>
       </header>
 
-      {/* Main Content Area */}
-      <main style={{ padding: '2rem 1.5rem', maxWidth: '1300px', margin: '0 auto' }}>
-        {children}
-      </main>
+      <main className="mx-auto max-w-[1300px] p-4 sm:p-6">{children}</main>
 
-      <ChangePasswordModal 
-        isOpen={isChangePwdOpen} 
-        onClose={() => setIsChangePwdOpen(false)} 
-      />
+      <ChangePasswordModal isOpen={isChangePwdOpen} onClose={() => setIsChangePwdOpen(false)} />
     </div>
   );
 }
