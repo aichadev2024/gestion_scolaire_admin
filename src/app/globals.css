@@ -1,18 +1,138 @@
+@import 'tailwindcss';
+
+/* Ancien système d'utilitaires (classes .btn-primary, .data-table, .sidebar…) —
+   conservé le temps de migrer les pages une à une vers les composants Tailwind. */
 @import '../styles/design-system.css';
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* ------------------------------------------------------------------ */
+/* Tokens de marque Netaa École — marine + or                         */
+/* ------------------------------------------------------------------ */
+:root {
+  --background: 210 40% 98%;
+  --foreground: 213 30% 18%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 213 30% 18%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 213 30% 18%;
+
+  --primary: 213 55% 24%;            /* #1B365D marine */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 40% 94%;
+  --secondary-foreground: 213 40% 22%;
+
+  --muted: 210 40% 96%;
+  --muted-foreground: 213 12% 46%;
+
+  --accent: 38 76% 55%;             /* #E5A93C or */
+  --accent-foreground: 213 55% 14%;
+
+  --destructive: 0 72% 48%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 152 55% 38%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 48%;
+  --warning-foreground: 38 92% 12%;
+
+  --border: 213 20% 88%;
+  --input: 213 20% 84%;
+  --ring: 213 55% 42%;
+
+  --radius: 0.625rem;
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+.dark {
+  --background: 213 42% 9%;
+  --foreground: 210 28% 92%;
+
+  --card: 213 38% 12%;
+  --card-foreground: 210 28% 92%;
+
+  --popover: 213 38% 12%;
+  --popover-foreground: 210 28% 92%;
+
+  --primary: 38 76% 55%;            /* l'or devient l'accent principal en sombre */
+  --primary-foreground: 213 55% 12%;
+
+  --secondary: 213 30% 18%;
+  --secondary-foreground: 210 28% 90%;
+
+  --muted: 213 28% 17%;
+  --muted-foreground: 213 14% 62%;
+
+  --accent: 213 45% 24%;
+  --accent-foreground: 210 28% 92%;
+
+  --destructive: 0 62% 48%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 152 45% 42%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 82% 52%;
+  --warning-foreground: 38 92% 10%;
+
+  --border: 213 24% 22%;
+  --input: 213 24% 24%;
+  --ring: 38 70% 50%;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Styles de base — dans @layer pour ne PAS surcharger les utilitaires Tailwind.
+   (Le Preflight de Tailwind v4 gère déjà box-sizing et la remise à zéro des marges.) */
+@layer base {
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }

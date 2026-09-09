@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { authService, LoginCredentials } from '@/services/auth.service';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 /** Destination après connexion : ?redirect= (fourni par le proxy), sinon selon le rôle. */
 function destinationApresLogin(role: string): string {
@@ -17,37 +21,27 @@ function destinationApresLogin(role: string): string {
 export default function LoginPage() {
   const router = useRouter();
   const [credentials, setCredentials] = useState<LoginCredentials>({ identifiant: '', motDePasse: '' });
-  const [error, setError] = useState<string>('');
-  const [infoMessage, setInfoMessage] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [setupRequired, setSetupRequired] = useState(false);
   const [superAdminExists, setSuperAdminExists] = useState(false);
 
-  // Étape OTP Première Connexion
-  const [requiresOtp, setRequiresOtp] = useState<boolean>(false);
+  const [requiresOtp, setRequiresOtp] = useState(false);
   const [otpUserId, setOtpUserId] = useState<number | null>(null);
-  const [otpCode, setOtpCode] = useState<string>('');
-  const [otpLoading, setOtpLoading] = useState<boolean>(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
 
   useEffect(() => {
-    authService.checkSetup().then(res => {
-      if (res?.setupRequired) {
-        setSetupRequired(true);
-      }
-    }).catch(console.error);
-
-    authService.checkSuperAdminExists().then(res => {
-      if (res?.exists) {
-        setSuperAdminExists(true);
-      }
-    }).catch(console.error);
+    authService.checkSetup().then((res) => setSetupRequired(!!res?.setupRequired)).catch(() => {});
+    authService.checkSuperAdminExists().then((res) => setSuperAdminExists(!!res?.exists)).catch(() => {});
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setCredentials(prev => ({ ...prev, [name]: value }));
+    setCredentials((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,21 +49,18 @@ export default function LoginPage() {
     setError('');
     setInfoMessage('');
     setLoading(true);
-
     try {
       const res = await authService.login(credentials);
-
       if (res.requiresOtp) {
         setRequiresOtp(true);
         setOtpUserId(res.utilisateurId);
-        setInfoMessage(res.message || "Un code de validation OTP à 6 chiffres a été envoyé par mail.");
+        setInfoMessage(res.message || 'Un code de validation OTP à 6 chiffres a été envoyé par mail.');
         setLoading(false);
         return;
       }
-
       router.push(destinationApresLogin(res.role));
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la connexion. Vérifiez vos identifiants.');
+    } catch (err) {
+      setError(getMessage(err, 'Erreur lors de la connexion. Vérifiez vos identifiants.'));
     } finally {
       setLoading(false);
     }
@@ -80,13 +71,12 @@ export default function LoginPage() {
     setError('');
     setInfoMessage('');
     setOtpLoading(true);
-
     try {
-      if (!otpUserId) throw new Error("Identifiant utilisateur manquant.");
+      if (!otpUserId) throw new Error('Identifiant utilisateur manquant.');
       const res = await authService.verifyOtp(otpUserId, otpCode);
       router.push(destinationApresLogin(res.role));
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Code OTP invalide ou expiré.');
+    } catch (err) {
+      setError(getMessage(err, 'Code OTP invalide ou expiré.'));
     } finally {
       setOtpLoading(false);
     }
@@ -99,188 +89,108 @@ export default function LoginPage() {
     setOtpLoading(true);
     try {
       const res = await authService.resendOtp(otpUserId);
-      setInfoMessage(res.message || "Un nouveau code OTP a été envoyé à votre adresse email.");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors de l'envoi du nouveau code OTP.");
+      setInfoMessage(res.message || 'Un nouveau code OTP a été envoyé à votre adresse email.');
+    } catch (err) {
+      setError(getMessage(err, "Erreur lors de l'envoi du nouveau code OTP."));
     } finally {
       setOtpLoading(false);
     }
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, var(--bg-secondary) 0%, #e0e5f5 100%)',
-      padding: '2rem'
-    }}>
-      <div className="glass-card" style={{ maxWidth: '450px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+      {/* Décor */}
+      <div className="pointer-events-none absolute -right-32 -top-32 size-96 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 size-96 rounded-full bg-accent/10 blur-3xl" />
 
-        {/* Decorative background shapes */}
-        <div style={{
-          position: 'absolute',
-          top: '-50px',
-          right: '-50px',
-          width: '150px',
-          height: '150px',
-          background: 'var(--primary-color)',
-          borderRadius: '50%',
-          opacity: 0.1,
-          zIndex: 0
-        }}></div>
-        <div style={{
-          position: 'absolute',
-          bottom: '-30px',
-          left: '-30px',
-          width: '100px',
-          height: '100px',
-          background: 'var(--secondary-color)',
-          borderRadius: '50%',
-          opacity: 0.1,
-          zIndex: 0
-        }}></div>
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-xl">
+        <div className="mb-8 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Netaa École" className="mx-auto mb-4 h-14 w-auto object-contain" />
+          <h1 className="text-2xl font-extrabold text-primary">Netaa École</h1>
+          <p className="mt-0.5 text-[0.7rem] font-bold uppercase tracking-[0.15em] text-accent">
+            Gestion Scolaire Numérique
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Connectez-vous à votre espace d&apos;administration
+          </p>
+        </div>
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <img
-              src="/logo.png"
-              alt="Netaa Logo"
-              style={{ height: '60px', width: 'auto', marginBottom: '1rem', objectFit: 'contain' }}
-            />
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-color)', marginBottom: '0.25rem' }}>
-              Netaa
-            </h1>
-            <p style={{ color: 'var(--secondary-color)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-              GESTION SCOLAIRE NUMÉRIQUE
-            </p>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-              Connectez-vous à votre espace d'administration
-            </p>
-          </div>
+        {setupRequired && (
+          <Alert tone="info" className="mb-5">
+            Premier lancement détecté. Configurez le{' '}
+            <Link href="/setup" className="font-semibold underline">premier Admin d&apos;école</Link> ou créez un{' '}
+            <Link href="/setup-super-admin" className="font-semibold underline">Super-Admin</Link>.
+          </Alert>
+        )}
+        {infoMessage && (
+          <Alert tone="success" className="mb-5" icon={<Mail className="size-4" />}>
+            {infoMessage}
+          </Alert>
+        )}
+        {error && (
+          <Alert tone="error" className="mb-5" icon={<AlertCircle className="size-4" />}>
+            {error}
+          </Alert>
+        )}
 
-          {setupRequired && (
-            <div style={{
-              backgroundColor: 'rgba(99, 102, 241, 0.1)',
-              color: 'var(--primary-color)',
-              padding: '0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              marginBottom: '1.5rem',
-              fontSize: '0.85rem',
-              textAlign: 'center',
-              border: '1px solid rgba(99, 102, 241, 0.3)'
-            }}>
-              ⚙️ Premier lancement détecté. Vous pouvez configurer le <Link href="/setup" style={{ fontWeight: 700, textDecoration: 'underline' }}>premier Admin d'école</Link> ou créer un <Link href="/setup-super-admin" style={{ fontWeight: 700, textDecoration: 'underline' }}>Super-Admin</Link>.
-            </div>
-          )}
-
-          {infoMessage && (
-            <div style={{
-              backgroundColor: 'rgba(5, 205, 153, 0.12)',
-              color: '#05cd99',
-              padding: '0.85rem 1rem',
-              borderRadius: 'var(--radius-sm)',
-              marginBottom: '1.5rem',
-              fontSize: '0.875rem',
-              textAlign: 'center',
-              fontWeight: 600,
-              border: '1px solid rgba(5, 205, 153, 0.3)'
-            }}>
-              📧 {infoMessage}
-            </div>
-          )}
-
-          {error && (
-            <div style={{
-              backgroundColor: 'rgba(238, 93, 80, 0.1)',
-              color: 'var(--danger)',
-              padding: '0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              marginBottom: '1.5rem',
-              fontSize: '0.875rem',
-              textAlign: 'center',
-              border: '1px solid rgba(238, 93, 80, 0.2)'
-            }}>
-              {error}
-            </div>
-          )}
-
-          {requiresOtp ? (
-            <form onSubmit={handleOtpSubmit}>
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔑</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--primary-color)' }}>Validation Première Connexion</h3>
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                  Veuillez saisir le code OTP à 6 chiffres envoyé par mail pour activer votre accès.
-                </p>
+        {requiresOtp ? (
+          <form onSubmit={handleOtpSubmit} className="space-y-5">
+            <div className="text-center">
+              <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <KeyRound className="size-6" />
               </div>
+              <h2 className="text-lg font-semibold text-foreground">Validation première connexion</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Saisissez le code à 6 chiffres reçu par mail pour activer votre accès.
+              </p>
+            </div>
 
-              <div className="input-group">
-                <label className="input-label" htmlFor="otpCode" style={{ textAlign: 'center', display: 'block', fontWeight: 700 }}>
-                  Code OTP à 6 chiffres
-                </label>
-                <input
-                  id="otpCode"
-                  type="text"
-                  maxLength={6}
-                  name="otpCode"
-                  className="input-field"
-                  placeholder="123456"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  required
-                  style={{
-                    fontSize: '1.75rem',
-                    letterSpacing: '0.4em',
-                    textAlign: 'center',
-                    fontWeight: 800,
-                    color: 'var(--primary-color)',
-                    padding: '0.75rem'
-                  }}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="otpCode" className="block text-center">Code OTP</Label>
+              <Input
+                id="otpCode"
+                inputMode="numeric"
+                maxLength={6}
+                autoComplete="one-time-code"
+                placeholder="123456"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                required
+                className="h-14 text-center text-2xl font-bold tracking-[0.5em] text-primary"
+              />
+            </div>
 
-              <button type="submit" className="btn-primary" disabled={otpLoading || otpCode.length !== 6} style={{ marginTop: '1rem' }}>
-                {otpLoading ? (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <svg className="spinner" viewBox="0 0 50 50" style={{ width: '20px', height: '20px', animation: 'rotate 2s linear infinite' }}>
-                      <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeDasharray="90, 150" strokeDashoffset="0" style={{ animation: 'dash 1.5s ease-in-out infinite' }}></circle>
-                    </svg>
-                    Vérification du code...
-                  </span>
-                ) : (
-                  'Valider le code & Accéder'
-                )}
+            <Button type="submit" className="w-full" loading={otpLoading} disabled={otpCode.length !== 6}>
+              Valider le code &amp; accéder
+            </Button>
+
+            <div className="flex items-center justify-between text-sm">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={otpLoading}
+                className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline disabled:opacity-50"
+              >
+                <Mail className="size-3.5" /> Renvoyer le code
               </button>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem' }}>
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={otpLoading}
-                  style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  📩 Renvoyer le code par mail
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setRequiresOtp(false); setOtpCode(''); setError(''); }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  ← Annuler
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label className="input-label" htmlFor="identifiant">Identifiant</label>
-              <input
+              <button
+                type="button"
+                onClick={() => { setRequiresOtp(false); setOtpCode(''); setError(''); }}
+                className="inline-flex items-center gap-1.5 text-muted-foreground hover:underline"
+              >
+                <ArrowLeft className="size-3.5" /> Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="identifiant">Identifiant</Label>
+              <Input
                 id="identifiant"
-                type="text"
                 name="identifiant"
-                className="input-field"
+                autoComplete="username"
                 placeholder="admin ou admin@ecole.com"
                 value={credentials.identifiant}
                 onChange={handleChange}
@@ -288,96 +198,85 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="input-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <label className="input-label" htmlFor="motDePasse" style={{ marginBottom: 0 }}>Mot de Passe</label>
-                <Link href="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="motDePasse">Mot de passe</Label>
+                <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
                   Mot de passe oublié ?
                 </Link>
               </div>
-              <div style={{ position: 'relative' }}>
-                <input
+              <div className="relative">
+                <Input
                   id="motDePasse"
-                  type={showPassword ? 'text' : 'password'}
                   name="motDePasse"
-                  className="input-field"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={credentials.motDePasse}
                   onChange={handleChange}
                   required
-                  style={{ paddingRight: '2.5rem' }}
+                  className="pr-10"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem',
-                    color: 'var(--text-secondary)',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
                   title={showPassword ? 'Masquer' : 'Afficher'}
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
-              {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <svg className="spinner" viewBox="0 0 50 50" style={{ width: '20px', height: '20px', animation: 'rotate 2s linear infinite' }}>
-                    <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeDasharray="90, 150" strokeDashoffset="0" style={{ animation: 'dash 1.5s ease-in-out infinite' }}></circle>
-                  </svg>
-                  Connexion...
-                </span>
-              ) : (
-                'Se Connecter'
-              )}
-            </button>
+            <Button type="submit" className="w-full" loading={loading}>
+              Se connecter
+            </Button>
 
             {!superAdminExists && (
-              <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(163,174,209,0.2)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Vous êtes l'Éditeur / Fondateur SaaS ? </span>
-                <Link href="/setup-super-admin" style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: 700, textDecoration: 'none' }}>
+              <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
+                <ShieldCheck className="mr-1 inline size-3.5 align-[-2px]" />
+                Éditeur / fondateur SaaS ?{' '}
+                <Link href="/setup-super-admin" className="font-semibold text-primary hover:underline">
                   Créer un compte Super-Admin →
                 </Link>
               </div>
             )}
           </form>
-          )}
-        </div>
+        )}
       </div>
+    </div>
+  );
+}
 
-      <style>{`
-        @keyframes rotate {
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-        @keyframes dash {
-          0% {
-            stroke-dasharray: 1, 150;
-            stroke-dashoffset: 0;
-          }
-          50% {
-            stroke-dasharray: 90, 150;
-            stroke-dashoffset: -35;
-          }
-          100% {
-            stroke-dasharray: 90, 150;
-            stroke-dashoffset: -124;
-          }
-        }
-      `}</style>
+function getMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const resp = (err as { response?: { data?: { message?: string } } }).response;
+    if (resp?.data?.message) return resp.data.message;
+  }
+  return fallback;
+}
+
+function Alert({
+  tone,
+  icon,
+  className,
+  children,
+}: {
+  tone: 'info' | 'success' | 'error';
+  icon?: React.ReactNode;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const tones = {
+    info: 'border-primary/25 bg-primary/8 text-primary',
+    success: 'border-success/30 bg-success/10 text-success',
+    error: 'border-destructive/25 bg-destructive/10 text-destructive',
+  } as const;
+  return (
+    <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm ${tones[tone]} ${className ?? ''}`}>
+      {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
+      <span>{children}</span>
     </div>
   );
 }
