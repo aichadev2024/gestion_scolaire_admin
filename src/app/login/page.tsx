@@ -4,7 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService, LoginCredentials } from '@/services/auth.service';
-import Head from 'next/head';
+
+/** Destination après connexion : ?redirect= (fourni par le proxy), sinon selon le rôle. */
+function destinationApresLogin(role: string): string {
+  if (typeof window !== 'undefined') {
+    const cible = new URLSearchParams(window.location.search).get('redirect');
+    if (cible && cible.startsWith('/') && !cible.startsWith('//')) return cible;
+  }
+  return role === 'SUPER_ADMIN' ? '/super-admin' : '/dashboard';
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,11 +67,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (res.role === 'SUPER_ADMIN') {
-        router.push('/super-admin');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push(destinationApresLogin(res.role));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la connexion. Vérifiez vos identifiants.');
     } finally {
@@ -80,11 +84,7 @@ export default function LoginPage() {
     try {
       if (!otpUserId) throw new Error("Identifiant utilisateur manquant.");
       const res = await authService.verifyOtp(otpUserId, otpCode);
-      if (res.role === 'SUPER_ADMIN') {
-        router.push('/super-admin');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push(destinationApresLogin(res.role));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Code OTP invalide ou expiré.');
     } finally {
@@ -116,10 +116,6 @@ export default function LoginPage() {
       background: 'linear-gradient(135deg, var(--bg-secondary) 0%, #e0e5f5 100%)',
       padding: '2rem'
     }}>
-      <Head>
-        <title>Connexion | Netaa</title>
-      </Head>
-
       <div className="glass-card" style={{ maxWidth: '450px', width: '100%', position: 'relative', overflow: 'hidden' }}>
 
         {/* Decorative background shapes */}

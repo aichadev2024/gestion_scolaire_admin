@@ -35,6 +35,7 @@ api.interceptors.response.use(
       if (typeof window !== 'undefined' && (error.response.status === 401 || window.location.pathname.startsWith('/super-admin'))) {
         localStorage.removeItem('jwt_token');
         localStorage.removeItem('user_data');
+        document.cookie = 'jwt_token=; Path=/; Max-Age=0; SameSite=Lax';
         window.location.href = '/login';
       }
     }
