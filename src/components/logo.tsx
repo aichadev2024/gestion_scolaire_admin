@@ -1,0 +1,56 @@
+import { cn } from '@/lib/utils';
+
+/** Marque Netaa École — pastille « livre-soleil » (concept A). Couleurs fixes : lisible sur tout fond. */
+export function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 120" className={cn('h-9 w-9', className)} role="img" aria-label="Netaa École">
+      <rect x="6" y="6" width="108" height="108" rx="26" fill="#22315B" />
+      <g transform="translate(60,58)">
+        <path d="M0,-32 Q5,-8 28,-3 Q5,2 0,27 Q-5,2 -28,-3 Q-5,-8 0,-32 Z" fill="#DCA338" />
+        <circle cx="-36" cy="-3" r="3.2" fill="#DCA338" />
+        <circle cx="36" cy="-3" r="3.2" fill="#DCA338" />
+        <path d="M0,6 C-12,-1 -30,-1 -39,4 L-39,32 C-30,27 -12,27 0,34 Z" fill="#F3ECDA" />
+        <path d="M0,6 C12,-1 30,-1 39,4 L39,32 C30,27 12,27 0,34 Z" fill="#F3ECDA" />
+        <line x1="0" y1="6" x2="0" y2="34" stroke="#22315B" strokeWidth="2" />
+        <g stroke="#22315B" strokeWidth="2" opacity="0.4" strokeLinecap="round">
+          <line x1="-30" y1="10" x2="-10" y2="12" />
+          <line x1="-30" y1="18" x2="-10" y2="20" />
+          <line x1="10" y1="12" x2="30" y2="10" />
+          <line x1="10" y1="20" x2="30" y2="18" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/** Verrou horizontal : pastille + « Netaa » + « ÉCOLE ». */
+export function Logo({
+  className,
+  markClassName,
+  showEcole = true,
+}: {
+  className?: string;
+  markClassName?: string;
+  showEcole?: boolean;
+}) {
+  return (
+    <span className={cn('inline-flex items-center gap-2.5', className)}>
+      <LogoMark className={cn('h-9 w-9', markClassName)} />
+      <span className="flex flex-col leading-none">
+        <span className="font-display text-[1.35rem] font-extrabold tracking-tight text-primary">Netaa</span>
+        {showEcole && (
+          <span className="mt-0.5 flex items-center gap-1">
+            <span className="inline-flex gap-[3px]">
+              <span className="size-[3px] rounded-full bg-gold" />
+              <span className="size-[3px] rounded-full bg-gold" />
+              <span className="size-[3px] rounded-full bg-gold" />
+            </span>
+            <span className="font-mono text-[0.6rem] font-medium uppercase tracking-[0.35em] text-muted-foreground">
+              École
+            </span>
+          </span>
+        )}
+      </span>
+    </span>
+  );
+}

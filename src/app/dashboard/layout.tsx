@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   BookOpen,
@@ -24,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import { Logo } from '@/components/logo';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -126,8 +126,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           )}
         >
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="Netaa École" width={130} height={40} className="h-9 w-auto object-contain" priority />
+            <Link href="/dashboard" aria-label="Netaa École — tableau de bord">
+              <Logo markClassName="h-8 w-8" />
             </Link>
             <button onClick={() => setMobileOpen(false)} className="rounded-md p-1 text-muted-foreground hover:bg-secondary lg:hidden">
               <X className="size-5" />

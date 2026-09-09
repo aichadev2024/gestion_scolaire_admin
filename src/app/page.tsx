@@ -1,137 +1,218 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import {
+  BellRing,
+  CalendarDays,
+  IdCard,
+  ScrollText,
+  Wallet,
+  Building2,
+  ArrowRight,
+} from 'lucide-react';
+import { Logo, LogoMark } from '@/components/logo';
 
 export const metadata: Metadata = {
-  title: 'Accueil | Netaa — Gestion Scolaire Numérique',
-  description: 'Netaa — Plateforme de gestion scolaire numérique',
+  title: 'Netaa École — Le suivi scolaire des écoles du Mali',
+  description:
+    "Notes, présences, bulletins, frais et carte scolaire — sur le téléphone des parents, en temps réel, en français. Fait au Mali.",
 };
 
 export default function Home() {
   return (
-    <>
-      {/* Navbar */}
-      <nav style={{ padding: '1.25rem 0', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid rgba(163, 174, 209, 0.2)' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <img src="/logo.png" alt="Netaa Logo" style={{ height: '45px', width: 'auto', objectFit: 'contain' }} />
-            <div>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)', display: 'block', lineHeight: 1 }}>
-                Netaa
-              </span>
-              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--secondary-color)', letterSpacing: '0.05em' }}>
-                GESTION SCOLAIRE NUMÉRIQUE
-              </span>
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <Link href="#features" className="nav-link">Fonctionnalités</Link>
-            <Link href="#about" className="nav-link">À Propos</Link>
-            <Link href="/login" className="btn-primary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>
-              Espace Administration
+    <div className="min-h-screen bg-background text-foreground">
+      {/* ── Navigation ── */}
+      <header className="border-b border-border">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <Logo />
+          <div className="flex items-center gap-6 text-sm">
+            <a href="#pour-qui" className="hidden text-muted-foreground hover:text-foreground sm:block">Pour qui</a>
+            <a href="#fonctionnalites" className="hidden text-muted-foreground hover:text-foreground sm:block">Fonctionnalités</a>
+            <a href="#etapes" className="hidden text-muted-foreground hover:text-foreground sm:block">Comment ça marche</a>
+            <Link
+              href="/login"
+              className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+            >
+              Connexion
             </Link>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </header>
 
-      {/* Hero Section */}
-      <section className="hero-gradient" style={{ padding: '6rem 0' }}>
-        <div className="container" style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', alignItems: 'center' }}>
-          
-          <div style={{ textAlign: 'left' }}>
-            <h1 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.2 }}>
-              La gestion de votre établissement, <br/>
-              <span style={{ color: 'var(--primary-color)' }}>simplifiée.</span>
-            </h1>
-            <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>
-              Une plateforme complète pour gérer les inscriptions, les notes, les emplois du temps et la comptabilité de votre école en toute sérénité.
-            </p>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <Link href="/login" className="btn-primary" style={{ width: 'auto', padding: '1rem 2rem', fontSize: '1.125rem' }}>
-                Commencer maintenant
-              </Link>
-              <Link href="#features" className="btn-secondary" style={{ width: 'auto', padding: '1rem 2rem', fontSize: '1.125rem' }}>
-                Fonctionnalités
-              </Link>
-            </div>
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            {/* Image Card */}
-            <div className="glass-card" style={{ padding: '1rem', position: 'relative', zIndex: 2 }}>
-              <img 
-                src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop" 
-                alt="Étudiants souriants" 
-                style={{ width: '100%', height: 'auto', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }}
-              />
-            </div>
-            {/* Decorative background shapes specific to the image */}
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'var(--primary-color)', borderRadius: '50%', filter: 'blur(40px)', opacity: 0.5, zIndex: 1 }}></div>
-            <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '150px', height: '150px', background: 'var(--secondary-color)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4, zIndex: 1 }}></div>
-          </div>
-          
-        </div>
-        
-        {/* Global Decorative elements */}
-        <div style={{ position: 'absolute', top: '10%', left: '5%', width: '300px', height: '300px', background: 'var(--primary-color)', borderRadius: '50%', filter: 'blur(120px)', opacity: 0.1 }}></div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" style={{ padding: '5rem 0', backgroundColor: 'var(--bg-primary)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <h2 style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '1rem' }}>Une solution tout-en-un</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Découvrez les modules conçus pour faciliter votre quotidien.</p>
-          </div>
-          
-          <div className="grid-features">
-            {/* Feature 1 */}
-            <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(67, 24, 255, 0.1)', color: 'var(--primary-color)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', fontSize: '1.5rem' }}>
-                🎓
-              </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem' }}>Gestion Scolaire</h3>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>Gérez facilement les classes, les niveaux, les inscriptions des élèves et les affectations des professeurs.</p>
-            </div>
-            
-            {/* Feature 2 */}
-            <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(5, 205, 153, 0.1)', color: 'var(--success)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', fontSize: '1.5rem' }}>
-                📊
-              </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem' }}>Notes et Bulletins</h3>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>Saisie rapide des notes, calcul automatique des moyennes et génération des bulletins scolaires.</p>
-            </div>
-            
-            {/* Feature 3 */}
-            <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(238, 93, 80, 0.1)', color: 'var(--danger)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', fontSize: '1.5rem' }}>
-                💰
-              </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem' }}>Suivi Financier</h3>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>Suivez les paiements des frais de scolarité en temps réel et relancez les retards de paiement.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer style={{ backgroundColor: 'var(--bg-secondary)', padding: '3rem 0', borderTop: '1px solid rgba(163, 174, 209, 0.2)' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
+      {/* ── Héros ── */}
+      <section className="relative overflow-hidden">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-16 md:grid-cols-2 md:py-24">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <img src="/logo.png" alt="Netaa" style={{ height: '32px', width: 'auto' }} />
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-color)', margin: 0 }}>Netaa</h4>
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 font-mono text-[0.7rem] font-medium uppercase tracking-[0.15em] text-accent">
+              <span className="size-1.5 rounded-full bg-accent" /> Fait au Mali · en français
+            </p>
+            <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-primary sm:text-5xl">
+              Suivez la scolarité de votre enfant, où que vous soyez.
+            </h1>
+            <p className="mt-5 max-w-md text-lg text-muted-foreground">
+              Notes, présences, bulletins, cantine et frais — sur votre téléphone, en temps réel.
+              Votre école vous ouvre l&apos;accès, vous n&apos;installez rien de compliqué.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+              >
+                Espace parents <ArrowRight className="size-4" />
+              </Link>
+              <a
+                href="#fonctionnalites"
+                className="inline-flex items-center rounded-md border border-input px-5 py-3 font-semibold hover:bg-secondary"
+              >
+                Voir les fonctionnalités
+              </a>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Netaa - Gestion Scolaire Numérique © 2026. Tous droits réservés.</p>
           </div>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <span className="nav-link" style={{ cursor: 'pointer' }}>Mentions légales</span>
-            <span className="nav-link" style={{ cursor: 'pointer' }}>Politique de confidentialité</span>
-            <span className="nav-link" style={{ cursor: 'pointer' }}>Contact</span>
-          </div>
+          <HeroScene />
+        </div>
+      </section>
+
+      <div className="mudcloth-divider" aria-hidden="true" />
+
+      {/* ── Pour qui ── */}
+      <section id="pour-qui" className="mx-auto max-w-6xl px-5 py-16">
+        <h2 className="font-display text-2xl font-extrabold text-primary sm:text-3xl">Trois métiers, un seul carnet</h2>
+        <p className="mt-2 max-w-xl text-muted-foreground">
+          Chacun voit ce qui le concerne, avec le même vocabulaire d&apos;une école malienne.
+        </p>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          {[
+            { t: 'Parents & élèves', d: 'Le bulletin, les absences, le reste à payer, l’emploi du temps. Une notification dès qu’il y a du nouveau.' },
+            { t: 'Enseignants', d: 'Saisie des notes et de l’appel depuis un téléphone, même hors connexion stable. Les moyennes se calculent seules.' },
+            { t: 'Direction & secrétariat', d: 'Inscriptions, classes, frais, reçus PDF, journal d’activité. Plusieurs établissements sur un même compte éditeur.' },
+          ].map((c) => (
+            <div key={c.t} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <h3 className="font-display text-lg font-bold">{c.t}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{c.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mudcloth-divider" aria-hidden="true" />
+
+      {/* ── Fonctionnalités ── */}
+      <section id="fonctionnalites" className="mx-auto max-w-6xl px-5 py-16">
+        <h2 className="font-display text-2xl font-extrabold text-primary sm:text-3xl">Ce que vous suivez</h2>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { Icon: ScrollText, t: 'Notes & bulletins', d: 'Dès que l’enseignant saisit. Moyenne pondérée par coefficient, rang de classe, bulletin PDF.' },
+            { Icon: BellRing, t: 'Présences', d: 'Présent, absent, retard — justifié ou non. Une absence, et vous êtes prévenu.' },
+            { Icon: Wallet, t: 'Frais & reçus', d: 'Frais par classe, par tranche. Reste à payer clair, reçu PDF à chaque versement.' },
+            { Icon: CalendarDays, t: 'Emploi du temps', d: 'La semaine de la classe, pauses comprises. Côté enseignant : ses créneaux.' },
+            { Icon: IdCard, t: 'Carte scolaire', d: 'Carte avec QR code, vérifiable par l’établissement. Fini la carte perdue et non rééditée.' },
+            { Icon: Building2, t: 'Multi-établissements', d: 'Chaque école ne voit que ses données. Cloisonnement strict entre établissements.' },
+          ].map(({ Icon, t, d }) => (
+            <div key={t} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="size-5" />
+              </div>
+              <h3 className="mt-4 font-display text-lg font-bold">{t}</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mudcloth-divider" aria-hidden="true" />
+
+      {/* ── Étapes ── */}
+      <section id="etapes" className="mx-auto max-w-6xl px-5 py-16">
+        <h2 className="font-display text-2xl font-extrabold text-primary sm:text-3xl">Comment vous y accédez</h2>
+        <ol className="mt-8 grid gap-5 md:grid-cols-3">
+          {[
+            ['L’école vous inscrit', 'La direction crée le compte de votre enfant et le vôtre. Rien à faire de votre côté.'],
+            ['Vous recevez vos identifiants', 'Par SMS ou remis au secrétariat. Mot de passe à changer à la première connexion.'],
+            ['Vous suivez en temps réel', 'Connexion sur netaa.ml ou l’application. Tout est là, à jour.'],
+          ].map(([t, d], i) => (
+            <li key={t} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <span className="font-mono text-sm font-semibold text-accent">0{i + 1}</span>
+              <h3 className="mt-2 font-display text-lg font-bold">{t}</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">{d}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ── Bandeau conviction ── */}
+      <section className="bg-primary text-primary-foreground">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-14 md:flex-row md:items-center md:justify-between">
+          <p className="max-w-xl font-display text-xl font-bold leading-snug sm:text-2xl">
+            Conçu au Mali, en français, pour le réseau que vous avez — pas pour une connexion parfaite.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex w-fit items-center gap-2 rounded-md bg-[hsl(var(--gold))] px-5 py-3 font-semibold text-[hsl(var(--gold-foreground))] hover:opacity-90"
+          >
+            Se connecter <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Pied de page ── */}
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row">
+          <span className="flex items-center gap-2">
+            <LogoMark className="size-6" /> Netaa École — République du Mali
+          </span>
+          <span>© {new Date().getFullYear()} · Tous droits réservés</span>
         </div>
       </footer>
-    </>
+    </div>
+  );
+}
+
+/** Illustration vectorielle : un parent et son enfant consultent l'application sous un acacia. */
+function HeroScene() {
+  return (
+    <div className="relative">
+      <svg
+        viewBox="0 0 440 340"
+        className="w-full rounded-2xl border border-border bg-card shadow-sm"
+        role="img"
+        aria-label="Un parent et son enfant consultent Netaa École sous un acacia, au coucher du soleil"
+      >
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="hsl(var(--muted))" />
+            <stop offset="1" stopColor="hsl(var(--card))" />
+          </linearGradient>
+        </defs>
+        <rect width="440" height="340" fill="url(#sky)" />
+        {/* grille cousue en filigrane */}
+        <g stroke="hsl(var(--border))" strokeWidth="1" opacity="0.6">
+          <path d="M0 70H440M0 140H440M0 210H440M110 0V340M220 0V340M330 0V340" />
+        </g>
+        {/* soleil */}
+        <circle cx="338" cy="96" r="34" fill="hsl(var(--gold))" opacity="0.9" />
+        {/* sol latérite */}
+        <rect x="0" y="270" width="440" height="70" fill="hsl(var(--accent))" opacity="0.9" />
+        <rect x="0" y="270" width="440" height="8" fill="hsl(var(--accent))" />
+        {/* acacia */}
+        <path d="M92 272 V170" stroke="#6b4326" strokeWidth="10" strokeLinecap="round" />
+        <path d="M92 176 q-34 -14 -58 6 q26 -4 58 4 M92 176 q30 -20 66 -4 q-30 -6 -66 8" fill="#5c7a4b" />
+        <ellipse cx="92" cy="150" rx="64" ry="26" fill="#5c7a4b" />
+        {/* adulte */}
+        <g>
+          <circle cx="232" cy="150" r="17" fill="hsl(var(--primary))" />
+          <rect x="214" y="168" width="36" height="66" rx="12" fill="hsl(var(--primary))" />
+          <rect x="238" y="196" width="34" height="12" rx="6" fill="hsl(var(--primary))" transform="rotate(18 238 196)" />
+        </g>
+        {/* enfant */}
+        <g>
+          <circle cx="286" cy="188" r="13" fill="#7a3a2b" />
+          <rect x="273" y="202" width="27" height="50" rx="10" fill="#7a3a2b" />
+        </g>
+        {/* téléphone avec coche */}
+        <g>
+          <rect x="252" y="188" width="30" height="46" rx="6" fill="hsl(var(--card))" stroke="hsl(var(--primary))" strokeWidth="2.5" />
+          <path d="M260 210 l5 5 l10 -12" fill="none" stroke="hsl(var(--success))" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      </svg>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { authService, LoginCredentials } from '@/services/auth.service';
+import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -104,12 +105,10 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -bottom-32 -left-32 size-96 rounded-full bg-accent/10 blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-xl">
-        <div className="mb-8 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Netaa École" className="mx-auto mb-4 h-14 w-auto object-contain" />
-          <h1 className="text-2xl font-extrabold text-primary">Netaa École</h1>
-          <p className="mt-0.5 text-[0.7rem] font-bold uppercase tracking-[0.15em] text-accent">
-            Gestion Scolaire Numérique
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Logo className="mb-3" markClassName="h-14 w-14" showEcole={false} />
+          <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-accent">
+            Gestion scolaire numérique
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
             Connectez-vous à votre espace d&apos;administration
