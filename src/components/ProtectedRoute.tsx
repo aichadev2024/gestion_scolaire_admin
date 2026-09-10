@@ -9,18 +9,23 @@ import { Button } from '@/components/ui/button';
 // Pages autorisées par rôle
 const ALLOWED_PATHS: Record<string, string[]> = {
   SUPER_ADMIN: ['*'], // Full platform & dashboard access
-  ADMIN: ['*'], // Accès total
+  // Le directeur est l'administrateur de l'établissement : accès total à
+  // TOUT l'espace /dashboard (élèves, enseignants, classes, matières,
+  // emploi du temps, présences, notes, bulletins, cartes, finances,
+  // comptes utilisateurs). Seul l'espace /super-admin lui reste fermé.
   DIRECTEUR: [
     '/dashboard',
     '/dashboard/eleves',
     '/dashboard/enseignants',
     '/dashboard/classes',
+    '/dashboard/matieres',
     '/dashboard/emploi-du-temps',
     '/dashboard/presences',
     '/dashboard/cartes-scolaires',
     '/dashboard/notes',
     '/dashboard/bulletins',
     '/dashboard/finances',
+    '/dashboard/utilisateurs',
   ],
   SECRETAIRE: [
     '/dashboard',
