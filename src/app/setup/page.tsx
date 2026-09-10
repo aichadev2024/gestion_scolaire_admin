@@ -50,7 +50,7 @@ export default function SetupPage() {
       const response = await fetch(`${apiBase}/auth/register-first-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'ADMIN' }),
+        body: JSON.stringify({ ...formData, role: 'DIRECTEUR' }),
       });
 
       if (!response.ok) {
@@ -75,7 +75,7 @@ export default function SetupPage() {
             <PartyPopper className="size-7" />
           </div>
           <h2 className="font-display text-xl font-extrabold text-primary">Félicitations&nbsp;!</h2>
-          <p className="mt-2 text-sm text-foreground">Le compte administrateur a été créé avec succès.</p>
+          <p className="mt-2 text-sm text-foreground">Le compte directeur a été créé avec succès.</p>
           <p className="mt-1 text-xs text-muted-foreground">Redirection vers la page de connexion…</p>
         </div>
       </AuthShell>
@@ -86,7 +86,7 @@ export default function SetupPage() {
     <AuthShell wide>
       <AuthHeader
         title="Configuration initiale"
-        description="Bienvenue sur Netaa École ! Créez le tout premier compte administrateur de l'école."
+        description="Bienvenue sur Netaa École ! Créez le tout premier compte directeur de l'école."
       />
 
       {error && (
@@ -169,7 +169,7 @@ export default function SetupPage() {
 
         <div className="sm:col-span-2">
           <Button type="submit" className="w-full" loading={loading}>
-            Créer l&apos;administrateur
+            Créer le directeur
           </Button>
         </div>
       </form>

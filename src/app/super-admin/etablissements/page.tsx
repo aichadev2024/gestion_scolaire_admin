@@ -85,7 +85,7 @@ export default function SuperAdminEtablissementsPage() {
     setSubmitting(true);
     try {
       await etablissementService.creer(formData);
-      toast.success('Établissement et compte administrateur créés.');
+      toast.success('Établissement et compte directeur créés.');
       setModalOpen(false);
       setFormData(EMPTY_FORM);
       chargerEtablissements();
@@ -389,9 +389,9 @@ export default function SuperAdminEtablissementsPage() {
 
             <fieldset className="grid gap-4 sm:grid-cols-2">
               <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
-                2. Premier administrateur école
+                2. Directeur de l&apos;établissement
               </legend>
-              <Field label="Prénom admin *">
+              <Field label="Prénom du directeur *">
                 <Input
                   required
                   value={formData.adminProfil.prenom}
@@ -403,7 +403,7 @@ export default function SuperAdminEtablissementsPage() {
                   }
                 />
               </Field>
-              <Field label="Nom admin *">
+              <Field label="Nom du directeur *">
                 <Input
                   required
                   value={formData.adminProfil.nom}
@@ -431,7 +431,7 @@ export default function SuperAdminEtablissementsPage() {
                   }
                 />
               </Field>
-              <Field label="Email de l'admin">
+              <Field label="Email du directeur">
                 <Input
                   type="email"
                   placeholder="admin@julesverne.netaa-ecole.com"

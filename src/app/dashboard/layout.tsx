@@ -50,8 +50,7 @@ const M = {
 } satisfies Record<string, MenuItem>;
 
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  ADMIN: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs],
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs],
   SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes],
   COMPTABLE: [M.dashboard, M.finances],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
@@ -60,8 +59,7 @@ const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super-Admin',
-  ADMIN: 'Administrateur',
-  DIRECTEUR: 'Direction',
+  DIRECTEUR: 'Directeur',
   SECRETAIRE: 'Secrétariat',
   COMPTABLE: 'Comptabilité',
   ENSEIGNANT: 'Enseignant',
@@ -97,8 +95,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
-  const role = user?.role || 'ADMIN';
-  const menuItems = MENUS_BY_ROLE[role] || MENUS_BY_ROLE.ADMIN;
+  const role = user?.role || 'DIRECTEUR';
+  const menuItems = MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR;
   const roleLabel = ROLE_LABELS[role] || role;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||

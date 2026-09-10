@@ -58,7 +58,7 @@ export default function BulletinsPage() {
   const bulletinRef = useRef<HTMLDivElement>(null);
 
   const role = authService.getCurrentUser()?.role || '';
-  const canLock = role === 'ADMIN' || role === 'DIRECTEUR';
+  const canLock = role === 'DIRECTEUR';
   const currentCategory = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
 
   useEffect(() => {

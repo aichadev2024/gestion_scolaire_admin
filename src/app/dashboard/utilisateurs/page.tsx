@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  Building2,
   ClipboardList,
   Lock,
   LockOpen,
@@ -32,8 +31,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const ROLES: { value: string; label: string; Icon: LucideIcon }[] = [
-  { value: 'ADMIN', label: 'Administrateur', Icon: ShieldCheck },
-  { value: 'DIRECTEUR', label: 'Directeur', Icon: Building2 },
+  { value: 'DIRECTEUR', label: 'Directeur', Icon: ShieldCheck },
   { value: 'SECRETAIRE', label: 'Secrétaire', Icon: ClipboardList },
   { value: 'COMPTABLE', label: 'Comptable', Icon: Wallet },
   { value: 'ENSEIGNANT', label: 'Enseignant', Icon: UsersRound },
@@ -259,7 +257,7 @@ export default function UtilisateursPage() {
       )}
 
       <p className="mt-6 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-        Seul un <strong>Administrateur</strong> peut ajouter, modifier ou supprimer des comptes.
+        Seul un <strong>Directeur</strong> peut ajouter, modifier ou supprimer des comptes.
       </p>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
