@@ -79,15 +79,18 @@ export default function CartesScolairesPage() {
       // CR80: 85.6mm × 54mm
       const CARD_W_MM = 85.6;
       const CARD_H_MM = 54;
-      const MARGIN_MM = 5;
+      const MARGIN_MM = 8;
+      const GAP_MM = 6;
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const PAGE_W = 210;
+      const PAGE_H = 297;
 
-      const cardsPerRow = Math.floor((PAGE_W - MARGIN_MM) / (CARD_W_MM + MARGIN_MM));
-      let col = 0,
-        row = 0;
+      const cardsPerRow = Math.max(1, Math.floor((PAGE_W - 2 * MARGIN_MM + GAP_MM) / (CARD_W_MM + GAP_MM)));
+      const rowsPerPage = Math.max(1, Math.floor((PAGE_H - 2 * MARGIN_MM + GAP_MM) / (CARD_H_MM + GAP_MM)));
+      const perPage = cardsPerRow * rowsPerPage;
 
+      let placed = 0; // nombre de cartes réellement posées (sert au découpage en pages)
       for (let i = 0; i < elevesToShow.length; i++) {
         const eleve = elevesToShow[i];
         const el = carteRefs.current.get(eleve.matricule);
@@ -100,28 +103,17 @@ export default function CartesScolairesPage() {
           logging: false,
         });
 
-        const imgData = canvas.toDataURL('image/png');
-        const x = MARGIN_MM + col * (CARD_W_MM + MARGIN_MM);
-        const y = MARGIN_MM + row * (CARD_H_MM + MARGIN_MM);
-
-        // New page if needed
-        if (col === 0 && row === 0 && i > 0) {
+        const slot = placed % perPage;
+        if (placed > 0 && slot === 0) {
           pdf.addPage();
         }
+        const col = slot % cardsPerRow;
+        const row = Math.floor(slot / cardsPerRow);
+        const x = MARGIN_MM + col * (CARD_W_MM + GAP_MM);
+        const y = MARGIN_MM + row * (CARD_H_MM + GAP_MM);
 
-        pdf.addImage(imgData, 'PNG', x, y, CARD_W_MM, CARD_H_MM);
-
-        col++;
-        if (col >= cardsPerRow) {
-          col = 0;
-          row++;
-          // A4 fits ~4 rows of cards (with margins)
-          if (row >= 4 && i < elevesToShow.length - 1) {
-            pdf.addPage();
-            row = 0;
-            col = 0;
-          }
-        }
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, CARD_W_MM, CARD_H_MM);
+        placed++;
       }
 
       const filename =
@@ -267,7 +259,7 @@ export default function CartesScolairesPage() {
                 {eleve.profil?.photoUrl == null && (
                   <div
                     className={cn(
-                      'flex w-[323px] items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 px-3 py-1.5',
+                      'carte-warn flex w-[323px] items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 px-3 py-1.5',
                       'text-xs font-semibold text-gold-foreground',
                     )}
                   >
@@ -281,18 +273,32 @@ export default function CartesScolairesPage() {
         </>
       )}
 
-      {/* CSS d'impression */}
+      {/* CSS d'impression — on isole la zone des cartes : tout le reste (barre
+          latérale, en-têtes, filtres, avertissements) est masqué, et la grille
+          reprend la taille physique CR80 exacte pour éviter la déformation. */}
       <style>{`
         @media print {
-          body { background: white !important; color: black !important; }
-          .no-print, header, nav, button, input, select { display: none !important; }
-          #cartes-print-zone {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 10mm !important;
-            padding: 10mm !important;
-            page-break-inside: avoid;
+          @page { size: A4 portrait; margin: 8mm; }
+          html, body {
+            background: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
+          body * { visibility: hidden !important; }
+          #cartes-print-zone, #cartes-print-zone * { visibility: visible !important; }
+          #cartes-print-zone {
+            position: absolute !important;
+            left: 0; top: 0;
+            width: 100%;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-content: flex-start !important;
+            gap: 6mm !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          #cartes-print-zone > div { break-inside: avoid; page-break-inside: avoid; }
+          #cartes-print-zone .carte-warn { display: none !important; }
         }
       `}</style>
     </div>

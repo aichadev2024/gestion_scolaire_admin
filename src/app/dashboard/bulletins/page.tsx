@@ -61,6 +61,17 @@ export default function BulletinsPage() {
   const canLock = role === 'DIRECTEUR';
   const currentCategory = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
 
+  // Totaux affichés AVANT la moyenne : total des coefficients, total des points
+  // (Σ moyenne matière × coef) — pour que le calcul de la moyenne générale soit visible.
+  const totalCoef = (bulletin?.lignes ?? []).reduce((s, l) => s + (l.coefficient || 0), 0);
+  const totalPoints = (bulletin?.lignes ?? []).reduce(
+    (s, l) => s + (l.moyenneEleve || 0) * (l.coefficient || 0),
+    0,
+  );
+  const moyenneCalculee = totalCoef > 0 ? totalPoints / totalCoef : 0;
+  const moyenneAffichee = bulletin?.moyenneGenerale || moyenneCalculee;
+  const fmt = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : '-');
+
   useEffect(() => {
     const user = authService.getCurrentUser();
     if (user?.etablissementNom) setNomEtablissement(user.etablissementNom);
@@ -242,26 +253,26 @@ export default function BulletinsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px double #1B365D', paddingBottom: '15px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.png" alt="Logo établissement" style={{ height: '75px', width: 'auto', objectFit: 'contain' }} />
+                  <img src="/logo.png" alt="Logo Netaa École" style={{ height: "70px", width: "70px", objectFit: "contain" }} />
                   <div>
                     <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#1B365D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {(nomEtablissement || authService.getCurrentUser()?.etablissementNom || 'ÉTABLISSEMENT SCOLAIRE').toUpperCase()}
                     </h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#d97706', fontWeight: 700 }}>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#2E7CB8', fontWeight: 700 }}>
                       Enseignement général, technique &amp; professionnel
                     </p>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', background: 'rgba(27,54,93,0.04)', padding: '10px 18px', borderRadius: '8px', border: '1px solid rgba(27,54,93,0.15)' }}>
                   <h1 style={{ margin: 0, fontSize: '20px', textTransform: 'uppercase', color: '#1B365D', fontWeight: 800 }}>BULLETIN DE NOTES</h1>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 700, color: '#d97706' }}>{formatPeriode(bulletin.periode)}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 700, color: '#2E7CB8' }}>{formatPeriode(bulletin.periode)}</p>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px', padding: '14px 20px', border: '1px solid #1B365D', borderRadius: '6px', backgroundColor: '#fafafa' }}>
                 <div>
                   <p style={{ margin: '0 0 6px 0', fontSize: '13px' }}><strong>Nom &amp; prénom(s) :</strong> <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1B365D' }}>{bulletin.eleveNom.toUpperCase()} {bulletin.elevePrenom}</span></p>
-                  <p style={{ margin: 0, fontSize: '13px' }}><strong>Matricule :</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#d97706' }}>{bulletin.eleveMatricule}</span></p>
+                  <p style={{ margin: 0, fontSize: '13px' }}><strong>Matricule :</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#2E7CB8' }}>{bulletin.eleveMatricule}</span></p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ margin: '0 0 6px 0', fontSize: '13px' }}><strong>Classe :</strong> <span style={{ fontWeight: 'bold', color: '#1B365D' }}>{bulletin.classeNom}</span></p>
@@ -269,39 +280,65 @@ export default function BulletinsPage() {
                 </div>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px', fontSize: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px', fontSize: '13px' }}>
                 <thead>
                   <tr>
-                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'left', background: '#f5f5f5', width: '30%' }}>Matières</th>
-                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', background: '#f5f5f5', width: '10%' }}>Coef.</th>
-                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', background: '#f5f5f5', width: '15%' }}>Moyenne / 20</th>
+                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'left', background: '#f5f5f5', width: '24%' }}>Matières</th>
+                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', background: '#f5f5f5', width: '7%' }}>Coef.</th>
+                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', background: '#f5f5f5', width: '13%' }}>Total obtenu</th>
+                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', background: '#f5f5f5', width: '11%' }}>Moy. / 20</th>
+                    <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', background: '#f5f5f5', width: '11%' }}>Moy. × Coef.</th>
                     <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'left', background: '#f5f5f5' }}>Détail des notes</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bulletin.lignes.map((l) => (
-                    <tr key={l.classeMatiereId}>
-                      <td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>{l.matiereNom}</td>
-                      <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center' }}>{l.coefficient}</td>
-                      <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', fontWeight: 'bold', color: l.moyenneEleve < 10 ? '#d32f2f' : '#000' }}>
-                        {l.moyenneEleve > 0 ? l.moyenneEleve.toFixed(2) : '-'}
-                      </td>
-                      <td style={{ border: '1px solid #000', padding: '8px', fontSize: '12px' }}>
-                        {l.notes.length > 0 ? l.notes.map((n) => `${n.valeur}/${n.noteMax}`).join(', ') : 'Aucune note'}
-                      </td>
-                    </tr>
-                  ))}
+                  {bulletin.lignes.map((l) => {
+                    const totObtenu = l.notes.reduce((s, n) => s + (n.valeur || 0), 0);
+                    const totBareme = l.notes.reduce((s, n) => s + (n.noteMax || 0), 0);
+                    return (
+                      <tr key={l.classeMatiereId}>
+                        <td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>{l.matiereNom}</td>
+                        <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center' }}>{l.coefficient}</td>
+                        <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', fontFamily: 'monospace' }}>
+                          {l.notes.length > 0 ? `${(+totObtenu.toFixed(2))} / ${(+totBareme.toFixed(2))}` : '-'}
+                        </td>
+                        <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', fontWeight: 'bold', color: l.moyenneEleve < 10 ? '#d32f2f' : '#000' }}>
+                          {l.moyenneEleve > 0 ? l.moyenneEleve.toFixed(2) : '-'}
+                        </td>
+                        <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>
+                          {l.moyenneEleve > 0 ? (l.moyenneEleve * l.coefficient).toFixed(2) : '-'}
+                        </td>
+                        <td style={{ border: '1px solid #000', padding: '8px', fontSize: '12px' }}>
+                          {l.notes.length > 0 ? l.notes.map((n) => `${n.valeur}/${n.noteMax}`).join(', ') : 'Aucune note'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {bulletin.lignes.length === 0 && (
-                    <tr><td colSpan={4} style={{ border: '1px solid #000', padding: '20px', textAlign: 'center' }}>Aucune matière enregistrée.</td></tr>
+                    <tr><td colSpan={6} style={{ border: '1px solid #000', padding: '20px', textAlign: 'center' }}>Aucune matière enregistrée.</td></tr>
                   )}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th colSpan={2} style={{ border: '1px solid #000', padding: '12px', textAlign: 'right', background: '#e0e0e0', fontSize: '16px' }}>MOYENNE GÉNÉRALE</th>
-                    <th style={{ border: '1px solid #000', padding: '12px', textAlign: 'center', background: '#e0e0e0', fontSize: '16px', color: (bulletin.moyenneGenerale || 0) < 10 ? '#d32f2f' : '#000' }}>
-                      {bulletin.moyenneGenerale ? bulletin.moyenneGenerale.toFixed(2) : '-'} / 20
+                    <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'right', background: '#eee' }}>TOTAUX</th>
+                    <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'center', background: '#eee' }}>{totalCoef}</th>
+                    <th style={{ border: '1px solid #000', padding: '10px', background: '#eee' }}></th>
+                    <th style={{ border: '1px solid #000', padding: '10px', background: '#eee' }}></th>
+                    <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'center', background: '#eee', fontFamily: 'monospace' }}>{fmt(totalPoints)}</th>
+                    <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left', background: '#eee', fontWeight: 'normal', fontSize: '11px', fontStyle: 'italic' }}>
+                      Total des points ÷ total des coef.
                     </th>
-                    <th style={{ border: '1px solid #000', padding: '12px', background: '#e0e0e0' }}></th>
+                  </tr>
+                  <tr>
+                    <th colSpan={4} style={{ border: '1px solid #000', padding: '12px', textAlign: 'right', background: '#e0e0e0', fontSize: '14px' }}>
+                      MOYENNE GÉNÉRALE
+                      <span style={{ display: 'block', fontWeight: 'normal', fontSize: '11px', fontStyle: 'italic', color: '#444' }}>
+                        {fmt(totalPoints)} ÷ {totalCoef || '-'} = {fmt(moyenneCalculee)}
+                      </span>
+                    </th>
+                    <th colSpan={2} style={{ border: '1px solid #000', padding: '12px', textAlign: 'center', background: '#e0e0e0', fontSize: '17px', color: moyenneAffichee < 10 ? '#d32f2f' : '#1B365D' }}>
+                      {moyenneAffichee ? moyenneAffichee.toFixed(2) : '-'} / 20
+                    </th>
                   </tr>
                 </tfoot>
               </table>

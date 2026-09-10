@@ -16,6 +16,12 @@ interface CarteProps {
 const CARD_W = 323;
 const CARD_H = 204;
 
+// Pile de polices système : rendu identique à l'écran, à l'impression et dans
+// html2canvas (aucune police web à charger → plus de texte « coupé » quand la
+// police de repli, plus large, débordait des cadres à overflow:hidden).
+const FONT_STACK =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
 const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
   ({ eleve, etablissementNom, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
     const nom = eleve.profil?.nom?.toUpperCase() || '—';
@@ -44,26 +50,29 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
           overflow: 'hidden',
           position: 'relative',
           background: 'linear-gradient(135deg, #1B365D 0%, #0f2140 100%)',
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: FONT_STACK,
           boxShadow: '0 8px 32px rgba(27, 54, 93, 0.4)',
           flexShrink: 0,
+          WebkitPrintColorAdjust: 'exact',
+          printColorAdjust: 'exact',
         }}
       >
         {/* Gold top stripe */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '5px', background: 'linear-gradient(90deg, #E5A93C, #f0c060, #E5A93C)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '5px', background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
 
         {/* Background decoration */}
-        <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(229,169,60,0.07)' }} />
+        <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(46,124,184,0.10)' }} />
         <div style={{ position: 'absolute', bottom: '-30px', left: '100px', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
 
         {/* Header row: logo + school name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 10px 0 10px' }}>
-          <img src="/logo.png" alt="Netaa" style={{ height: '22px', objectFit: 'contain', filter: 'brightness(10)' }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-reversed.png" alt="Netaa" style={{ height: "20px", width: "20px", objectFit: "contain" }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#E5A93C', fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ color: '#5AA9DC', fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {ecoleNom}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '5.5px', letterSpacing: '0.05em' }}>CARTE D'IDENTITÉ SCOLAIRE</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '7px', letterSpacing: '0.05em' }}>CARTE D'IDENTITÉ SCOLAIRE</div>
           </div>
           <div style={{ marginLeft: 'auto', background: statut === 'ACTIF' ? 'rgba(5,205,153,0.2)' : 'rgba(238,93,80,0.2)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
             {statut}
@@ -81,7 +90,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
           <div style={{ flexShrink: 0 }}>
             <div style={{
               width: '60px', height: '70px', borderRadius: '6px', overflow: 'hidden',
-              border: '2px solid #E5A93C', background: '#0f2140',
+              border: '2px solid #2E7CB8', background: '#0f2140',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               {photoUrl ? (
@@ -89,7 +98,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
               ) : (
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '24px', marginBottom: '2px' }}>👤</div>
-                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '6px' }}>Photo</div>
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '7px' }}>Photo</div>
                 </div>
               )}
             </div>
@@ -100,7 +109,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             <div style={{ color: 'white', fontWeight: 800, fontSize: '13px', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {nom}
             </div>
-            <div style={{ color: '#E5A93C', fontWeight: 600, fontSize: '10px', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ color: '#5AA9DC', fontWeight: 600, fontSize: '10px', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {prenom}
             </div>
 
@@ -125,15 +134,15 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             <div style={{ padding: '3px', background: 'white', borderRadius: '4px' }}>
               <QRCodeSVG value={verifyUrl} size={52} level="M" bgColor="#ffffff" fgColor="#1B365D" />
             </div>
-            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '5.5px', textAlign: 'center' }}>Scanner pour vérifier</span>
+            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '7px', textAlign: 'center' }}>Scanner pour vérifier</span>
           </div>
         </div>
 
         {/* Bottom gold stripe */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #E5A93C, #f0c060, #E5A93C)' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
 
         {/* Version watermark */}
-        <div style={{ position: 'absolute', bottom: '6px', right: '10px', color: 'rgba(255,255,255,0.2)', fontSize: '6px' }}>
+        <div style={{ position: 'absolute', bottom: '6px', right: '10px', color: 'rgba(255,255,255,0.2)', fontSize: '7px' }}>
           v{version}
         </div>
       </div>
