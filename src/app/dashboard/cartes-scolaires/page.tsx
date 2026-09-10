@@ -109,10 +109,14 @@ export default function CartesScolairesPage() {
         }
         const col = slot % cardsPerRow;
         const row = Math.floor(slot / cardsPerRow);
-        const x = MARGIN_MM + col * (CARD_W_MM + GAP_MM);
-        const y = MARGIN_MM + row * (CARD_H_MM + GAP_MM);
 
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, CARD_W_MM, CARD_H_MM);
+        // Hauteur dérivée du ratio réel du canvas → aucune déformation même si
+        // le rendu diffère légèrement du 323×204 théorique.
+        const drawH = Math.min(CARD_H_MM, CARD_W_MM * (canvas.height / canvas.width));
+        const x = MARGIN_MM + col * (CARD_W_MM + GAP_MM);
+        const y = MARGIN_MM + row * (CARD_H_MM + GAP_MM) + (CARD_H_MM - drawH) / 2;
+
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, CARD_W_MM, drawH);
         placed++;
       }
 

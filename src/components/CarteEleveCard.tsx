@@ -39,6 +39,21 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
 
     const dateValidite = `31/08/${new Date().getFullYear() + (new Date().getMonth() >= 8 ? 1 : 0)}`;
 
+    const labelStyle: React.CSSProperties = {
+      color: 'rgba(255,255,255,0.5)',
+      fontSize: '7px',
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      width: '46px',
+      flexShrink: 0,
+    };
+    const valueStyle: React.CSSProperties = {
+      color: '#ffffff',
+      fontSize: '9px',
+      fontWeight: 600,
+      overflowWrap: 'anywhere',
+    };
+
     return (
       <div
         ref={ref}
@@ -46,9 +61,12 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
         style={{
           width: `${CARD_W}px`,
           height: `${CARD_H}px`,
+          boxSizing: 'border-box',
           borderRadius: '10px',
           overflow: 'hidden',
           position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
           background: 'linear-gradient(135deg, #1B365D 0%, #0f2140 100%)',
           fontFamily: FONT_STACK,
           boxShadow: '0 8px 32px rgba(27, 54, 93, 0.4)',
@@ -57,94 +75,81 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
           printColorAdjust: 'exact',
         }}
       >
-        {/* Gold top stripe */}
+        {/* Bandeau haut */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '5px', background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
+        {/* Décor */}
+        <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(46,124,184,0.10)' }} />
 
-        {/* Background decoration */}
-        <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(46,124,184,0.10)' }} />
-        <div style={{ position: 'absolute', bottom: '-30px', left: '100px', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
-
-        {/* Header row: logo + school name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 10px 0 10px' }}>
+        {/* En-tête : logo + établissement + statut */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 12px 8px 12px', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-reversed.png" alt="Netaa" style={{ height: "20px", width: "20px", objectFit: "contain" }} />
+          <img src="/logo-reversed.png" alt="Netaa" style={{ height: '22px', width: '22px', objectFit: 'contain', flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#5AA9DC', fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ color: '#5AA9DC', fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {ecoleNom}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '7px', letterSpacing: '0.05em' }}>CARTE D'IDENTITÉ SCOLAIRE</div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '6.5px', letterSpacing: '0.08em' }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
           </div>
-          <div style={{ marginLeft: 'auto', background: statut === 'ACTIF' ? 'rgba(5,205,153,0.2)' : 'rgba(238,93,80,0.2)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
+          <div style={{ marginLeft: 'auto', flexShrink: 0, background: statut === 'ACTIF' ? 'rgba(5,205,153,0.18)' : 'rgba(238,93,80,0.18)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
             {statut}
           </div>
         </div>
 
-        {/* Title */}
-        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '7px', letterSpacing: '0.15em', marginTop: '4px', fontWeight: 600 }}>
-          CARTE SCOLAIRE — {anneeScolaire}
-        </div>
-
-        {/* Main content */}
-        <div style={{ display: 'flex', gap: '10px', padding: '8px 10px', alignItems: 'flex-start' }}>
+        {/* Corps : photo | infos | QR — occupe toute la hauteur restante */}
+        <div style={{ flex: 1, display: 'flex', gap: '10px', padding: '2px 12px 6px 12px', alignItems: 'center', minHeight: 0 }}>
           {/* Photo */}
-          <div style={{ flexShrink: 0 }}>
-            <div style={{
-              width: '60px', height: '70px', borderRadius: '6px', overflow: 'hidden',
-              border: '2px solid #2E7CB8', background: '#0f2140',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              {photoUrl ? (
-                <img src={photoUrl} alt={`${prenom} ${nom}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', marginBottom: '2px' }}>👤</div>
-                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '7px' }}>Photo</div>
-                </div>
-              )}
+          <div style={{
+            width: '58px', height: '72px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0,
+            border: '2px solid #2E7CB8', background: '#0f2140',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrl} alt={`${prenom} ${nom}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '7px' }}>Photo</span>
+            )}
+          </div>
+
+          {/* Infos */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: '12px', lineHeight: 1.15, overflowWrap: 'anywhere' }}>
+              {nom} <span style={{ color: '#5AA9DC', fontWeight: 600 }}>{prenom}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'baseline' }}>
+              <span style={labelStyle}>MATRIC.</span>
+              <span style={{ ...valueStyle, fontFamily: 'monospace', letterSpacing: '0.03em' }}>{matricule}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'baseline' }}>
+              <span style={labelStyle}>CLASSE</span>
+              <span style={valueStyle}>{classe}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'baseline' }}>
+              <span style={labelStyle}>VALIDE</span>
+              <span style={{ ...valueStyle, fontWeight: 400, color: 'rgba(255,255,255,0.75)' }}>jusqu&apos;au {dateValidite}</span>
             </div>
           </div>
 
-          {/* Info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: '13px', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {nom}
+          {/* QR */}
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+            <div style={{ padding: '3px', background: 'white', borderRadius: '4px', lineHeight: 0 }}>
+              <QRCodeSVG value={verifyUrl} size={50} level="M" bgColor="#ffffff" fgColor="#1B365D" />
             </div>
-            <div style={{ color: '#5AA9DC', fontWeight: 600, fontSize: '10px', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {prenom}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '7px', fontWeight: 600, width: '40px', flexShrink: 0 }}>MATRIC.</span>
-                <span style={{ color: 'white', fontSize: '8px', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em' }}>{matricule}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '7px', fontWeight: 600, width: '40px', flexShrink: 0 }}>CLASSE</span>
-                <span style={{ color: 'white', fontSize: '8px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{classe}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '7px', fontWeight: 600, width: '40px', flexShrink: 0 }}>VALID.</span>
-                <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '7px' }}>{dateValidite}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* QR Code */}
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <div style={{ padding: '3px', background: 'white', borderRadius: '4px' }}>
-              <QRCodeSVG value={verifyUrl} size={52} level="M" bgColor="#ffffff" fgColor="#1B365D" />
-            </div>
-            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '7px', textAlign: 'center' }}>Scanner pour vérifier</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '6px', textAlign: 'center', maxWidth: '58px' }}>Scanner pour vérifier</span>
           </div>
         </div>
 
-        {/* Bottom gold stripe */}
+        {/* Pied : mention officielle + année */}
+        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 12px 8px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '6.5px', letterSpacing: '0.1em', fontWeight: 600 }}>
+            CARTE SCOLAIRE OFFICIELLE
+          </span>
+          <span style={{ color: '#5AA9DC', fontSize: '7px', fontWeight: 700 }}>{anneeScolaire}</span>
+        </div>
+
+        {/* Bandeau bas */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
-
-        {/* Version watermark */}
-        <div style={{ position: 'absolute', bottom: '6px', right: '10px', color: 'rgba(255,255,255,0.2)', fontSize: '7px' }}>
-          v{version}
-        </div>
+        <div style={{ position: 'absolute', bottom: '10px', right: '10px', color: 'rgba(255,255,255,0.18)', fontSize: '6px' }}>v{version}</div>
       </div>
     );
   }
