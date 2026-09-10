@@ -75,20 +75,21 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
           printColorAdjust: 'exact',
         }}
       >
-        {/* Bandeau haut */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '5px', background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
-        {/* Décor */}
+        {/* Décor (derrière, rogné par overflow:hidden) */}
         <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(46,124,184,0.10)' }} />
 
+        {/* Bandeau haut — en flux (pas absolu) pour un rendu html2canvas fiable */}
+        <div style={{ height: '5px', flexShrink: 0, background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
+
         {/* En-tête : logo + établissement + statut */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 12px 8px 12px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 12px 8px 12px', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-reversed.png" alt="Netaa" style={{ height: '22px', width: '22px', objectFit: 'contain', flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#5AA9DC', fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {ecoleNom}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '6.5px', letterSpacing: '0.08em' }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '6.5px', letterSpacing: '0.08em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
           </div>
           <div style={{ marginLeft: 'auto', flexShrink: 0, background: statut === 'ACTIF' ? 'rgba(5,205,153,0.18)' : 'rgba(238,93,80,0.18)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
             {statut}
@@ -140,16 +141,16 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
         </div>
 
         {/* Pied : mention officielle + année */}
-        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 12px 8px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '6.5px', letterSpacing: '0.1em', fontWeight: 600 }}>
+        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 12px 6px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '6.5px', letterSpacing: '0.1em', fontWeight: 600, lineHeight: 1.3 }}>
             CARTE SCOLAIRE OFFICIELLE
           </span>
-          <span style={{ color: '#5AA9DC', fontSize: '7px', fontWeight: 700 }}>{anneeScolaire}</span>
+          <span style={{ color: '#5AA9DC', fontSize: '7px', fontWeight: 700, lineHeight: 1.3 }}>{anneeScolaire}</span>
         </div>
 
-        {/* Bandeau bas */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
-        <div style={{ position: 'absolute', bottom: '10px', right: '10px', color: 'rgba(255,255,255,0.18)', fontSize: '6px' }}>v{version}</div>
+        {/* Bandeau bas — en flux */}
+        <div style={{ height: '3px', flexShrink: 0, background: 'linear-gradient(90deg, #2E7CB8, #5AA9DC, #2E7CB8)' }} />
+        <div style={{ position: 'absolute', bottom: '9px', right: '10px', color: 'rgba(255,255,255,0.18)', fontSize: '6px' }}>v{version}</div>
       </div>
     );
   }
