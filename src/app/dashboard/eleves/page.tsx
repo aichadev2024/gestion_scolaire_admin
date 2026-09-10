@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Plus, Trash2, GraduationCap } from 'lucide-react';
 import { eleveService } from '@/services/eleve.service';
 import { classeService } from '@/services/classe.service';
+import { profilService } from '@/services/profil.service';
 import { utilisateurService, UtilisateurResponse } from '@/services/utilisateur.service';
 import { Eleve, Classe } from '@/types';
 import CredentialsBanner from '@/components/CredentialsBanner';
@@ -49,23 +50,34 @@ export default function ElevesPage() {
   const [editingEleve, setEditingEleve] = useState<Eleve | null>(null);
   const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
   const [formData, setFormData] = useState(EMPTY);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+
+  const photoPreview = useMemo(
+    () => (photoFile ? URL.createObjectURL(photoFile) : formData.photoUrl),
+    [photoFile, formData.photoUrl],
+  );
+  useEffect(() => {
+    return () => {
+      if (photoFile) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoFile, photoPreview]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setError('La photo ne doit pas dépasser 2 Mo.');
+    if (file.size > 6 * 1024 * 1024) {
+      setError('La photo ne doit pas dépasser 6 Mo.');
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => setFormData((p) => ({ ...p, photoUrl: reader.result as string }));
-    reader.readAsDataURL(file);
+    setError('');
+    setPhotoFile(file);
   };
 
   const openNewForm = () => {
     setEditingEleve(null);
     setError('');
     setFormData(EMPTY);
+    setPhotoFile(null);
     setShowForm(true);
   };
 
@@ -84,6 +96,7 @@ export default function ElevesPage() {
       parentId: eleve.parentId ? String(eleve.parentId) : '',
       photoUrl: eleve.profil?.photoUrl || '',
     });
+    setPhotoFile(null);
     setShowForm(true);
   };
 
@@ -136,11 +149,14 @@ export default function ElevesPage() {
         parentId: formData.parentId ? parseInt(formData.parentId) : undefined,
       };
 
+      let profilId: number | undefined;
       if (editingEleve) {
-        await eleveService.updateEleve(editingEleve.id, payload);
+        const maj = await eleveService.updateEleve(editingEleve.id, payload);
+        profilId = maj?.profil?.id ?? editingEleve.profil?.id;
         toast.success('Élève mis à jour.');
       } else {
         const cree = await eleveService.createEleve(payload);
+        profilId = cree?.profil?.id;
         toast.success('Élève inscrit.');
         if (cree?.motDePasseInitial) {
           setNouveauCompte({
@@ -149,7 +165,17 @@ export default function ElevesPage() {
           });
         }
       }
+
+      if (photoFile && profilId) {
+        try {
+          await profilService.uploadPhoto(profilId, photoFile);
+        } catch (e) {
+          toast.warning(msg(e, 'Photo non enregistrée (stockage d\'images indisponible ?).'));
+        }
+      }
+
       setFormData(EMPTY);
+      setPhotoFile(null);
       setEditingEleve(null);
       setShowForm(false);
       await fetchData();
@@ -337,13 +363,17 @@ export default function ElevesPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Photo (carte scolaire & trombinoscope)" className="sm:col-span-2">
+            <Field
+              label="Photo (carte scolaire & trombinoscope)"
+              hint="JPEG, PNG ou WebP, 6 Mo max. Redimensionnée automatiquement."
+              className="sm:col-span-2"
+            >
               <div className="flex items-center gap-3">
                 <Input type="file" accept="image/*" onChange={handlePhotoUpload} className="flex-1" />
-                {formData.photoUrl && (
+                {photoPreview && (
                   <span className="size-11 shrink-0 overflow-hidden rounded-full border border-primary/40">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={formData.photoUrl} alt="Aperçu" className="size-full object-cover" />
+                    <img src={photoPreview} alt="Aperçu" className="size-full object-cover" />
                   </span>
                 )}
               </div>
@@ -366,10 +396,12 @@ export default function ElevesPage() {
 
 function Field({
   label,
+  hint,
   children,
   className,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -377,6 +409,7 @@ function Field({
     <div className={`space-y-1.5 ${className ?? ''}`}>
       <Label>{label}</Label>
       {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

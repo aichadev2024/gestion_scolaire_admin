@@ -1,4 +1,5 @@
 export interface Profil {
+  id?: number;
   prenom: string;
   nom: string;
   telephone: string;
