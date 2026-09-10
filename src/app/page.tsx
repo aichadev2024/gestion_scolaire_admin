@@ -8,9 +8,16 @@ import {
   Wallet,
   Building2,
   Smartphone,
+  Mail,
+  Phone,
   ArrowRight,
 } from 'lucide-react';
 import { Logo, LogoMark } from '@/components/logo';
+
+const CONTACT_EMAIL = 'diarrassoubaa505@gmail.com';
+const CONTACT_TEL = '+223 71 91 93 53';
+const CONTACT_TEL_HREF = 'tel:+22371919353';
+const MAILTO = `mailto:${CONTACT_EMAIL}?subject=Demande%20de%20d%C3%A9mo%20Netaa%20%C3%89cole`;
 
 export const metadata: Metadata = {
   title: 'Netaa École — Le logiciel de gestion des écoles du Mali',
@@ -62,7 +69,7 @@ export default function Home() {
                 Connexion direction <ArrowRight className="size-4" />
               </Link>
               <a
-                href="#tarifs"
+                href={MAILTO}
                 className="inline-flex items-center rounded-md border border-input px-5 py-3 font-semibold hover:bg-secondary"
               >
                 Demander une démo
@@ -166,11 +173,22 @@ export default function Home() {
             Pour une démonstration ou un devis, contactez l&apos;équipe Netaa École.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/login"
+            <a
+              href={MAILTO}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
             >
-              J&apos;ai déjà un compte <ArrowRight className="size-4" />
+              <Mail className="size-4" /> {CONTACT_EMAIL}
+            </a>
+            <a
+              href={CONTACT_TEL_HREF}
+              className="inline-flex items-center gap-2 rounded-md border border-input px-5 py-3 font-semibold hover:bg-secondary"
+            >
+              <Phone className="size-4" /> {CONTACT_TEL}
+            </a>
+          </div>
+          <div className="mt-4">
+            <Link href="/login" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+              J&apos;ai déjà un compte <ArrowRight className="size-3.5" />
             </Link>
           </div>
         </div>
@@ -183,21 +201,29 @@ export default function Home() {
             Conçu au Mali, en français, pour le réseau que vous avez — pas pour une connexion parfaite.
           </p>
           <a
-            href="#tarifs"
+            href={MAILTO}
             className="inline-flex w-fit items-center gap-2 rounded-md bg-[hsl(var(--gold))] px-5 py-3 font-semibold text-[hsl(var(--gold-foreground))] hover:opacity-90"
           >
-            Voir comment démarrer <ArrowRight className="size-4" />
+            Parler à l&apos;équipe <ArrowRight className="size-4" />
           </a>
         </div>
       </section>
 
       {/* ── Pied de page ── */}
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span className="flex items-center gap-2">
             <LogoMark className="size-6" /> Netaa École — République du Mali
           </span>
-          <span>© {new Date().getFullYear()} · Tous droits réservés</span>
+          <div className="flex flex-col gap-1 sm:items-end">
+            <a href={MAILTO} className="flex items-center gap-1.5 hover:text-foreground">
+              <Mail className="size-3.5" /> {CONTACT_EMAIL}
+            </a>
+            <a href={CONTACT_TEL_HREF} className="flex items-center gap-1.5 hover:text-foreground">
+              <Phone className="size-3.5" /> {CONTACT_TEL}
+            </a>
+            <span className="mt-1">© {new Date().getFullYear()} · Tous droits réservés</span>
+          </div>
         </div>
       </footer>
     </div>
