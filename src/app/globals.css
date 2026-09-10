@@ -30,8 +30,8 @@
   --accent: 14 62% 43%;            /* #B24A2A terre latéritique */
   --accent-foreground: 40 46% 97%;
 
-  --gold: 38 70% 54%;              /* #DCA338 or du mil */
-  --gold-foreground: 36 40% 12%;
+  --gold: 206 58% 45%;            /* accent bleu (ex-« or du mil ») — mieux adapté à un public scolaire */
+  --gold-foreground: 0 0% 100%;
 
   --destructive: 6 63% 44%;
   --destructive-foreground: 40 46% 97%;
@@ -50,42 +50,42 @@
 }
 
 .dark {
-  --background: 33 18% 8%;          /* nuit sahélienne */
-  --foreground: 40 40% 90%;
+  --background: 222 47% 11%;        /* bleu nuit (indigo profond), pas noir */
+  --foreground: 214 32% 92%;
 
-  --card: 33 20% 11%;
-  --card-foreground: 40 40% 90%;
+  --card: 222 40% 15%;
+  --card-foreground: 214 32% 92%;
 
-  --popover: 33 20% 11%;
-  --popover-foreground: 40 40% 90%;
+  --popover: 222 40% 15%;
+  --popover-foreground: 214 32% 92%;
 
-  --primary: 38 74% 56%;           /* en sombre, l'or du mil devient la couleur d'action */
-  --primary-foreground: 33 30% 10%;
+  --primary: 210 80% 66%;           /* bleu clair : couleur d'action en mode sombre */
+  --primary-foreground: 222 47% 11%;
 
-  --secondary: 33 16% 17%;
-  --secondary-foreground: 40 36% 88%;
+  --secondary: 222 30% 20%;
+  --secondary-foreground: 214 28% 88%;
 
-  --muted: 33 15% 16%;
-  --muted-foreground: 40 18% 62%;
+  --muted: 222 28% 18%;
+  --muted-foreground: 215 20% 66%;
 
-  --accent: 14 58% 52%;           /* latérite éclaircie */
-  --accent-foreground: 33 30% 9%;
+  --accent: 14 55% 57%;            /* latérite éclaircie */
+  --accent-foreground: 222 47% 11%;
 
-  --gold: 38 74% 58%;
-  --gold-foreground: 33 30% 10%;
+  --gold: 206 66% 62%;            /* accent bleu clair (ex-doré) */
+  --gold-foreground: 222 47% 11%;
 
-  --destructive: 6 58% 52%;
-  --destructive-foreground: 40 46% 97%;
+  --destructive: 6 62% 57%;
+  --destructive-foreground: 214 32% 96%;
 
-  --success: 149 38% 44%;
-  --success-foreground: 40 46% 97%;
+  --success: 150 42% 53%;
+  --success-foreground: 222 47% 11%;
 
-  --warning: 38 72% 54%;
-  --warning-foreground: 33 30% 9%;
+  --warning: 38 68% 58%;
+  --warning-foreground: 222 47% 11%;
 
-  --border: 33 14% 22%;
-  --input: 33 14% 24%;
-  --ring: 38 70% 52%;
+  --border: 222 24% 25%;
+  --input: 222 24% 27%;
+  --ring: 210 80% 60%;
 }
 
 @theme inline {
