@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Plus, Trash2, GraduationCap } from 'lucide-react';
+import { Pencil, Plus, Trash2, GraduationCap, FileText } from 'lucide-react';
 import { eleveService } from '@/services/eleve.service';
+import DocumentsEleveDialog from '@/components/DocumentsEleveDialog';
 import { classeService } from '@/services/classe.service';
 import { profilService } from '@/services/profil.service';
 import { utilisateurService, UtilisateurResponse } from '@/services/utilisateur.service';
@@ -62,6 +63,7 @@ export default function ElevesPage() {
   const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
   const [formData, setFormData] = useState(EMPTY);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [docsEleve, setDocsEleve] = useState<Eleve | null>(null);
 
   const photoPreview = useMemo(
     () => (photoFile ? URL.createObjectURL(photoFile) : formData.photoUrl),
@@ -321,6 +323,9 @@ export default function ElevesPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1.5">
+                    <Button size="sm" variant="ghost" onClick={() => setDocsEleve(eleve)}>
+                      <FileText /> Documents
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => openEditForm(eleve)}>
                       <Pencil /> Modifier
                     </Button>
@@ -425,6 +430,8 @@ export default function ElevesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DocumentsEleveDialog eleve={docsEleve} onClose={() => setDocsEleve(null)} />
     </div>
   );
 }
