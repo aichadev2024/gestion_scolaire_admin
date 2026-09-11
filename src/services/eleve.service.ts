@@ -7,6 +7,22 @@ export interface CreateElevePayload {
   parentId?: number;
 }
 
+export interface EleveImportLigneResultat {
+  ligne: number;
+  succes: boolean;
+  matricule?: string;
+  nomComplet?: string;
+  motDePasseInitial?: string;
+  erreur?: string;
+}
+
+export interface EleveImportRapport {
+  totalLignes: number;
+  succes: number;
+  echecs: number;
+  resultats: EleveImportLigneResultat[];
+}
+
 export const eleveService = {
   getEleves: async (): Promise<Eleve[]> => {
     const response = await api.get<Eleve[]>('/eleves');
@@ -34,5 +50,21 @@ export const eleveService = {
 
   deleteEleve: async (id: number): Promise<void> => {
     await api.delete(`/eleves/${id}`);
-  }
+  },
+
+  importerExcel: async (fichier: File, classeId?: number): Promise<EleveImportRapport> => {
+    const formData = new FormData();
+    formData.append('fichier', fichier);
+    const params = classeId ? { classeId } : undefined;
+    const response = await api.post<EleveImportRapport>('/eleves/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      params,
+    });
+    return response.data;
+  },
+
+  telechargerModeleImport: async (): Promise<Blob> => {
+    const response = await api.get('/eleves/import/modele', { responseType: 'blob' });
+    return response.data;
+  },
 };

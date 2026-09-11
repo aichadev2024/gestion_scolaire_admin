@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Plus, Trash2, GraduationCap, FileText } from 'lucide-react';
-import { eleveService } from '@/services/eleve.service';
+import { Pencil, Plus, Trash2, GraduationCap, FileText, Upload, Download } from 'lucide-react';
+import { eleveService, EleveImportRapport } from '@/services/eleve.service';
 import DocumentsEleveDialog from '@/components/DocumentsEleveDialog';
 import { classeService } from '@/services/classe.service';
 import { profilService } from '@/services/profil.service';
@@ -64,6 +64,11 @@ export default function ElevesPage() {
   const [formData, setFormData] = useState(EMPTY);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [docsEleve, setDocsEleve] = useState<Eleve | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importClasseId, setImportClasseId] = useState('');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importSubmitting, setImportSubmitting] = useState(false);
+  const [importRapport, setImportRapport] = useState<EleveImportRapport | null>(null);
 
   const photoPreview = useMemo(
     () => (photoFile ? URL.createObjectURL(photoFile) : formData.photoUrl),
@@ -210,6 +215,51 @@ export default function ElevesPage() {
     }
   };
 
+  const openImportDialog = () => {
+    setImportClasseId('');
+    setImportFile(null);
+    setImportRapport(null);
+    setShowImport(true);
+  };
+
+  const handleTelechargerModele = async () => {
+    try {
+      const blob = await eleveService.telechargerModeleImport();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modele_import_eleves.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Impossible de télécharger le modèle.');
+    }
+  };
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) return;
+    setImportSubmitting(true);
+    try {
+      const rapport = await eleveService.importerExcel(
+        importFile,
+        importClasseId ? parseInt(importClasseId) : undefined,
+      );
+      setImportRapport(rapport);
+      if (rapport.succes > 0) {
+        toast.success(`${rapport.succes} élève(s) importé(s).`);
+        fetchData();
+      }
+      if (rapport.echecs > 0) {
+        toast.warning(`${rapport.echecs} ligne(s) en erreur — voir le détail ci-dessous.`);
+      }
+    } catch (err) {
+      toast.error(msg(err, "Erreur lors de l'import du fichier."));
+    } finally {
+      setImportSubmitting(false);
+    }
+  };
+
   const handleStatutInscriptionChange = async (eleve: Eleve, statutInscription: string) => {
     const precedent = eleve.statutInscription;
     setEleves((prev) => prev.map((e) => (e.id === eleve.id ? { ...e, statutInscription } : e)));
@@ -236,9 +286,14 @@ export default function ElevesPage() {
         title="Gestion des élèves"
         description={loading ? 'Chargement…' : `${eleves.length} élève(s) inscrit(s)`}
       >
-        <Button onClick={openNewForm}>
-          <Plus /> Nouvel élève
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openImportDialog}>
+            <Upload /> Importer (Excel)
+          </Button>
+          <Button onClick={openNewForm}>
+            <Plus /> Nouvel élève
+          </Button>
+        </div>
       </PageHeader>
 
       {loading ? (
@@ -428,6 +483,91 @@ export default function ElevesPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import en masse depuis un fichier Excel */}
+      <Dialog open={showImport} onOpenChange={setShowImport}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Importer des élèves depuis Excel</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-muted-foreground">
+            Pratique pour charger d&apos;anciens élèves sans les inscrire un par un.{' '}
+            <button type="button" onClick={handleTelechargerModele} className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-2">
+              <Download className="size-3.5" /> Télécharger le modèle Excel
+            </button>
+            , remplissez-le, puis importez-le ci-dessous.
+          </p>
+
+          <form onSubmit={handleImportSubmit} className="space-y-4">
+            <Field
+              label="Classe par défaut (optionnel)"
+              hint="Utilisée pour les lignes sans colonne « Classe » renseignée. Sinon, laissez vide."
+            >
+              <Select value={importClasseId} onChange={(e) => setImportClasseId(e.target.value)}>
+                <option value="">— Aucune (classe indiquée par ligne) —</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nom} — {c.niveauNom || 'Niveau ?'} ({c.anneeScolaire})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Fichier Excel (.xlsx)">
+              <Input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+            </Field>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowImport(false)}>
+                Fermer
+              </Button>
+              <Button type="submit" loading={importSubmitting} disabled={!importFile}>
+                <Upload /> Importer
+              </Button>
+            </DialogFooter>
+          </form>
+
+          {importRapport && (
+            <div className="mt-2 space-y-2 border-t border-border pt-4">
+              <p className="text-sm font-medium">
+                {importRapport.succes} importé(s) sur {importRapport.totalLignes}
+                {importRapport.echecs > 0 && ` — ${importRapport.echecs} en erreur`}
+              </p>
+              <div className="max-h-56 overflow-y-auto rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ligne</TableHead>
+                      <TableHead>Élève</TableHead>
+                      <TableHead>Résultat</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importRapport.resultats.map((r) => (
+                      <TableRow key={r.ligne}>
+                        <TableCell>{r.ligne}</TableCell>
+                        <TableCell>{r.nomComplet || '—'}</TableCell>
+                        <TableCell>
+                          {r.succes ? (
+                            <Badge variant="success">{r.matricule}</Badge>
+                          ) : (
+                            <span className="text-xs text-destructive">{r.erreur}</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
