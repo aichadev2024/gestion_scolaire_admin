@@ -27,6 +27,11 @@ export const eleveService = {
     await api.patch(`/eleves/${id}/archiver`);
   },
 
+  modifierStatutInscription: async (id: number, statutInscription: string): Promise<Eleve> => {
+    const response = await api.patch<Eleve>(`/eleves/${id}/statut-inscription`, { statutInscription });
+    return response.data;
+  },
+
   deleteEleve: async (id: number): Promise<void> => {
     await api.delete(`/eleves/${id}`);
   }

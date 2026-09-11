@@ -14,6 +14,8 @@ export interface Eleve {
   id: number;
   matricule: string;
   statut: string;
+  /** Statut du dossier d'inscription : VALIDEE, EN_ATTENTE ou ANNULEE. */
+  statutInscription?: string;
   classeId?: number;
   classeNom?: string;
   parentId?: number;

@@ -31,6 +31,17 @@ const EMPTY = {
   dateNaissance: '', adresse: '', classeId: '', parentId: '', photoUrl: '',
 };
 
+const STATUT_INSCRIPTION_LABEL: Record<string, string> = {
+  VALIDEE: 'Validée',
+  EN_ATTENTE: 'En attente',
+  ANNULEE: 'Annulée',
+};
+const STATUT_INSCRIPTION_COLOR: Record<string, string> = {
+  VALIDEE: 'text-success',
+  EN_ATTENTE: 'text-warning-foreground',
+  ANNULEE: 'text-destructive',
+};
+
 function msg(err: unknown, fallback: string): string {
   if (err && typeof err === 'object' && 'response' in err) {
     const r = (err as { response?: { data?: { message?: string } } }).response;
@@ -197,6 +208,18 @@ export default function ElevesPage() {
     }
   };
 
+  const handleStatutInscriptionChange = async (eleve: Eleve, statutInscription: string) => {
+    const precedent = eleve.statutInscription;
+    setEleves((prev) => prev.map((e) => (e.id === eleve.id ? { ...e, statutInscription } : e)));
+    try {
+      await eleveService.modifierStatutInscription(eleve.id, statutInscription);
+      toast.success('Statut d’inscription mis à jour.');
+    } catch (err) {
+      setEleves((prev) => prev.map((e) => (e.id === eleve.id ? { ...e, statutInscription: precedent } : e)));
+      toast.error(msg(err, 'Erreur lors de la mise à jour du statut.'));
+    }
+  };
+
   return (
     <div>
       {nouveauCompte && (
@@ -242,6 +265,7 @@ export default function ElevesPage() {
               <TableHead>Genre</TableHead>
               <TableHead>Classe</TableHead>
               <TableHead>Statut</TableHead>
+              <TableHead>Inscription</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -283,6 +307,17 @@ export default function ElevesPage() {
                   <Badge variant={eleve.statut === 'ARCHIVE' ? 'secondary' : 'success'}>
                     {eleve.statut || 'ACTIF'}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={eleve.statutInscription || 'VALIDEE'}
+                    onChange={(e) => handleStatutInscriptionChange(eleve, e.target.value)}
+                    className={`h-8 w-36 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_INSCRIPTION_COLOR[eleve.statutInscription || 'VALIDEE']}`}
+                  >
+                    {Object.entries(STATUT_INSCRIPTION_LABEL).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1.5">
