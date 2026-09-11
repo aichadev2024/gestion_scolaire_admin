@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Logo, LogoMark } from '@/components/logo';
 
-const CONTACT_EMAIL = 'diarrassoubaa505@gmail.com';
+const CONTACT_EMAIL = 'netaa.ecole.mali@gmail.com';
 const CONTACT_TEL = '+223 71 91 93 53';
 const CONTACT_TEL_HREF = 'tel:+22371919353';
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=Demande%20de%20d%C3%A9mo%20Netaa%20%C3%89cole`;
