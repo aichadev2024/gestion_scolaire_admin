@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Download, FileText, Lock, Search, Settings2 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
 import { bulletinService } from '@/services/bulletin.service';
@@ -359,6 +360,16 @@ export default function BulletinsPage() {
                   <p style={{ margin: 0, fontSize: '10px', color: '#888', textAlign: 'center' }}>(Signature &amp; cachet)</p>
                 </div>
               </div>
+
+              {bulletin.urlVerification && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '14px' }}>
+                  <QRCodeSVG value={bulletin.urlVerification} size={54} level="M" bgColor="#ffffff" fgColor="#1B365D" />
+                  <div style={{ fontSize: '10px', color: '#666', lineHeight: 1.4 }}>
+                    Document vérifiable — scannez ce QR ou consultez<br />
+                    <span style={{ fontFamily: 'monospace', color: '#1B365D' }}>{bulletin.urlVerification}</span>
+                  </div>
+                </div>
+              )}
 
               {bulletin.estVerrouille && (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)', fontSize: '80px', color: 'rgba(211,47,47,0.1)', fontWeight: 'bold', pointerEvents: 'none', border: '10px solid rgba(211,47,47,0.1)', padding: '20px' }}>

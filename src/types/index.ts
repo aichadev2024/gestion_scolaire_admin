@@ -115,6 +115,8 @@ export interface Bulletin {
   moyenneGenerale: number;
   appreciationGenerale: string;
   estVerrouille: boolean;
+  codeVerification?: string;
+  urlVerification?: string;
   dateCreation?: string;
   dateModification?: string;
   lignes: BulletinLigne[];
