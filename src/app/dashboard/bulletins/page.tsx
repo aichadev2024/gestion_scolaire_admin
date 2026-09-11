@@ -362,12 +362,8 @@ export default function BulletinsPage() {
               </div>
 
               {bulletin.urlVerification && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
                   <QRCodeSVG value={bulletin.urlVerification} size={54} level="M" bgColor="#ffffff" fgColor="#1B365D" />
-                  <div style={{ fontSize: '10px', color: '#666', lineHeight: 1.4 }}>
-                    Document vérifiable — scannez ce QR ou consultez<br />
-                    <span style={{ fontFamily: 'monospace', color: '#1B365D' }}>{bulletin.urlVerification}</span>
-                  </div>
                 </div>
               )}
 
