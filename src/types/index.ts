@@ -77,6 +77,21 @@ export interface Paiement {
   fraisScolarite: FraisScolarite;
 }
 
+export interface RetardPaiement {
+  eleveId: number;
+  eleveNom: string;
+  elevePrenom: string;
+  matricule: string;
+  classeId: number;
+  classeNom: string;
+  parentNom?: string;
+  parentPrenom?: string;
+  parentTelephone?: string;
+  montantDu: number;
+  echeanceLaPlusAncienne: string;
+  joursRetard: number;
+}
+
 export interface Note {
   id?: number;
   eleveId: number;

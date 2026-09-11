@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Download, Pencil, Trash2, Wallet } from 'lucide-react';
+import { Download, Pencil, Phone, Trash2, TriangleAlert, Wallet } from 'lucide-react';
 import { financeService } from '@/services/finance.service';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
-import { Classe, Eleve, FraisScolarite, Paiement } from '@/types';
+import { Classe, Eleve, FraisScolarite, Paiement, RetardPaiement } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -25,11 +25,12 @@ const PAIEMENT_EMPTY = { eleveId: '', fraisId: '', montantPaye: '', modePaiement
 const fcfa = (n?: number) => `${(n ?? 0).toLocaleString('fr-FR')} FCFA`;
 
 export default function FinancesPage() {
-  const [tab, setTab] = useState<'FRAIS' | 'PAIEMENTS'>('FRAIS');
+  const [tab, setTab] = useState<'FRAIS' | 'PAIEMENTS' | 'RETARDS'>('FRAIS');
   const [classes, setClasses] = useState<Classe[]>([]);
   const [eleves, setEleves] = useState<Eleve[]>([]);
   const [fraisList, setFraisList] = useState<FraisScolarite[]>([]);
   const [paiementsEleve, setPaiementsEleve] = useState<Paiement[]>([]);
+  const [retards, setRetards] = useState<RetardPaiement[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -41,14 +42,16 @@ export default function FinancesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [cls, elv, frs] = await Promise.all([
+      const [cls, elv, frs, rtd] = await Promise.all([
         classeService.getClasses(),
         eleveService.getEleves(),
         financeService.getAllFrais().catch(() => []),
+        financeService.getRetardsPaiement().catch(() => []),
       ]);
       setClasses(cls);
       setEleves(elv);
       setFraisList(frs);
+      setRetards(rtd);
     } catch {
       toast.error('Impossible de charger les données financières.');
     } finally {
@@ -188,17 +191,21 @@ export default function FinancesPage() {
           [
             ['FRAIS', 'Frais de scolarité'],
             ['PAIEMENTS', 'Encaissements & reçus'],
+            ['RETARDS', 'Retards de paiement'],
           ] as const
         ).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              'border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
+              'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
               tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
             {label}
+            {t === 'RETARDS' && retards.length > 0 && (
+              <Badge variant="destructive" className="px-1.5 py-0 text-[0.65rem]">{retards.length}</Badge>
+            )}
           </button>
         ))}
       </div>
@@ -392,6 +399,75 @@ export default function FinancesPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ─── Retards de paiement ─── */}
+      {tab === 'RETARDS' && (
+        <Card className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <TriangleAlert className="size-5 text-destructive" />
+            <h2 className="font-display text-lg font-bold">Parents en retard de paiement</h2>
+          </div>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Élèves dont au moins une échéance de frais est dépassée depuis 1 jour ou plus, avec un solde encore dû.
+          </p>
+
+          {loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : retards.length === 0 ? (
+            <EmptyState icon={<Wallet />} title="Aucun retard" description="Tous les frais échus sont couverts." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Élève</TableHead>
+                  <TableHead>Classe</TableHead>
+                  <TableHead>Parent</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Échéance la plus ancienne</TableHead>
+                  <TableHead>Retard</TableHead>
+                  <TableHead className="text-right">Montant dû</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {retards.map((r) => (
+                  <TableRow key={r.eleveId}>
+                    <TableCell>
+                      <div className="font-medium">{r.eleveNom} {r.elevePrenom}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{r.matricule}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="warning">{r.classeNom}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {r.parentNom ? `${r.parentNom} ${r.parentPrenom ?? ''}` : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {r.parentTelephone ? (
+                        <a href={`tel:${r.parentTelephone}`} className="flex items-center gap-1.5 text-primary hover:underline">
+                          <Phone className="size-3.5" /> {r.parentTelephone}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(r.echeanceLaPlusAncienne).toLocaleDateString('fr-FR')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="destructive">{r.joursRetard} jour{r.joursRetard > 1 ? 's' : ''}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-destructive">{fcfa(r.montantDu)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
       )}
     </div>
   );

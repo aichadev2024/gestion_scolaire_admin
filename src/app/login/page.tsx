@@ -10,13 +10,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-/** Destination après connexion : ?redirect= (fourni par le proxy), sinon selon le rôle. */
+/** Élèves et parents n'ont pas accès à l'interface web — application mobile uniquement. */
+const ROLES_MOBILE_UNIQUEMENT = ['ELEVE', 'PARENT'];
+
+/** Destination après connexion : mobile-uniquement pour élève/parent, sinon ?redirect= ou selon le rôle. */
 function destinationApresLogin(role: string): string {
+  if (ROLES_MOBILE_UNIQUEMENT.includes(role)) return '/mobile-uniquement';
   if (typeof window !== 'undefined') {
     const cible = new URLSearchParams(window.location.search).get('redirect');
     if (cible && cible.startsWith('/') && !cible.startsWith('//')) return cible;
   }
   return role === 'SUPER_ADMIN' ? '/super-admin' : '/dashboard';
+}
+
+/** Élève/parent : pas de session web à garder — on efface le jeton avant de rediriger vers /mobile-uniquement. */
+function finaliserConnexion(role: string): string {
+  const destination = destinationApresLogin(role);
+  if (ROLES_MOBILE_UNIQUEMENT.includes(role)) authService.logout();
+  return destination;
 }
 
 export default function LoginPage() {
@@ -59,7 +70,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push(destinationApresLogin(res.role));
+      router.push(finaliserConnexion(res.role));
     } catch (err) {
       setError(getMessage(err, 'Erreur lors de la connexion. Vérifiez vos identifiants.'));
     } finally {
@@ -75,7 +86,7 @@ export default function LoginPage() {
     try {
       if (!otpUserId) throw new Error('Identifiant utilisateur manquant.');
       const res = await authService.verifyOtp(otpUserId, otpCode);
-      router.push(destinationApresLogin(res.role));
+      router.push(finaliserConnexion(res.role));
     } catch (err) {
       setError(getMessage(err, 'Code OTP invalide ou expiré.'));
     } finally {

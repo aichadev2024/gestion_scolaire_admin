@@ -10,7 +10,6 @@ import {
   ClipboardList,
   CreditCard,
   GraduationCap,
-  Home,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -45,16 +44,14 @@ const M = {
   cartes: { name: 'Cartes scolaires', path: '/dashboard/cartes-scolaires', icon: CreditCard },
   finances: { name: 'Finances', path: '/dashboard/finances', icon: Wallet },
   utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
-  espace: { name: 'Mon espace', path: '/dashboard', icon: Home },
-  paiements: { name: 'Mes paiements', path: '/dashboard/finances', icon: Wallet },
 } satisfies Record<string, MenuItem>;
 
+// ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
   DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs],
   SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes],
   COMPTABLE: [M.dashboard, M.finances],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
-  PARENT: [M.espace, M.paiements, M.presences, M.cartes, M.bulletins],
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -63,7 +60,6 @@ const ROLE_LABELS: Record<string, string> = {
   SECRETAIRE: 'Secrétariat',
   COMPTABLE: 'Comptabilité',
   ENSEIGNANT: 'Enseignant',
-  PARENT: 'Parent',
 };
 
 type SessionUser = {

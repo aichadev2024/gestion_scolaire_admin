@@ -1,5 +1,5 @@
 import api from './api';
-import { FraisScolarite, Paiement } from '@/types';
+import { FraisScolarite, Paiement, RetardPaiement } from '@/types';
 
 export interface CreateFraisPayload {
   classeId: number;
@@ -48,6 +48,11 @@ export const financeService = {
 
   createPaiement: async (data: CreatePaiementPayload): Promise<Paiement> => {
     const response = await api.post<Paiement>('/paiements', data);
+    return response.data;
+  },
+
+  getRetardsPaiement: async (): Promise<RetardPaiement[]> => {
+    const response = await api.get<RetardPaiement[]>('/paiements/retards');
     return response.data;
   },
 

@@ -50,13 +50,8 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/notes',
     '/dashboard/bulletins',
   ],
-  PARENT: [
-    '/dashboard',
-    '/dashboard/finances',
-    '/dashboard/presences',
-    '/dashboard/cartes-scolaires',
-    '/dashboard/bulletins',
-  ],
+  // ÉLÈVE et PARENT n'ont pas d'accès web (voir /mobile-uniquement) — ils
+  // utilisent l'application mobile. Volontairement absents de cette liste.
 };
 
 function canAccess(role: string, pathname: string): boolean {
@@ -80,6 +75,13 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       }
       const user = authService.getCurrentUser();
       const role = user?.role || '';
+      // Rôle sans aucune page web autorisée (ÉLÈVE, PARENT) : pas de session
+      // web à garder, on renvoie directement vers l'appli mobile.
+      if (!ALLOWED_PATHS[role]) {
+        authService.logout();
+        router.push('/mobile-uniquement');
+        return;
+      }
       if (!canAccess(role, pathname)) {
         setStatus('forbidden');
       } else {
