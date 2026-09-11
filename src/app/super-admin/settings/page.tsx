@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Info, Save } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -9,6 +9,82 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/form-field';
 import { Alert } from '@/components/ui/alert';
+import { tarifService } from '@/services/tarif.service';
+
+const PLAN_LABELS: Record<string, string> = { STARTER: 'Starter (web, personnel)', PRO: 'Pro (+ appli mobile parents)' };
+
+function TarifsAbonnementsCard() {
+  const [prix, setPrix] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchTarifs = () => {
+    setLoading(true);
+    tarifService
+      .listerTous()
+      .then((tarifs) => {
+        const next: Record<string, string> = {};
+        tarifs.forEach((t) => {
+          next[t.code] = String(t.prixMensuel);
+        });
+        setPrix(next);
+      })
+      .catch(() => toast.error('Impossible de charger les tarifs.'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(fetchTarifs, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await Promise.all(
+        Object.entries(prix).map(([code, valeur]) => tarifService.modifierPrix(code, Number(valeur))),
+      );
+      toast.success('Tarifs des abonnements mis à jour.');
+      fetchTarifs();
+    } catch {
+      toast.error('Erreur lors de la mise à jour des tarifs.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm uppercase tracking-wide text-primary">
+          Tarifs des abonnements (FCFA / mois)
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
+          {loading ? (
+            <p className="text-sm text-muted-foreground sm:col-span-2">Chargement…</p>
+          ) : (
+            Object.keys(prix).map((code) => (
+              <Field key={code} label={PLAN_LABELS[code] || code}>
+                <Input
+                  type="number"
+                  min={0}
+                  step={500}
+                  value={prix[code]}
+                  onChange={(e) => setPrix((p) => ({ ...p, [code]: e.target.value }))}
+                />
+              </Field>
+            ))
+          )}
+          <div className="flex justify-end sm:col-span-2">
+            <Button type="submit" loading={saving} disabled={loading}>
+              <Save /> Enregistrer les tarifs
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SuperAdminSettingsPage() {
   const [settings, setSettings] = useState({
@@ -39,9 +115,13 @@ export default function SuperAdminSettingsPage() {
       />
 
       <Alert tone="info" className="mb-6" icon={<Info className="size-4" />}>
-        Ces réglages sont locaux à l&apos;interface pour l&apos;instant — la persistance côté backend
-        sera activée en production.
+        Les tarifs des abonnements ci-dessous sont enregistrés en base et appliqués immédiatement
+        (reçus, tableau de bord). Les autres réglages restent locaux à l&apos;interface pour l&apos;instant.
       </Alert>
+
+      <div className="mb-6">
+        <TarifsAbonnementsCard />
+      </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         <Card>

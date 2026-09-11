@@ -14,6 +14,7 @@ import {
   School,
 } from 'lucide-react';
 import { etablissementService, Etablissement } from '@/services/etablissement.service';
+import { tarifService } from '@/services/tarif.service';
 import { authService } from '@/services/auth.service';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -23,11 +24,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const PLAN_MRR: Record<string, number> = { STARTER: 50000, PRO: 75000, ENTERPRISE: 120000 };
-
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [etablissements, setEtablissements] = useState<Etablissement[]>([]);
+  const [planMrr, setPlanMrr] = useState<Record<string, number>>({ STARTER: 50000, PRO: 75000 });
   const [loading, setLoading] = useState(true);
   const [userNomComplet, setUserNomComplet] = useState('Super-Admin');
 
@@ -42,13 +42,17 @@ export default function SuperAdminDashboardPage() {
       .then(setEtablissements)
       .catch(console.error)
       .finally(() => setLoading(false));
+    tarifService
+      .listerTous()
+      .then((tarifs) => setPlanMrr(Object.fromEntries(tarifs.map((t) => [t.code, t.prixMensuel]))))
+      .catch(() => {});
   }, []);
 
   const total = etablissements.length;
   const actifs = etablissements.filter((e) => e.statut === 'ACTIF').length;
   const suspendus = etablissements.filter((e) => e.statut === 'SUSPENDU').length;
   const mrr = etablissements.reduce(
-    (acc, e) => (e.statut === 'ACTIF' ? acc + (PLAN_MRR[e.planTarifaire] ?? PLAN_MRR.STARTER) : acc),
+    (acc, e) => (e.statut === 'ACTIF' ? acc + (planMrr[e.planTarifaire] ?? planMrr.STARTER) : acc),
     0,
   );
   const starterCount = etablissements.filter((e) => e.planTarifaire === 'STARTER').length;
@@ -129,8 +133,8 @@ export default function SuperAdminDashboardPage() {
           <h3 className="mb-4 text-sm font-bold text-foreground">Répartition des abonnements</h3>
           <div className="flex flex-col gap-4">
             {[
-              { label: 'Plan Starter (50 000 FCFA/mois)', count: starterCount, cls: 'bg-primary/50' },
-              { label: 'Plan Pro (75 000 FCFA/mois)', count: proCount, cls: 'bg-primary' },
+              { label: `Plan Starter (${planMrr.STARTER?.toLocaleString('fr-FR')} FCFA/mois)`, count: starterCount, cls: 'bg-primary/50' },
+              { label: `Plan Pro (${planMrr.PRO?.toLocaleString('fr-FR')} FCFA/mois)`, count: proCount, cls: 'bg-primary' },
             ].map((row) => (
               <div key={row.label}>
                 <div className="mb-1.5 flex justify-between text-sm">

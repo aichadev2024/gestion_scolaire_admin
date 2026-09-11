@@ -8,6 +8,7 @@ import {
   Etablissement,
   CreateEtablissementRequest,
 } from '@/services/etablissement.service';
+import { tarifService, TarifPlan } from '@/services/tarif.service';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -55,10 +56,17 @@ export default function SuperAdminEtablissementsPage() {
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
   const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '' });
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [tarifs, setTarifs] = useState<TarifPlan[]>([]);
 
   useEffect(() => {
     setNowMs(Date.now());
+    tarifService.listerTous().then(setTarifs).catch(() => {});
   }, []);
+
+  const labelPlan = (code: string) => {
+    const t = tarifs.find((x) => x.code === code);
+    return t ? `${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois` : code;
+  };
 
   const chargerEtablissements = useCallback(async () => {
     try {
@@ -440,8 +448,8 @@ export default function SuperAdminEtablissementsPage() {
                   value={formData.planTarifaire}
                   onChange={(e) => setFormData({ ...formData, planTarifaire: e.target.value })}
                 >
-                  <option value="STARTER">Starter (50 000 FCFA/mois)</option>
-                  <option value="PRO">Pro (75 000 FCFA/mois)</option>
+                  <option value="STARTER">Starter ({labelPlan('STARTER')})</option>
+                  <option value="PRO">Pro ({labelPlan('PRO')})</option>
                 </Select>
               </Field>
               <Field label="Date de fin d'abonnement" hint="Par défaut : 1 mois à compter de la création.">
@@ -618,8 +626,8 @@ export default function SuperAdminEtablissementsPage() {
                     value={renewForm.planTarifaire}
                     onChange={(e) => setRenewForm({ ...renewForm, planTarifaire: e.target.value })}
                   >
-                    <option value="STARTER">Starter — 50 000 FCFA/mois</option>
-                    <option value="PRO">Pro — 75 000 FCFA/mois</option>
+                    <option value="STARTER">Starter — {labelPlan('STARTER')}</option>
+                    <option value="PRO">Pro — {labelPlan('PRO')}</option>
                   </Select>
                 </Field>
                 <Field label="Durée payée">
