@@ -48,6 +48,14 @@ export const etablissementService = {
     return response.data;
   },
 
+  modifierInfos: async (
+    id: number,
+    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string },
+  ): Promise<Etablissement> => {
+    const response = await api.put<Etablissement>(`/super-admin/etablissements/${id}`, data);
+    return response.data;
+  },
+
   modifierStatut: async (id: number, statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE'): Promise<Etablissement> => {
     const response = await api.patch<Etablissement>(`/super-admin/etablissements/${id}/statut`, { statut });
     return response.data;

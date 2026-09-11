@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Plus, RefreshCw, Search } from 'lucide-react';
+import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Pencil, Plus, RefreshCw, Search } from 'lucide-react';
 import {
   etablissementService,
   Etablissement,
@@ -52,6 +52,9 @@ export default function SuperAdminEtablissementsPage() {
   const [renewingEtab, setRenewingEtab] = useState<Etablissement | null>(null);
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
+  const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
+  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '' });
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -96,6 +99,32 @@ export default function SuperAdminEtablissementsPage() {
       toast.error(errorMessage(err, "Erreur lors de la création de l'établissement."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEditDialog = (e: Etablissement) => {
+    setEditingEtab(e);
+    setEditForm({
+      nom: e.nom,
+      emailContact: e.emailContact || '',
+      telephone: e.telephone || '',
+      adresse: e.adresse || '',
+    });
+  };
+
+  const handleModifierInfos = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!editingEtab) return;
+    setEditSubmitting(true);
+    try {
+      await etablissementService.modifierInfos(editingEtab.id, editForm);
+      toast.success('Coordonnées mises à jour.');
+      setEditingEtab(null);
+      chargerEtablissements();
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors de la mise à jour.'));
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -302,6 +331,14 @@ export default function SuperAdminEtablissementsPage() {
                       <div className="flex flex-wrap gap-1.5">
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(e)}
+                          title="Modifier le nom, contact ou l'adresse (affichée sur le reçu)"
+                        >
+                          <Pencil /> Modifier
+                        </Button>
+                        <Button
+                          size="sm"
                           onClick={() => openRenewDialog(e)}
                           title="Prolonger l'abonnement après paiement"
                         >
@@ -389,6 +426,13 @@ export default function SuperAdminEtablissementsPage() {
                   placeholder="+223 70 00 00 00"
                   value={formData.telephone}
                   onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                />
+              </Field>
+              <Field label="Adresse" className="sm:col-span-2" hint="Apparaît sur le reçu d'abonnement.">
+                <Input
+                  placeholder="Ex : Quartier ACI 2000, Bamako"
+                  value={formData.adresse}
+                  onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
                 />
               </Field>
               <Field label="Plan tarifaire">
@@ -502,6 +546,56 @@ export default function SuperAdminEtablissementsPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal coordonnées */}
+      <Dialog open={!!editingEtab} onOpenChange={(open) => !open && setEditingEtab(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier les coordonnées</DialogTitle>
+          </DialogHeader>
+          {editingEtab && (
+            <form onSubmit={handleModifierInfos} className="space-y-4">
+              <Field label="Nom de l'établissement *">
+                <Input
+                  required
+                  value={editForm.nom}
+                  onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Email de contact">
+                  <Input
+                    type="email"
+                    value={editForm.emailContact}
+                    onChange={(e) => setEditForm({ ...editForm, emailContact: e.target.value })}
+                  />
+                </Field>
+                <Field label="Téléphone">
+                  <Input
+                    value={editForm.telephone}
+                    onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <Field label="Adresse" hint="Apparaît sur le reçu d'abonnement.">
+                <Input
+                  placeholder="Ex : Quartier ACI 2000, Bamako"
+                  value={editForm.adresse}
+                  onChange={(e) => setEditForm({ ...editForm, adresse: e.target.value })}
+                />
+              </Field>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditingEtab(null)}>
+                  Annuler
+                </Button>
+                <Button type="submit" loading={editSubmitting}>
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
