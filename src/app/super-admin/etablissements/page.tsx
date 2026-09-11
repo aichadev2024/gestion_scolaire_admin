@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Plus, Search } from 'lucide-react';
+import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Plus, RefreshCw, Search } from 'lucide-react';
 import {
   etablissementService,
   Etablissement,
@@ -49,6 +49,9 @@ export default function SuperAdminEtablissementsPage() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [formData, setFormData] = useState<CreateEtablissementRequest>(EMPTY_FORM);
   const [nowMs, setNowMs] = useState(0);
+  const [renewingEtab, setRenewingEtab] = useState<Etablissement | null>(null);
+  const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
+  const [renewSubmitting, setRenewSubmitting] = useState(false);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -93,6 +96,27 @@ export default function SuperAdminEtablissementsPage() {
       toast.error(errorMessage(err, "Erreur lors de la création de l'établissement."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openRenewDialog = (e: Etablissement) => {
+    setRenewingEtab(e);
+    setRenewForm({ planTarifaire: e.planTarifaire === 'PRO' ? 'PRO' : 'STARTER', dureeMois: 1 });
+  };
+
+  const handleRenouveler = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!renewingEtab) return;
+    setRenewSubmitting(true);
+    try {
+      await etablissementService.renouveler(renewingEtab.id, renewForm.planTarifaire, renewForm.dureeMois);
+      toast.success(`Abonnement de ${renewingEtab.nom} renouvelé (${renewForm.dureeMois} mois, ${renewForm.planTarifaire}).`);
+      setRenewingEtab(null);
+      chargerEtablissements();
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors du renouvellement.'));
+    } finally {
+      setRenewSubmitting(false);
     }
   };
 
@@ -143,7 +167,7 @@ export default function SuperAdminEtablissementsPage() {
     );
 
   const expirationCell = (e: Etablissement, nowMs: number) => {
-    if (!e.dateExpirationAbonnement) return <span className="text-muted-foreground">1 an par défaut</span>;
+    if (!e.dateExpirationAbonnement) return <span className="text-muted-foreground">1 mois par défaut</span>;
     const exp = new Date(e.dateExpirationAbonnement);
     const diffDays = Math.ceil((exp.getTime() - nowMs) / (1000 * 3600 * 24));
     const dateStr = exp.toLocaleDateString('fr-FR');
@@ -278,6 +302,13 @@ export default function SuperAdminEtablissementsPage() {
                       <div className="flex flex-wrap gap-1.5">
                         <Button
                           size="sm"
+                          onClick={() => openRenewDialog(e)}
+                          title="Prolonger l'abonnement après paiement"
+                        >
+                          <RefreshCw /> Renouveler
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => handleTelechargerRecu(e.id, e.nom)}
                           title="Télécharger l'attestation et le reçu de paiement PDF"
@@ -369,7 +400,7 @@ export default function SuperAdminEtablissementsPage() {
                   <option value="PRO">Pro (75 000 FCFA/mois)</option>
                 </Select>
               </Field>
-              <Field label="Date de fin d'abonnement" hint="Par défaut : 1 an à compter de la création.">
+              <Field label="Date de fin d'abonnement" hint="Par défaut : 1 mois à compter de la création.">
                 <Input
                   type="date"
                   value={
@@ -471,6 +502,54 @@ export default function SuperAdminEtablissementsPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal renouvellement */}
+      <Dialog open={!!renewingEtab} onOpenChange={(open) => !open && setRenewingEtab(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renouveler l&apos;abonnement</DialogTitle>
+          </DialogHeader>
+          {renewingEtab && (
+            <form onSubmit={handleRenouveler} className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">{renewingEtab.nom}</strong> — à utiliser une fois le paiement de
+                l&apos;école reçu (virement, Mobile Money…). La durée payée s&apos;ajoute à la date d&apos;expiration
+                actuelle si elle n&apos;est pas encore dépassée ; sinon elle repart d&apos;aujourd&apos;hui.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Plan">
+                  <Select
+                    value={renewForm.planTarifaire}
+                    onChange={(e) => setRenewForm({ ...renewForm, planTarifaire: e.target.value })}
+                  >
+                    <option value="STARTER">Starter — 50 000 FCFA/mois</option>
+                    <option value="PRO">Pro — 75 000 FCFA/mois</option>
+                  </Select>
+                </Field>
+                <Field label="Durée payée">
+                  <Select
+                    value={String(renewForm.dureeMois)}
+                    onChange={(e) => setRenewForm({ ...renewForm, dureeMois: parseInt(e.target.value, 10) })}
+                  >
+                    <option value="1">1 mois</option>
+                    <option value="3">3 mois</option>
+                    <option value="6">6 mois</option>
+                    <option value="12">12 mois</option>
+                  </Select>
+                </Field>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setRenewingEtab(null)}>
+                  Annuler
+                </Button>
+                <Button type="submit" loading={renewSubmitting}>
+                  <RefreshCw /> Confirmer le renouvellement
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -53,6 +53,14 @@ export const etablissementService = {
     return response.data;
   },
 
+  renouveler: async (id: number, planTarifaire: string, dureeMois: number): Promise<Etablissement> => {
+    const response = await api.patch<Etablissement>(`/super-admin/etablissements/${id}/renouveler`, {
+      planTarifaire,
+      dureeMois,
+    });
+    return response.data;
+  },
+
   telechargerRecuPdf: async (id: number): Promise<Blob> => {
     const response = await api.get(`/super-admin/etablissements/${id}/recu-pdf`, {
       responseType: 'blob',
