@@ -52,5 +52,10 @@ export const utilisateurService = {
 
   toggleStatut: async (id: number, estActif: boolean): Promise<void> => {
     await api.patch(`/utilisateurs/${id}/statut`, { estActif });
-  }
+  },
+
+  nommerDirecteur: async (id: number): Promise<UtilisateurResponse> => {
+    const response = await api.patch<UtilisateurResponse>(`/utilisateurs/${id}/nommer-directeur`);
+    return response.data;
+  },
 };

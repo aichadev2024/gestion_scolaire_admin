@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ClipboardList,
+  Crown,
   Lock,
   LockOpen,
   Pencil,
@@ -146,6 +147,18 @@ export default function UtilisateursPage() {
     }
   };
 
+  const handleNommerDirecteur = async (u: UtilisateurResponse) => {
+    const nom = u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username || u.email;
+    if (!confirm(`Nommer ${nom} directeur de l'établissement ? Le directeur actuel redeviendra Secrétaire.`)) return;
+    try {
+      await utilisateurService.nommerDirecteur(u.id);
+      toast.success(`${nom} est maintenant directeur.`);
+      await fetchAll();
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors du changement de directeur'));
+    }
+  };
+
   const handleDelete = async (u: UtilisateurResponse) => {
     const nom = u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username || u.email;
     if (!confirm(`Supprimer définitivement le compte de ${nom} ?`)) return;
@@ -233,6 +246,11 @@ export default function UtilisateursPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
+                    {['SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'].includes(u.role) && (
+                      <Button size="sm" variant="ghost" onClick={() => handleNommerDirecteur(u)}>
+                        <Crown /> Nommer directeur
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => openEditForm(u)}>
                       <Pencil /> Modifier
                     </Button>
