@@ -7,6 +7,7 @@ import { classeService } from '@/services/classe.service';
 import { enseignantService } from '@/services/enseignant.service';
 import { matiereService } from '@/services/matiere.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
+import { authService } from '@/services/auth.service';
 import { Classe, Niveau, Enseignant, Matiere } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -181,19 +182,22 @@ export default function ClassesPage() {
     }
   };
 
+  const isCreche = authService.getCurrentUser()?.etablissementType === 'CRECHE';
+  const motClasse = isCreche ? 'groupe' : 'classe';
+
   return (
     <div>
       <PageHeader
-        title={tab === 'CLASSES' ? 'Gestion des classes' : 'Matières par classe'}
+        title={tab === 'CLASSES' ? `Gestion des ${motClasse}s` : `Matières par ${motClasse}`}
         description={
           tab === 'CLASSES'
-            ? 'Créez vos classes et désignez leurs professeurs principaux.'
-            : 'Liez chaque matière et son enseignant à une classe, avec un coefficient.'
+            ? `Créez vos ${motClasse}s et désignez leurs ${isCreche ? 'monitrices principales' : 'professeurs principaux'}.`
+            : `Liez chaque matière et son enseignant à une ${motClasse}, avec un coefficient.`
         }
       >
         {tab === 'CLASSES' ? (
           <Button onClick={openCreateClasse}>
-            <Plus /> Nouvelle classe
+            <Plus /> Nouve{isCreche ? 'au' : 'lle'} {motClasse}
           </Button>
         ) : (
           <Button onClick={() => setShowAssignForm(true)} disabled={!selectedClasseId && classes.length === 0}>
@@ -202,7 +206,7 @@ export default function ClassesPage() {
         )}
       </PageHeader>
 
-      <div className="mb-6 flex gap-1 border-b border-border">
+      <div className={cn('mb-6 flex gap-1 border-b border-border', isCreche && 'hidden')}>
         {(['CLASSES', 'ASSIGNATIONS'] as Tab[]).map((t) => (
           <button
             key={t}
@@ -231,9 +235,13 @@ export default function ClassesPage() {
         ) : classes.length === 0 ? (
           <EmptyState
             icon={<School />}
-            title="Aucune classe"
-            description="Créez vos classes (Terminale, 9ème A, CM2…) pour y inscrire des élèves."
-            action={<Button onClick={openCreateClasse}><Plus /> Créer une classe</Button>}
+            title={`Aucun${isCreche ? '' : 'e'} ${motClasse}`}
+            description={
+              isCreche
+                ? 'Créez vos groupes (Pouponnière, Moyenne section…) pour y inscrire des enfants.'
+                : 'Créez vos classes (Terminale, 9ème A, CM2…) pour y inscrire des élèves.'
+            }
+            action={<Button onClick={openCreateClasse}><Plus /> Créer un{isCreche ? '' : 'e'} {motClasse}</Button>}
           />
         ) : (
           <Table>
@@ -241,7 +249,7 @@ export default function ClassesPage() {
               <TableRow>
                 <TableHead>Nom</TableHead>
                 <TableHead>Niveau</TableHead>
-                <TableHead>Professeur principal</TableHead>
+                <TableHead>{isCreche ? 'Monitrice principale' : 'Professeur principal'}</TableHead>
                 <TableHead>Année</TableHead>
                 <TableHead>Capacité</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -256,25 +264,27 @@ export default function ClassesPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {c.enseignantPrincipalNom ? (
-                      `Pr. ${c.enseignantPrincipalNom}`
+                      isCreche ? c.enseignantPrincipalNom : `Pr. ${c.enseignantPrincipalNom}`
                     ) : (
-                      <span className="italic">Multi-enseignants par matière</span>
+                      <span className="italic">{isCreche ? 'Aucune monitrice désignée' : 'Multi-enseignants par matière'}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{c.anneeScolaire}</TableCell>
                   <TableCell className="tabular-nums text-muted-foreground">{c.capaciteMax}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedClasseId(String(c.id));
-                          setTab('ASSIGNATIONS');
-                        }}
-                      >
-                        <BookOpen /> Matières
-                      </Button>
+                      {!isCreche && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedClasseId(String(c.id));
+                            setTab('ASSIGNATIONS');
+                          }}
+                        >
+                          <BookOpen /> Matières
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" onClick={() => openEditClasse(c)}>
                         <Pencil /> Modifier
                       </Button>
@@ -391,12 +401,12 @@ export default function ClassesPage() {
       <Dialog open={showClasseForm} onOpenChange={setShowClasseForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingClasse ? 'Modifier la classe' : 'Nouvelle classe'}</DialogTitle>
+            <DialogTitle>{editingClasse ? `Modifier ${isCreche ? 'le' : 'la'} ${motClasse}` : `Nouve${isCreche ? 'au' : 'lle'} ${motClasse}`}</DialogTitle>
           </DialogHeader>
           <FormError message={classeError} />
           <form onSubmit={handleClasseSubmit} className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nom de la classe *">
-              <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder="Ex : 9ème A" required />
+            <Field label={`Nom du ${motClasse} *`}>
+              <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder={isCreche ? 'Ex : Pouponnière A' : 'Ex : 9ème A'} required />
             </Field>
             <Field label="Niveau *">
               <Select value={classeForm.niveauId} onChange={(e) => setClasseForm({ ...classeForm, niveauId: e.target.value })} required>
@@ -406,12 +416,12 @@ export default function ClassesPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Professeur principal (optionnel)" className="sm:col-span-2">
+            <Field label={isCreche ? 'Monitrice principale (optionnel)' : 'Professeur principal (optionnel)'} className="sm:col-span-2">
               <Select
                 value={classeForm.enseignantPrincipalId}
                 onChange={(e) => setClasseForm({ ...classeForm, enseignantPrincipalId: e.target.value })}
               >
-                <option value="">Aucun — multi-enseignants par matière</option>
+                <option value="">{isCreche ? 'Aucune — plusieurs monitrices' : 'Aucun — multi-enseignants par matière'}</option>
                 {enseignants.map((en) => (
                   <option key={en.id} value={en.id}>{en.profil.nom} {en.profil.prenom}</option>
                 ))}

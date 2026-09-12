@@ -30,29 +30,47 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type MenuItem = { name: string; path: string; icon: LucideIcon };
+type EtabType = 'ECOLE' | 'CRECHE' | undefined;
 
-const M = {
-  dashboard: { name: 'Tableau de bord', path: '/dashboard', icon: LayoutDashboard },
-  eleves: { name: 'Élèves', path: '/dashboard/eleves', icon: GraduationCap },
-  enseignants: { name: 'Enseignants', path: '/dashboard/enseignants', icon: UsersRound },
-  classes: { name: 'Classes', path: '/dashboard/classes', icon: School },
-  matieres: { name: 'Matières', path: '/dashboard/matieres', icon: BookOpen },
-  edt: { name: 'Emploi du temps', path: '/dashboard/emploi-du-temps', icon: CalendarDays },
-  presences: { name: 'Présences', path: '/dashboard/presences', icon: CheckSquare },
-  notes: { name: 'Notes', path: '/dashboard/notes', icon: ClipboardList },
-  bulletins: { name: 'Bulletins', path: '/dashboard/bulletins', icon: ScrollText },
-  cartes: { name: 'Cartes scolaires', path: '/dashboard/cartes-scolaires', icon: CreditCard },
-  finances: { name: 'Finances', path: '/dashboard/finances', icon: Wallet },
-  utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
-} satisfies Record<string, MenuItem>;
+// Vocabulaire adapté : une crèche n'a ni matières, ni emploi du temps, ni
+// notes/bulletins au sens scolaire — ces items sont simplement retirés.
+function buildMenu(typeEtab: EtabType): Record<string, MenuItem> {
+  const creche = typeEtab === 'CRECHE';
+  return {
+    dashboard: { name: 'Tableau de bord', path: '/dashboard', icon: LayoutDashboard },
+    eleves: { name: creche ? 'Enfants' : 'Élèves', path: '/dashboard/eleves', icon: GraduationCap },
+    enseignants: { name: creche ? 'Monitrices' : 'Enseignants', path: '/dashboard/enseignants', icon: UsersRound },
+    classes: { name: creche ? 'Groupes' : 'Classes', path: '/dashboard/classes', icon: School },
+    matieres: { name: 'Matières', path: '/dashboard/matieres', icon: BookOpen },
+    edt: { name: 'Emploi du temps', path: '/dashboard/emploi-du-temps', icon: CalendarDays },
+    presences: { name: 'Présences', path: '/dashboard/presences', icon: CheckSquare },
+    notes: { name: 'Notes', path: '/dashboard/notes', icon: ClipboardList },
+    bulletins: { name: 'Bulletins', path: '/dashboard/bulletins', icon: ScrollText },
+    cartes: { name: creche ? "Cartes d'identification" : 'Cartes scolaires', path: '/dashboard/cartes-scolaires', icon: CreditCard },
+    finances: { name: 'Finances', path: '/dashboard/finances', icon: Wallet },
+    utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
+  };
+}
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
-const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes],
-  COMPTABLE: [M.dashboard, M.finances],
-  ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
-};
+function menusByRole(role: string, typeEtab: EtabType): MenuItem[] {
+  const M = buildMenu(typeEtab);
+  const map: Record<string, MenuItem[]> =
+    typeEtab === 'CRECHE'
+      ? {
+          DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.presences, M.cartes, M.finances, M.utilisateurs],
+          SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.presences, M.cartes],
+          COMPTABLE: [M.dashboard, M.finances],
+          ENSEIGNANT: [M.dashboard, M.classes, M.presences],
+        }
+      : {
+          DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs],
+          SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes],
+          COMPTABLE: [M.dashboard, M.finances],
+          ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
+        };
+  return map[role] || map.DIRECTEUR;
+}
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super-Admin',
@@ -60,6 +78,11 @@ const ROLE_LABELS: Record<string, string> = {
   SECRETAIRE: 'Secrétariat',
   COMPTABLE: 'Comptabilité',
   ENSEIGNANT: 'Enseignant',
+};
+const ROLE_LABELS_CRECHE: Record<string, string> = {
+  ...ROLE_LABELS,
+  DIRECTEUR: 'Responsable',
+  ENSEIGNANT: 'Monitrice',
 };
 
 type SessionUser = {
@@ -71,6 +94,7 @@ type SessionUser = {
   etablissementNom?: string;
   etablissementLogoUrl?: string;
   etablissementSlogan?: string;
+  etablissementType?: 'ECOLE' | 'CRECHE';
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -94,8 +118,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const role = user?.role || 'DIRECTEUR';
-  const menuItems = MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR;
-  const roleLabel = ROLE_LABELS[role] || role;
+  const menuItems = menusByRole(role, user?.etablissementType);
+  const roleLabel = (user?.etablissementType === 'CRECHE' ? ROLE_LABELS_CRECHE : ROLE_LABELS)[role] || role;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||
     'Tableau de bord';
@@ -209,7 +233,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </button>
               <div>
                 <h1 className="text-base font-semibold text-foreground">{currentTitle}</h1>
-                <p className="text-xs text-muted-foreground">Netaa École — Gestion scolaire numérique</p>
+                <p className="text-xs text-muted-foreground">
+                  Netaa École — {user?.etablissementType === 'CRECHE' ? 'Gestion de crèche numérique' : 'Gestion scolaire numérique'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">

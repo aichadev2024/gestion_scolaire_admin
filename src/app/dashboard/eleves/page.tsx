@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Plus, Trash2, GraduationCap, FileText, Upload, Download } from 'lucide-react';
 import { eleveService, EleveImportRapport } from '@/services/eleve.service';
+import { authService } from '@/services/auth.service';
 import DocumentsEleveDialog from '@/components/DocumentsEleveDialog';
 import { classeService } from '@/services/classe.service';
 import { profilService } from '@/services/profil.service';
@@ -317,22 +318,26 @@ export default function ElevesPage() {
     });
   }, [elevesFiltres, classesById]);
 
+  const isCreche = authService.getCurrentUser()?.etablissementType === 'CRECHE';
+  const motEleve = isCreche ? 'enfant' : 'élève';
+  const motEleveMaj = isCreche ? 'Enfant' : 'Élève';
+
   return (
     <div>
       {nouveauCompte && (
         <CredentialsBanner
-          title={`Compte élève « ${nouveauCompte.nom} » créé`}
+          title={`Compte ${motEleve} « ${nouveauCompte.nom} » créé`}
           password={nouveauCompte.motDePasse}
           onClose={() => setNouveauCompte(null)}
         />
       )}
 
       <PageHeader
-        title="Gestion des élèves"
+        title={isCreche ? 'Gestion des enfants' : 'Gestion des élèves'}
         description={
           loading
             ? 'Chargement…'
-            : `${elevesFiltres.length} élève(s)${elevesFiltres.length !== eleves.length ? ` sur ${eleves.length}` : ' inscrit(s)'}`
+            : `${elevesFiltres.length} ${motEleve}(s)${elevesFiltres.length !== eleves.length ? ` sur ${eleves.length}` : ' inscrit(s)'}`
         }
       >
         <div className="flex gap-2">
@@ -340,7 +345,7 @@ export default function ElevesPage() {
             <Upload /> Importer (Excel)
           </Button>
           <Button onClick={openNewForm}>
-            <Plus /> Nouvel élève
+            <Plus /> Nouvel {motEleve}
           </Button>
         </div>
       </PageHeader>
@@ -393,19 +398,19 @@ export default function ElevesPage() {
       ) : eleves.length === 0 ? (
         <EmptyState
           icon={<GraduationCap />}
-          title="Aucun élève inscrit"
-          description="Commencez par inscrire un élève. Un compte lui sera créé automatiquement."
+          title={`Aucun ${motEleve} inscrit`}
+          description={`Commencez par inscrire un ${motEleve}. Un compte lui sera créé automatiquement.`}
           action={
             <Button onClick={openNewForm}>
-              <Plus /> Inscrire un élève
+              <Plus /> Inscrire un {motEleve}
             </Button>
           }
         />
       ) : elevesFiltres.length === 0 ? (
         <EmptyState
           icon={<GraduationCap />}
-          title="Aucun élève dans cette sélection"
-          description="Essayez un autre niveau ou une autre classe."
+          title={`Aucun ${motEleve} dans cette sélection`}
+          description={isCreche ? 'Essayez un autre groupe.' : 'Essayez un autre niveau ou une autre classe.'}
         />
       ) : (
         <Table>
@@ -510,7 +515,7 @@ export default function ElevesPage() {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingEleve ? "Modifier l'élève" : 'Inscrire un élève'}</DialogTitle>
+            <DialogTitle>{editingEleve ? `Modifier ${isCreche ? "l'enfant" : "l'élève"}` : `Inscrire un ${motEleve}`}</DialogTitle>
           </DialogHeader>
 
           {error && (
@@ -585,7 +590,7 @@ export default function ElevesPage() {
                 Annuler
               </Button>
               <Button type="submit" loading={isSubmitting}>
-                {editingEleve ? 'Enregistrer' : "Inscrire l'élève"}
+                {editingEleve ? 'Enregistrer' : `Inscrire ${isCreche ? "l'enfant" : "l'élève"}`}
               </Button>
             </DialogFooter>
           </form>
