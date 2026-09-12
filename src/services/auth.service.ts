@@ -19,6 +19,7 @@ export interface AuthResponse {
   etablissementLogoUrl?: string;
   etablissementDevise?: string;
   etablissementSlogan?: string;
+  etablissementType?: 'ECOLE' | 'CRECHE';
   etablissementPlanTarifaire?: string;
   etablissementMaxEnseignants?: number;
   requiresOtp?: boolean;
@@ -39,6 +40,7 @@ type SessionUser = {
   etablissementLogoUrl?: string;
   etablissementDevise?: string;
   etablissementSlogan?: string;
+  etablissementType?: 'ECOLE' | 'CRECHE';
   etablissementPlanTarifaire?: string;
   etablissementMaxEnseignants?: number;
 };
@@ -93,6 +95,7 @@ function userFromResponse(data: AuthResponse): SessionUser {
     etablissementLogoUrl: data.etablissementLogoUrl,
     etablissementDevise: data.etablissementDevise,
     etablissementSlogan: data.etablissementSlogan,
+    etablissementType: data.etablissementType as 'ECOLE' | 'CRECHE' | undefined,
     etablissementPlanTarifaire: data.etablissementPlanTarifaire,
     etablissementMaxEnseignants: data.etablissementMaxEnseignants,
   };

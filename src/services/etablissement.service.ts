@@ -10,6 +10,7 @@ export interface Etablissement {
   logoUrl?: string;
   devise?: string;
   slogan?: string;
+  typeEtablissement: 'ECOLE' | 'CRECHE';
   statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE';
   planTarifaire: string;
   dateExpirationAbonnement?: string;
@@ -27,6 +28,7 @@ export interface CreateEtablissementRequest {
   adresse?: string;
   planTarifaire?: string;
   dateExpirationAbonnement?: string;
+  typeEtablissement?: 'ECOLE' | 'CRECHE';
   adminUsername: string;
   adminEmail?: string;
   adminMotDePasse: string;

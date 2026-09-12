@@ -31,6 +31,7 @@ const EMPTY_FORM: CreateEtablissementRequest = {
   telephone: '',
   adresse: '',
   planTarifaire: 'PRO',
+  typeEtablissement: 'ECOLE',
   adminUsername: '',
   adminEmail: '',
   adminMotDePasse: '',
@@ -318,7 +319,10 @@ export default function SuperAdminEtablissementsPage() {
                 {filtered.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell>
-                      <div className="font-semibold text-foreground">{e.nom}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">{e.nom}</span>
+                        {e.typeEtablissement === 'CRECHE' && <Badge variant="secondary">Crèche</Badge>}
+                      </div>
                       {e.dateCreation && (
                         <div className="text-xs text-muted-foreground">
                           Créé le {new Date(e.dateCreation).toLocaleDateString('fr-FR')}
@@ -421,9 +425,28 @@ export default function SuperAdminEtablissementsPage() {
               <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
                 1. Informations école &amp; abonnement
               </legend>
-              <Field label="Nom de l'établissement *">
+              <Field label="Type d'établissement *" className="sm:col-span-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {(['ECOLE', 'CRECHE'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, typeEtablissement: t })}
+                      className={cn(
+                        'rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors',
+                        formData.typeEtablissement === t
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/40',
+                      )}
+                    >
+                      {t === 'ECOLE' ? 'École' : 'Crèche'}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Nom de la crèche *' : "Nom de l'établissement *"}>
                 <Input
-                  placeholder="Ex : Lycée Jules Verne"
+                  placeholder={formData.typeEtablissement === 'CRECHE' ? 'Ex : Crèche Les Petits Anges' : 'Ex : Lycée Jules Verne'}
                   required
                   value={formData.nomEtablissement}
                   onChange={(e) => setFormData({ ...formData, nomEtablissement: e.target.value })}
@@ -492,9 +515,9 @@ export default function SuperAdminEtablissementsPage() {
 
             <fieldset className="grid gap-4 sm:grid-cols-2">
               <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
-                2. Directeur de l&apos;établissement
+                2. {formData.typeEtablissement === 'CRECHE' ? 'Responsable de la crèche' : "Directeur de l'établissement"}
               </legend>
-              <Field label="Prénom du directeur *">
+              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Prénom du/de la responsable *' : 'Prénom du directeur *'}>
                 <Input
                   required
                   value={formData.adminProfil.prenom}
@@ -506,7 +529,7 @@ export default function SuperAdminEtablissementsPage() {
                   }
                 />
               </Field>
-              <Field label="Nom du directeur *">
+              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Nom du/de la responsable *' : 'Nom du directeur *'}>
                 <Input
                   required
                   value={formData.adminProfil.nom}
@@ -534,7 +557,7 @@ export default function SuperAdminEtablissementsPage() {
                   }
                 />
               </Field>
-              <Field label="Email du directeur">
+              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Email du/de la responsable' : 'Email du directeur'}>
                 <Input
                   type="email"
                   placeholder="admin@julesverne.netaa-ecole.com"
