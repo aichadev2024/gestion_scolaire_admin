@@ -31,6 +31,9 @@ export interface Enseignant {
   matricule: string;
   biographie: string;
   profil: Profil;
+  /** Vrai si professeur(e) principal(e) d'au moins une classe de niveau Crèche — propre à la personne,
+   * pas à l'établissement (une école mixte a un mélange de monitrices et d'enseignants). */
+  estMonitrice?: boolean;
   /** Présent uniquement dans la réponse de création : mot de passe initial à transmettre. */
   motDePasseInitial?: string;
 }

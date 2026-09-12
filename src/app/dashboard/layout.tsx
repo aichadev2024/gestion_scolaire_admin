@@ -74,6 +74,8 @@ type SessionUser = {
   etablissementLogoUrl?: string;
   etablissementSlogan?: string;
   aClassesCreche?: boolean;
+  etablissementUniquementCreche?: boolean;
+  estMonitrice?: boolean;
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -97,15 +99,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const role = user?.role || 'DIRECTEUR';
-  const estCreche = !!user?.aClassesCreche;
+  // Uniquement crèche (aucun primaire/collège/lycée à côté) : le menu générique peut dire "Monitrices".
+  // Dans une école mixte, le personnel est un mélange des deux — voir estMonitrice, propre à la personne.
+  const uniquementCreche = !!user?.etablissementUniquementCreche;
   const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)].map((m) =>
-    estCreche && m.path === M.enseignants.path ? { ...m, name: 'Monitrices' } : m,
+    uniquementCreche && m.path === M.enseignants.path ? { ...m, name: 'Monitrices' } : m,
   );
-  if (estCreche && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
+  if (user?.aClassesCreche && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
     const presencesIdx = menuItems.findIndex((m) => m.path === M.presences.path);
     menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
   }
-  const roleLabel = estCreche && role === 'ENSEIGNANT' ? 'Monitrice' : ROLE_LABELS[role] || role;
+  const roleLabel = role === 'ENSEIGNANT' && user?.estMonitrice ? 'Monitrice' : ROLE_LABELS[role] || role;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||
     'Tableau de bord';

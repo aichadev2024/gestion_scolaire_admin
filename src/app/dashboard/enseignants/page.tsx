@@ -33,18 +33,26 @@ export default function EnseignantsPage() {
   const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
   const [formData, setFormData] = useState(EMPTY);
 
-  const estCreche = !!authService.getCurrentUser()?.aClassesCreche;
-  const libellePluriel = estCreche ? 'monitrices' : 'enseignants';
-  const nouveauLabel = estCreche ? 'Nouvelle monitrice' : 'Nouvel enseignant';
-  const compteLabel = estCreche ? 'monitrice' : 'enseignant';
-  const aucunLabel = estCreche ? 'Aucune monitrice' : 'Aucun enseignant';
-  const ajouterPhrase = estCreche ? 'Ajoutez une monitrice.' : 'Ajoutez un enseignant.';
-  const ajouterLabel = estCreche ? 'Ajouter une monitrice' : 'Ajouter un enseignant';
-  const modifierLabel = estCreche ? 'Modifier la monitrice' : "Modifier l'enseignant";
-  const majLabel = estCreche ? 'Monitrice mise à jour.' : 'Enseignant mis à jour.';
-  const ajouteeLabel = estCreche ? 'Monitrice ajoutée.' : 'Enseignant ajouté.';
-  const supprimerConfirm = estCreche ? 'Supprimer définitivement la monitrice' : "Supprimer définitivement l'enseignant";
-  const supprimeeLabel = estCreche ? 'Monitrice supprimée.' : 'Enseignant supprimé.';
+  // Uniquement crèche (aucun primaire/collège/lycée à côté) : les libellés génériques (page, bouton
+  // "nouveau", messages de création) peuvent dire "monitrice" sans se tromper — dans une école mixte,
+  // on ne sait pas encore si la PROCHAINE personne ajoutée sera monitrice ou enseignant.
+  const uniquementCreche = !!authService.getCurrentUser()?.etablissementUniquementCreche;
+  // École mixte (crèche + primaire/collège/lycée) : le personnel est un mélange de monitrices et
+  // d'enseignants — on affiche alors une colonne dédiée pour distinguer qui est quoi, ligne par ligne.
+  const ecoleMixte = !!authService.getCurrentUser()?.aClassesCreche && !uniquementCreche;
+  // Pour une action sur une personne déjà existante (modifier/supprimer), on utilise sa vraie
+  // affectation (estMonitrice) si on la connaît — ça reste correct même dans une école mixte.
+  const estMonitriceCiblee = editing?.estMonitrice ?? uniquementCreche;
+
+  const libellePluriel = uniquementCreche ? 'monitrices' : 'enseignants';
+  const nouveauLabel = uniquementCreche ? 'Nouvelle monitrice' : 'Nouvel enseignant';
+  const compteLabel = estMonitriceCiblee ? 'monitrice' : 'enseignant';
+  const aucunLabel = uniquementCreche ? 'Aucune monitrice' : 'Aucun enseignant';
+  const ajouterPhrase = uniquementCreche ? 'Ajoutez une monitrice.' : 'Ajoutez un enseignant.';
+  const ajouterLabel = uniquementCreche ? 'Ajouter une monitrice' : 'Ajouter un enseignant';
+  const modifierLabel = estMonitriceCiblee ? 'Modifier la monitrice' : "Modifier l'enseignant";
+  const majLabel = estMonitriceCiblee ? 'Monitrice mise à jour.' : 'Enseignant mis à jour.';
+  const ajouteeLabel = uniquementCreche ? 'Monitrice ajoutée.' : 'Enseignant ajouté.';
 
   const fetchEnseignants = async () => {
     try {
@@ -126,20 +134,22 @@ export default function EnseignantsPage() {
       setEditing(null);
       await fetchEnseignants();
     } catch (err) {
-      setError(errorMessage(err, estCreche ? 'Erreur lors de la sauvegarde de la monitrice' : "Erreur lors de la sauvegarde de l'enseignant"));
+      setError(errorMessage(err, estMonitriceCiblee ? 'Erreur lors de la sauvegarde de la monitrice' : "Erreur lors de la sauvegarde de l'enseignant"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (prof: Enseignant) => {
-    if (!confirm(`${supprimerConfirm} ${prof.profil.prenom} ${prof.profil.nom} ?`)) return;
+    const estMonitriceProf = prof.estMonitrice ?? uniquementCreche;
+    const confirmLabel = estMonitriceProf ? 'Supprimer définitivement la monitrice' : "Supprimer définitivement l'enseignant";
+    if (!confirm(`${confirmLabel} ${prof.profil.prenom} ${prof.profil.nom} ?`)) return;
     try {
       await enseignantService.deleteEnseignant(prof.id);
-      toast.success(supprimeeLabel);
+      toast.success(estMonitriceProf ? 'Monitrice supprimée.' : 'Enseignant supprimé.');
       await fetchEnseignants();
     } catch (err) {
-      toast.error(errorMessage(err, estCreche ? 'Erreur lors de la suppression de la monitrice' : "Erreur lors de la suppression de l'enseignant"));
+      toast.error(errorMessage(err, estMonitriceProf ? 'Erreur lors de la suppression de la monitrice' : "Erreur lors de la suppression de l'enseignant"));
     }
   };
 
@@ -193,6 +203,7 @@ export default function EnseignantsPage() {
             <TableRow>
               <TableHead>Matricule</TableHead>
               <TableHead>Nom &amp; prénom</TableHead>
+              {ecoleMixte && <TableHead>Rôle</TableHead>}
               <TableHead>Téléphone</TableHead>
               <TableHead>Spécialité / bio</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -205,6 +216,13 @@ export default function EnseignantsPage() {
                   <span className="font-mono text-xs font-medium text-primary">{prof.matricule}</span>
                 </TableCell>
                 <TableCell className="font-medium">{prof.profil.nom} {prof.profil.prenom}</TableCell>
+                {ecoleMixte && (
+                  <TableCell>
+                    <Badge variant={prof.estMonitrice ? 'warning' : 'secondary'}>
+                      {prof.estMonitrice ? 'Monitrice' : 'Enseignant'}
+                    </Badge>
+                  </TableCell>
+                )}
                 <TableCell className="text-muted-foreground">{prof.profil.telephone || '—'}</TableCell>
                 <TableCell className="max-w-xs truncate text-muted-foreground">{prof.biographie || '—'}</TableCell>
                 <TableCell>

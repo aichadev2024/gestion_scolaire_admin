@@ -32,12 +32,15 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-function buildRoles(estCreche: boolean): { value: string; label: string; Icon: LucideIcon }[] {
+// Uniquement crèche (aucun primaire/collège/lycée à côté) : on peut dire "Monitrice" sans se tromper.
+// Une école mixte garde "Enseignant" ici — on ne sait pas encore, à la création du compte, si cette
+// personne sera prof principal d'une classe Crèche ou d'une classe primaire/collège/lycée.
+function buildRoles(uniquementCreche: boolean): { value: string; label: string; Icon: LucideIcon }[] {
   return [
     { value: 'DIRECTEUR', label: 'Directeur', Icon: ShieldCheck },
     { value: 'SECRETAIRE', label: 'Secrétaire', Icon: ClipboardList },
     { value: 'COMPTABLE', label: 'Comptable', Icon: Wallet },
-    { value: 'ENSEIGNANT', label: estCreche ? 'Monitrice' : 'Enseignant', Icon: UsersRound },
+    { value: 'ENSEIGNANT', label: uniquementCreche ? 'Monitrice' : 'Enseignant', Icon: UsersRound },
     { value: 'PARENT', label: 'Parent', Icon: Users },
   ];
 }
@@ -59,7 +62,7 @@ export default function UtilisateursPage() {
   const [error, setError] = useState('');
   const [form, setForm] = useState<RegisterPayload>(EMPTY);
 
-  const ROLES = buildRoles(!!authService.getCurrentUser()?.aClassesCreche);
+  const ROLES = buildRoles(!!authService.getCurrentUser()?.etablissementUniquementCreche);
   const roleLabel = (nom: string) => ROLES.find((r) => r.value === nom)?.label ?? nom;
 
   const fetchAll = async () => {
