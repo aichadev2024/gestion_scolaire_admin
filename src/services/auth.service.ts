@@ -18,6 +18,8 @@ export interface AuthResponse {
   etablissementNom?: string;
   etablissementLogoUrl?: string;
   etablissementDevise?: string;
+  etablissementPlanTarifaire?: string;
+  etablissementMaxEnseignants?: number;
   requiresOtp?: boolean;
   message?: string;
 }
@@ -35,6 +37,8 @@ type SessionUser = {
   etablissementNom?: string;
   etablissementLogoUrl?: string;
   etablissementDevise?: string;
+  etablissementPlanTarifaire?: string;
+  etablissementMaxEnseignants?: number;
 };
 
 /** Durée de vie du cookie de session, alignée sur l'expiration du JWT (défaut 24 h). */
@@ -86,6 +90,8 @@ function userFromResponse(data: AuthResponse): SessionUser {
     etablissementNom: data.etablissementNom,
     etablissementLogoUrl: data.etablissementLogoUrl,
     etablissementDevise: data.etablissementDevise,
+    etablissementPlanTarifaire: data.etablissementPlanTarifaire,
+    etablissementMaxEnseignants: data.etablissementMaxEnseignants,
   };
 }
 

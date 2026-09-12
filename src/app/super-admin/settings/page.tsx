@@ -13,8 +13,10 @@ import { tarifService } from '@/services/tarif.service';
 
 const PLAN_LABELS: Record<string, string> = { STARTER: 'Starter (web, personnel)', PRO: 'Pro (+ appli mobile parents)' };
 
+type PlanForm = { prix: string; limite: string };
+
 function TarifsAbonnementsCard() {
-  const [prix, setPrix] = useState<Record<string, string>>({});
+  const [plans, setPlans] = useState<Record<string, PlanForm>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -23,11 +25,11 @@ function TarifsAbonnementsCard() {
     tarifService
       .listerTous()
       .then((tarifs) => {
-        const next: Record<string, string> = {};
+        const next: Record<string, PlanForm> = {};
         tarifs.forEach((t) => {
-          next[t.code] = String(t.prixMensuel);
+          next[t.code] = { prix: String(t.prixMensuel), limite: t.maxEnseignants != null ? String(t.maxEnseignants) : '' };
         });
-        setPrix(next);
+        setPlans(next);
       })
       .catch(() => toast.error('Impossible de charger les tarifs.'))
       .finally(() => setLoading(false));
@@ -40,7 +42,9 @@ function TarifsAbonnementsCard() {
     setSaving(true);
     try {
       await Promise.all(
-        Object.entries(prix).map(([code, valeur]) => tarifService.modifierPrix(code, Number(valeur))),
+        Object.entries(plans).map(([code, { prix, limite }]) =>
+          tarifService.modifierPlan(code, Number(prix), limite.trim() === '' ? null : Number(limite)),
+        ),
       );
       toast.success('Tarifs des abonnements mis à jour.');
       fetchTarifs();
@@ -55,27 +59,41 @@ function TarifsAbonnementsCard() {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm uppercase tracking-wide text-primary">
-          Tarifs des abonnements (FCFA / mois)
+          Tarifs & limites des abonnements
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSave} className="space-y-4">
           {loading ? (
-            <p className="text-sm text-muted-foreground sm:col-span-2">Chargement…</p>
+            <p className="text-sm text-muted-foreground">Chargement…</p>
           ) : (
-            Object.keys(prix).map((code) => (
-              <Field key={code} label={PLAN_LABELS[code] || code}>
-                <Input
-                  type="number"
-                  min={0}
-                  step={500}
-                  value={prix[code]}
-                  onChange={(e) => setPrix((p) => ({ ...p, [code]: e.target.value }))}
-                />
-              </Field>
+            Object.entries(plans).map(([code, { prix, limite }]) => (
+              <div key={code} className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
+                <Field label={`${PLAN_LABELS[code] || code} — prix (FCFA / mois)`}>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={500}
+                    value={prix}
+                    onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], prix: e.target.value } }))}
+                  />
+                </Field>
+                <Field
+                  label="Comptes enseignants max"
+                  hint="Laisser vide pour illimité."
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Illimité"
+                    value={limite}
+                    onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], limite: e.target.value } }))}
+                  />
+                </Field>
+              </div>
             ))
           )}
-          <div className="flex justify-end sm:col-span-2">
+          <div className="flex justify-end">
             <Button type="submit" loading={saving} disabled={loading}>
               <Save /> Enregistrer les tarifs
             </Button>

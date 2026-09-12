@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import { enseignantService } from '@/services/enseignant.service';
+import { authService } from '@/services/auth.service';
 import { Enseignant } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import CredentialsBanner from '@/components/CredentialsBanner';
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Alert } from '@/components/ui/alert';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field, FormError } from '@/components/ui/form-field';
@@ -128,6 +130,11 @@ export default function EnseignantsPage() {
     }
   };
 
+  const sessionUser = authService.getCurrentUser();
+  const limiteEnseignants = sessionUser?.etablissementMaxEnseignants ?? null;
+  const planTarifaire = sessionUser?.etablissementPlanTarifaire;
+  const atteintLaLimite = limiteEnseignants != null && enseignants.length >= limiteEnseignants;
+
   return (
     <div>
       {nouveauCompte && (
@@ -146,6 +153,14 @@ export default function EnseignantsPage() {
           <Plus /> Nouvel enseignant
         </Button>
       </PageHeader>
+
+      {!loading && limiteEnseignants != null && (
+        <Alert tone={atteintLaLimite ? 'warning' : 'info'} className="mb-4">
+          {enseignants.length}/{limiteEnseignants} comptes enseignants utilisés sur le plan{' '}
+          {planTarifaire || 'Starter'}.{' '}
+          {atteintLaLimite && "Limite atteinte — passez au plan Pro pour en ajouter davantage."}
+        </Alert>
+      )}
 
       {loading ? (
         <div className="space-y-2">
