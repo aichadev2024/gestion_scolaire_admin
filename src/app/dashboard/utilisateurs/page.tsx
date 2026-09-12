@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { utilisateurService, UtilisateurResponse, RegisterPayload } from '@/services/utilisateur.service';
+import { authService } from '@/services/auth.service';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -31,14 +32,15 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-const ROLES: { value: string; label: string; Icon: LucideIcon }[] = [
-  { value: 'DIRECTEUR', label: 'Directeur', Icon: ShieldCheck },
-  { value: 'SECRETAIRE', label: 'Secrétaire', Icon: ClipboardList },
-  { value: 'COMPTABLE', label: 'Comptable', Icon: Wallet },
-  { value: 'ENSEIGNANT', label: 'Enseignant', Icon: UsersRound },
-  { value: 'PARENT', label: 'Parent', Icon: Users },
-];
-const roleLabel = (nom: string) => ROLES.find((r) => r.value === nom)?.label ?? nom;
+function buildRoles(estCreche: boolean): { value: string; label: string; Icon: LucideIcon }[] {
+  return [
+    { value: 'DIRECTEUR', label: 'Directeur', Icon: ShieldCheck },
+    { value: 'SECRETAIRE', label: 'Secrétaire', Icon: ClipboardList },
+    { value: 'COMPTABLE', label: 'Comptable', Icon: Wallet },
+    { value: 'ENSEIGNANT', label: estCreche ? 'Monitrice' : 'Enseignant', Icon: UsersRound },
+    { value: 'PARENT', label: 'Parent', Icon: Users },
+  ];
+}
 
 const EMPTY: RegisterPayload = {
   username: '',
@@ -56,6 +58,9 @@ export default function UtilisateursPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState<RegisterPayload>(EMPTY);
+
+  const ROLES = buildRoles(!!authService.getCurrentUser()?.aClassesCreche);
+  const roleLabel = (nom: string) => ROLES.find((r) => r.value === nom)?.label ?? nom;
 
   const fetchAll = async () => {
     try {

@@ -97,12 +97,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const role = user?.role || 'DIRECTEUR';
-  const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)];
-  if (user?.aClassesCreche && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
+  const estCreche = !!user?.aClassesCreche;
+  const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)].map((m) =>
+    estCreche && m.path === M.enseignants.path ? { ...m, name: 'Monitrices' } : m,
+  );
+  if (estCreche && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
     const presencesIdx = menuItems.findIndex((m) => m.path === M.presences.path);
     menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
   }
-  const roleLabel = ROLE_LABELS[role] || role;
+  const roleLabel = estCreche && role === 'ENSEIGNANT' ? 'Monitrice' : ROLE_LABELS[role] || role;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||
     'Tableau de bord';

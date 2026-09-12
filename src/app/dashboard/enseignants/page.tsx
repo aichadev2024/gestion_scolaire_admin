@@ -33,12 +33,25 @@ export default function EnseignantsPage() {
   const [nouveauCompte, setNouveauCompte] = useState<{ nom: string; motDePasse: string } | null>(null);
   const [formData, setFormData] = useState(EMPTY);
 
+  const estCreche = !!authService.getCurrentUser()?.aClassesCreche;
+  const libellePluriel = estCreche ? 'monitrices' : 'enseignants';
+  const nouveauLabel = estCreche ? 'Nouvelle monitrice' : 'Nouvel enseignant';
+  const compteLabel = estCreche ? 'monitrice' : 'enseignant';
+  const aucunLabel = estCreche ? 'Aucune monitrice' : 'Aucun enseignant';
+  const ajouterPhrase = estCreche ? 'Ajoutez une monitrice.' : 'Ajoutez un enseignant.';
+  const ajouterLabel = estCreche ? 'Ajouter une monitrice' : 'Ajouter un enseignant';
+  const modifierLabel = estCreche ? 'Modifier la monitrice' : "Modifier l'enseignant";
+  const majLabel = estCreche ? 'Monitrice mise à jour.' : 'Enseignant mis à jour.';
+  const ajouteeLabel = estCreche ? 'Monitrice ajoutée.' : 'Enseignant ajouté.';
+  const supprimerConfirm = estCreche ? 'Supprimer définitivement la monitrice' : "Supprimer définitivement l'enseignant";
+  const supprimeeLabel = estCreche ? 'Monitrice supprimée.' : 'Enseignant supprimé.';
+
   const fetchEnseignants = async () => {
     try {
       setLoading(true);
       setEnseignants(await enseignantService.getEnseignants());
     } catch {
-      toast.error('Impossible de charger les enseignants.');
+      toast.error(`Impossible de charger les ${libellePluriel}.`);
     } finally {
       setLoading(false);
     }
@@ -98,13 +111,13 @@ export default function EnseignantsPage() {
 
       if (editing) {
         await enseignantService.updateEnseignant(editing.id, payload);
-        toast.success('Enseignant mis à jour.');
+        toast.success(majLabel);
       } else {
         const cree = await enseignantService.createEnseignant(payload);
-        toast.success('Enseignant ajouté.');
+        toast.success(ajouteeLabel);
         if (cree?.motDePasseInitial) {
           setNouveauCompte({
-            nom: `${formData.prenom} ${formData.nom}`.trim() || 'Nouvel enseignant',
+            nom: `${formData.prenom} ${formData.nom}`.trim() || nouveauLabel,
             motDePasse: cree.motDePasseInitial,
           });
         }
@@ -113,50 +126,49 @@ export default function EnseignantsPage() {
       setEditing(null);
       await fetchEnseignants();
     } catch (err) {
-      setError(errorMessage(err, "Erreur lors de la sauvegarde de l'enseignant"));
+      setError(errorMessage(err, estCreche ? 'Erreur lors de la sauvegarde de la monitrice' : "Erreur lors de la sauvegarde de l'enseignant"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (prof: Enseignant) => {
-    if (!confirm(`Supprimer définitivement l'enseignant ${prof.profil.prenom} ${prof.profil.nom} ?`)) return;
+    if (!confirm(`${supprimerConfirm} ${prof.profil.prenom} ${prof.profil.nom} ?`)) return;
     try {
       await enseignantService.deleteEnseignant(prof.id);
-      toast.success('Enseignant supprimé.');
+      toast.success(supprimeeLabel);
       await fetchEnseignants();
     } catch (err) {
-      toast.error(errorMessage(err, "Erreur lors de la suppression de l'enseignant"));
+      toast.error(errorMessage(err, estCreche ? 'Erreur lors de la suppression de la monitrice' : "Erreur lors de la suppression de l'enseignant"));
     }
   };
 
-  const sessionUser = authService.getCurrentUser();
-  const limiteEnseignants = sessionUser?.etablissementMaxEnseignants ?? null;
-  const planTarifaire = sessionUser?.etablissementPlanTarifaire;
+  const limiteEnseignants = authService.getCurrentUser()?.etablissementMaxEnseignants ?? null;
+  const planTarifaire = authService.getCurrentUser()?.etablissementPlanTarifaire;
   const atteintLaLimite = limiteEnseignants != null && enseignants.length >= limiteEnseignants;
 
   return (
     <div>
       {nouveauCompte && (
         <CredentialsBanner
-          title={`Compte enseignant « ${nouveauCompte.nom} » créé`}
+          title={`Compte ${compteLabel} « ${nouveauCompte.nom} » créé`}
           password={nouveauCompte.motDePasse}
           onClose={() => setNouveauCompte(null)}
         />
       )}
 
       <PageHeader
-        title="Gestion des enseignants"
-        description={loading ? 'Chargement…' : `${enseignants.length} enseignant(s)`}
+        title={`Gestion des ${libellePluriel}`}
+        description={loading ? 'Chargement…' : `${enseignants.length} ${compteLabel}(s)`}
       >
         <Button onClick={openNewForm}>
-          <Plus /> Nouvel enseignant
+          <Plus /> {nouveauLabel}
         </Button>
       </PageHeader>
 
       {!loading && limiteEnseignants != null && (
         <Alert tone={atteintLaLimite ? 'warning' : 'info'} className="mb-4">
-          {enseignants.length}/{limiteEnseignants} comptes enseignants utilisés sur le plan{' '}
+          {enseignants.length}/{limiteEnseignants} comptes {libellePluriel} utilisés sur le plan{' '}
           {planTarifaire || 'Starter'}.{' '}
           {atteintLaLimite && "Limite atteinte — passez au plan Pro pour en ajouter davantage."}
         </Alert>
@@ -171,9 +183,9 @@ export default function EnseignantsPage() {
       ) : enseignants.length === 0 ? (
         <EmptyState
           icon={<UsersRound />}
-          title="Aucun enseignant"
-          description="Ajoutez un enseignant. Un compte lui sera créé automatiquement."
-          action={<Button onClick={openNewForm}><Plus /> Ajouter un enseignant</Button>}
+          title={aucunLabel}
+          description={`${ajouterPhrase} Un compte lui sera créé automatiquement.`}
+          action={<Button onClick={openNewForm}><Plus /> {ajouterLabel}</Button>}
         />
       ) : (
         <Table>
@@ -219,7 +231,7 @@ export default function EnseignantsPage() {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? "Modifier l'enseignant" : 'Ajouter un enseignant'}</DialogTitle>
+            <DialogTitle>{editing ? modifierLabel : ajouterLabel}</DialogTitle>
           </DialogHeader>
           <FormError message={error} />
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">

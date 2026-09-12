@@ -71,16 +71,18 @@ export default function DashboardPage() {
     })();
   }, [router]);
 
+  const estCreche = !!authService.getCurrentUser()?.aClassesCreche;
+
   const tiles = [
     { label: 'Élèves inscrits', value: stats.totalEleves, Icon: GraduationCap, href: '/dashboard/eleves' },
-    { label: 'Enseignants', value: stats.totalEnseignants, Icon: UsersRound, href: '/dashboard/enseignants' },
+    { label: estCreche ? 'Monitrices' : 'Enseignants', value: stats.totalEnseignants, Icon: UsersRound, href: '/dashboard/enseignants' },
     { label: 'Classes actives', value: stats.totalClasses, Icon: School, href: '/dashboard/classes' },
   ];
 
   const actions = [
     { label: 'Inscrire un élève', href: '/dashboard/eleves', Icon: UserPlus },
     { label: 'Ajouter une classe', href: '/dashboard/classes', Icon: School },
-    { label: 'Ajouter un enseignant', href: '/dashboard/enseignants', Icon: UsersRound },
+    { label: estCreche ? 'Ajouter une monitrice' : 'Ajouter un enseignant', href: '/dashboard/enseignants', Icon: UsersRound },
     { label: 'Enregistrer un paiement', href: '/dashboard/finances', Icon: Wallet },
   ];
 
