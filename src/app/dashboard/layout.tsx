@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Baby,
   BookOpen,
   CalendarDays,
   CheckSquare,
@@ -44,6 +45,7 @@ const M = {
   cartes: { name: 'Cartes scolaires', path: '/dashboard/cartes-scolaires', icon: CreditCard },
   finances: { name: 'Finances', path: '/dashboard/finances', icon: Wallet },
   utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
+  rapportJournalier: { name: 'Rapport journalier', path: '/dashboard/rapport-journalier', icon: Baby },
 } satisfies Record<string, MenuItem>;
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
@@ -71,6 +73,7 @@ type SessionUser = {
   etablissementNom?: string;
   etablissementLogoUrl?: string;
   etablissementSlogan?: string;
+  etablissementType?: 'ECOLE' | 'CRECHE';
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -94,7 +97,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const role = user?.role || 'DIRECTEUR';
-  const menuItems = MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR;
+  const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)];
+  if (user?.etablissementType === 'CRECHE' && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
+    const presencesIdx = menuItems.findIndex((m) => m.path === M.presences.path);
+    menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
+  }
   const roleLabel = ROLE_LABELS[role] || role;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||

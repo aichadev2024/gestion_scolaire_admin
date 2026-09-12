@@ -29,6 +29,11 @@ export const eleveService = {
     return response.data;
   },
 
+  getElevesParClasse: async (classeId: number): Promise<Eleve[]> => {
+    const response = await api.get<Eleve[]>(`/eleves/classe/${classeId}`);
+    return response.data;
+  },
+
   createEleve: async (data: CreateElevePayload): Promise<Eleve> => {
     const response = await api.post<Eleve>('/eleves', data);
     return response.data;
