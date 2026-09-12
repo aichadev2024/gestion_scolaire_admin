@@ -134,31 +134,29 @@ export default function EnseignantsPage() {
   const limiteEnseignants = sessionUser?.etablissementMaxEnseignants ?? null;
   const planTarifaire = sessionUser?.etablissementPlanTarifaire;
   const atteintLaLimite = limiteEnseignants != null && enseignants.length >= limiteEnseignants;
-  const isCreche = sessionUser?.etablissementType === 'CRECHE';
-  const motEnseignant = isCreche ? 'monitrice' : 'enseignant';
 
   return (
     <div>
       {nouveauCompte && (
         <CredentialsBanner
-          title={`Compte ${motEnseignant} « ${nouveauCompte.nom} » créé`}
+          title={`Compte enseignant « ${nouveauCompte.nom} » créé`}
           password={nouveauCompte.motDePasse}
           onClose={() => setNouveauCompte(null)}
         />
       )}
 
       <PageHeader
-        title={isCreche ? 'Gestion des monitrices' : 'Gestion des enseignants'}
-        description={loading ? 'Chargement…' : `${enseignants.length} ${motEnseignant}(s)`}
+        title="Gestion des enseignants"
+        description={loading ? 'Chargement…' : `${enseignants.length} enseignant(s)`}
       >
         <Button onClick={openNewForm}>
-          <Plus /> {isCreche ? 'Nouvelle monitrice' : 'Nouvel enseignant'}
+          <Plus /> Nouvel enseignant
         </Button>
       </PageHeader>
 
       {!loading && limiteEnseignants != null && (
         <Alert tone={atteintLaLimite ? 'warning' : 'info'} className="mb-4">
-          {enseignants.length}/{limiteEnseignants} comptes {motEnseignant}s utilisés sur le plan{' '}
+          {enseignants.length}/{limiteEnseignants} comptes enseignants utilisés sur le plan{' '}
           {planTarifaire || 'Starter'}.{' '}
           {atteintLaLimite && "Limite atteinte — passez au plan Pro pour en ajouter davantage."}
         </Alert>
@@ -173,9 +171,9 @@ export default function EnseignantsPage() {
       ) : enseignants.length === 0 ? (
         <EmptyState
           icon={<UsersRound />}
-          title={`Aucun${isCreche ? 'e' : ''} ${motEnseignant}`}
-          description={`Ajoutez un${isCreche ? 'e' : ''} ${motEnseignant}. Un compte lui sera créé automatiquement.`}
-          action={<Button onClick={openNewForm}><Plus /> Ajouter un{isCreche ? 'e' : ''} {motEnseignant}</Button>}
+          title="Aucun enseignant"
+          description="Ajoutez un enseignant. Un compte lui sera créé automatiquement."
+          action={<Button onClick={openNewForm}><Plus /> Ajouter un enseignant</Button>}
         />
       ) : (
         <Table>
@@ -221,7 +219,7 @@ export default function EnseignantsPage() {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? `Modifier ${isCreche ? 'la ' : "l'"}${motEnseignant}` : `Ajouter un${isCreche ? 'e' : ''} ${motEnseignant}`}</DialogTitle>
+            <DialogTitle>{editing ? "Modifier l'enseignant" : 'Ajouter un enseignant'}</DialogTitle>
           </DialogHeader>
           <FormError message={error} />
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
