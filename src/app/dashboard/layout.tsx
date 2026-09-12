@@ -102,9 +102,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // Uniquement crèche (aucun primaire/collège/lycée à côté) : le menu générique peut dire "Monitrices".
   // Dans une école mixte, le personnel est un mélange des deux — voir estMonitrice, propre à la personne.
   const uniquementCreche = !!user?.etablissementUniquementCreche;
-  const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)].map((m) =>
-    uniquementCreche && m.path === M.enseignants.path ? { ...m, name: 'Monitrices' } : m,
-  );
+  // Ces pages n'ont aucun sens pour une crèche pure (pas de matières, pas de notes/bulletins scolaires,
+  // pas de carte scolaire). On ne fait JAMAIS ça pour une école mixte : elle en a besoin pour ses classes
+  // primaire/collège/lycée, même si elle a aussi une section crèche.
+  const PATHS_INUTILES_CRECHE_PURE = new Set([M.matieres.path, M.edt.path, M.notes.path, M.bulletins.path, M.cartes.path]);
+  const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)]
+    .filter((m) => !(uniquementCreche && PATHS_INUTILES_CRECHE_PURE.has(m.path)))
+    .map((m) => (uniquementCreche && m.path === M.enseignants.path ? { ...m, name: 'Monitrices' } : m));
   if (user?.aClassesCreche && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
     const presencesIdx = menuItems.findIndex((m) => m.path === M.presences.path);
     menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
