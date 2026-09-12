@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Plus, Trash2, GraduationCap, FileText, Upload, Download } from 'lucide-react';
 import { eleveService, EleveImportRapport } from '@/services/eleve.service';
@@ -69,6 +69,8 @@ export default function ElevesPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importSubmitting, setImportSubmitting] = useState(false);
   const [importRapport, setImportRapport] = useState<EleveImportRapport | null>(null);
+  const [filterNiveauId, setFilterNiveauId] = useState('');
+  const [filterClasseId, setFilterClasseId] = useState('');
 
   const photoPreview = useMemo(
     () => (photoFile ? URL.createObjectURL(photoFile) : formData.photoUrl),
@@ -272,6 +274,49 @@ export default function ElevesPage() {
     }
   };
 
+  const classesById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
+
+  const niveaux = useMemo(() => {
+    const vus = new Map<number, string>();
+    classes.forEach((c) => vus.set(c.niveauId, c.niveauNom));
+    return Array.from(vus.entries())
+      .map(([id, nom]) => ({ id, nom }))
+      .sort((a, b) => a.nom.localeCompare(b.nom));
+  }, [classes]);
+
+  const classesDuFiltre = useMemo(
+    () => (filterNiveauId ? classes.filter((c) => String(c.niveauId) === filterNiveauId) : classes),
+    [classes, filterNiveauId],
+  );
+
+  const elevesFiltres = useMemo(() => {
+    return eleves.filter((e) => {
+      if (filterClasseId) return String(e.classeId) === filterClasseId;
+      if (filterNiveauId) {
+        const cl = e.classeId ? classesById.get(e.classeId) : undefined;
+        return cl ? String(cl.niveauId) === filterNiveauId : false;
+      }
+      return true;
+    });
+  }, [eleves, filterClasseId, filterNiveauId, classesById]);
+
+  const groupesParClasse = useMemo(() => {
+    const map = new Map<string, { classe?: Classe; eleves: Eleve[] }>();
+    for (const e of elevesFiltres) {
+      const key = e.classeId ? String(e.classeId) : 'SANS_CLASSE';
+      if (!map.has(key)) {
+        map.set(key, { classe: e.classeId ? classesById.get(e.classeId) : undefined, eleves: [] });
+      }
+      map.get(key)!.eleves.push(e);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (!a.classe) return 1;
+      if (!b.classe) return -1;
+      const n = (a.classe.niveauNom || '').localeCompare(b.classe.niveauNom || '');
+      return n !== 0 ? n : a.classe.nom.localeCompare(b.classe.nom);
+    });
+  }, [elevesFiltres, classesById]);
+
   return (
     <div>
       {nouveauCompte && (
@@ -284,7 +329,11 @@ export default function ElevesPage() {
 
       <PageHeader
         title="Gestion des élèves"
-        description={loading ? 'Chargement…' : `${eleves.length} élève(s) inscrit(s)`}
+        description={
+          loading
+            ? 'Chargement…'
+            : `${elevesFiltres.length} élève(s)${elevesFiltres.length !== eleves.length ? ` sur ${eleves.length}` : ' inscrit(s)'}`
+        }
       >
         <div className="flex gap-2">
           <Button variant="outline" onClick={openImportDialog}>
@@ -295,6 +344,45 @@ export default function ElevesPage() {
           </Button>
         </div>
       </PageHeader>
+
+      {!loading && eleves.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+          <Field label="Niveau" className="min-w-48">
+            <Select
+              value={filterNiveauId}
+              onChange={(e) => {
+                setFilterNiveauId(e.target.value);
+                setFilterClasseId('');
+              }}
+            >
+              <option value="">— Tous les niveaux —</option>
+              {niveaux.map((n) => (
+                <option key={n.id} value={n.id}>{n.nom}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Classe (sous-classe)" className="min-w-48">
+            <Select value={filterClasseId} onChange={(e) => setFilterClasseId(e.target.value)}>
+              <option value="">— Toutes les classes —</option>
+              {classesDuFiltre.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </Select>
+          </Field>
+          {(filterNiveauId || filterClasseId) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFilterNiveauId('');
+                setFilterClasseId('');
+              }}
+            >
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-2">
@@ -313,6 +401,12 @@ export default function ElevesPage() {
             </Button>
           }
         />
+      ) : elevesFiltres.length === 0 ? (
+        <EmptyState
+          icon={<GraduationCap />}
+          title="Aucun élève dans cette sélection"
+          description="Essayez un autre niveau ou une autre classe."
+        />
       ) : (
         <Table>
           <TableHeader>
@@ -327,8 +421,18 @@ export default function ElevesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {eleves.map((eleve) => (
-              <TableRow key={eleve.id}>
+            {groupesParClasse.map((groupe) => (
+              <Fragment key={groupe.classe ? groupe.classe.id : 'SANS_CLASSE'}>
+                <TableRow className="bg-secondary/40 hover:bg-secondary/40">
+                  <TableCell colSpan={7} className="py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    {groupe.classe
+                      ? `${groupe.classe.niveauNom} — ${groupe.classe.nom}`
+                      : 'Sans classe assignée'}{' '}
+                    <span className="font-normal normal-case text-primary">({groupe.eleves.length} élève(s))</span>
+                  </TableCell>
+                </TableRow>
+                {groupe.eleves.map((eleve) => (
+                  <TableRow key={eleve.id}>
                 <TableCell>
                   <span className="font-mono text-xs font-medium text-primary">{eleve.matricule}</span>
                 </TableCell>
@@ -394,7 +498,9 @@ export default function ElevesPage() {
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
+                  </TableRow>
+                ))}
+              </Fragment>
             ))}
           </TableBody>
         </Table>
