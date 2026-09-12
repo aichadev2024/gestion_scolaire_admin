@@ -69,6 +69,7 @@ type SessionUser = {
   nom?: string;
   username?: string;
   etablissementNom?: string;
+  etablissementLogoUrl?: string;
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -120,8 +121,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           )}
         >
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <Link href="/dashboard" aria-label="Netaa École — tableau de bord">
-              <Logo markClassName="h-8 w-8" />
+            <Link href="/dashboard" aria-label="Netaa École — tableau de bord" className="flex items-center gap-2 overflow-hidden">
+              {user?.etablissementLogoUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={user.etablissementLogoUrl} alt={user.etablissementNom || 'Logo'} className="h-8 w-8 shrink-0 rounded object-contain" />
+                  <span className="truncate text-sm font-bold text-foreground">{user.etablissementNom}</span>
+                </>
+              ) : (
+                <Logo markClassName="h-8 w-8" />
+              )}
             </Link>
             <button onClick={() => setMobileOpen(false)} className="rounded-md p-1 text-muted-foreground hover:bg-secondary lg:hidden">
               <X className="size-5" />

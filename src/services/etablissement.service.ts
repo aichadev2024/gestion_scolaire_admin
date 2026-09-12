@@ -7,6 +7,8 @@ export interface Etablissement {
   emailContact?: string;
   telephone?: string;
   adresse?: string;
+  logoUrl?: string;
+  devise?: string;
   statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE';
   planTarifaire: string;
   dateExpirationAbonnement?: string;
@@ -50,10 +52,23 @@ export const etablissementService = {
 
   modifierInfos: async (
     id: number,
-    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string },
+    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string },
   ): Promise<Etablissement> => {
     const response = await api.put<Etablissement>(`/super-admin/etablissements/${id}`, data);
     return response.data;
+  },
+
+  uploaderLogo: async (id: number, fichier: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', fichier);
+    const response = await api.post<{ logoUrl: string }>(`/super-admin/etablissements/${id}/logo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.logoUrl;
+  },
+
+  supprimerLogo: async (id: number): Promise<void> => {
+    await api.delete(`/super-admin/etablissements/${id}/logo`);
   },
 
   modifierStatut: async (id: number, statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE'): Promise<Etablissement> => {

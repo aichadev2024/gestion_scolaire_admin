@@ -16,6 +16,8 @@ export interface AuthResponse {
   nom?: string;
   etablissementId?: number;
   etablissementNom?: string;
+  etablissementLogoUrl?: string;
+  etablissementDevise?: string;
   requiresOtp?: boolean;
   message?: string;
 }
@@ -31,6 +33,8 @@ type SessionUser = {
   nom?: string;
   etablissementId?: number;
   etablissementNom?: string;
+  etablissementLogoUrl?: string;
+  etablissementDevise?: string;
 };
 
 /** Durée de vie du cookie de session, alignée sur l'expiration du JWT (défaut 24 h). */
@@ -80,6 +84,8 @@ function userFromResponse(data: AuthResponse): SessionUser {
     nom: data.nom,
     etablissementId: data.etablissementId,
     etablissementNom: data.etablissementNom,
+    etablissementLogoUrl: data.etablissementLogoUrl,
+    etablissementDevise: data.etablissementDevise,
   };
 }
 

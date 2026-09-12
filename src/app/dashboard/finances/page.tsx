@@ -6,6 +6,7 @@ import { Download, Pencil, Phone, Trash2, TriangleAlert, Wallet } from 'lucide-r
 import { financeService } from '@/services/finance.service';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
+import { authService } from '@/services/auth.service';
 import { Classe, Eleve, FraisScolarite, Paiement, RetardPaiement } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const FRAIS_EMPTY = { classeId: '', titre: '', montant: '', dateEcheance: '' };
 const PAIEMENT_EMPTY = { eleveId: '', fraisId: '', montantPaye: '', modePaiement: 'ESPECES', referenceTransaction: '' };
-const fcfa = (n?: number) => `${(n ?? 0).toLocaleString('fr-FR')} FCFA`;
+const fcfa = (n?: number) => `${(n ?? 0).toLocaleString('fr-FR')} ${authService.getCurrentUser()?.etablissementDevise || 'FCFA'}`;
 
 export default function FinancesPage() {
   const [tab, setTab] = useState<'FRAIS' | 'PAIEMENTS' | 'RETARDS'>('FRAIS');
@@ -229,7 +230,7 @@ export default function FinancesPage() {
               <Field label="Titre *">
                 <Input value={fraisForm.titre} onChange={(e) => setFraisForm({ ...fraisForm, titre: e.target.value })} placeholder="Inscription, 1ère tranche…" required />
               </Field>
-              <Field label="Montant (FCFA) *">
+              <Field label={`Montant (${authService.getCurrentUser()?.etablissementDevise || 'FCFA'}) *`}>
                 <Input type="number" value={fraisForm.montant} onChange={(e) => setFraisForm({ ...fraisForm, montant: e.target.value })} required />
               </Field>
               <Field label="Date d'échéance *">
@@ -330,7 +331,7 @@ export default function FinancesPage() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Montant payé (FCFA) *">
+              <Field label={`Montant payé (${authService.getCurrentUser()?.etablissementDevise || 'FCFA'}) *`}>
                 <Input type="number" value={paiementForm.montantPaye} onChange={(e) => setPaiementForm({ ...paiementForm, montantPaye: e.target.value })} required />
               </Field>
               <Field label="Mode de paiement">

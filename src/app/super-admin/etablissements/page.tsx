@@ -54,8 +54,9 @@ export default function SuperAdminEtablissementsPage() {
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
-  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '' });
+  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA' });
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [tarifs, setTarifs] = useState<TarifPlan[]>([]);
 
   useEffect(() => {
@@ -117,6 +118,7 @@ export default function SuperAdminEtablissementsPage() {
       emailContact: e.emailContact || '',
       telephone: e.telephone || '',
       adresse: e.adresse || '',
+      devise: e.devise || 'FCFA',
     });
   };
 
@@ -133,6 +135,23 @@ export default function SuperAdminEtablissementsPage() {
       toast.error(errorMessage(err, 'Erreur lors de la mise à jour.'));
     } finally {
       setEditSubmitting(false);
+    }
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fichier = e.target.files?.[0];
+    if (!fichier || !editingEtab) return;
+    setLogoUploading(true);
+    try {
+      const logoUrl = await etablissementService.uploaderLogo(editingEtab.id, fichier);
+      setEditingEtab({ ...editingEtab, logoUrl });
+      toast.success('Logo mis à jour.');
+      chargerEtablissements();
+    } catch (err) {
+      toast.error(errorMessage(err, "Erreur lors de l'envoi du logo."));
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -565,6 +584,19 @@ export default function SuperAdminEtablissementsPage() {
           </DialogHeader>
           {editingEtab && (
             <form onSubmit={handleModifierInfos} className="space-y-4">
+              <Field label="Logo de l'établissement" hint="Affiché dans le tableau de bord de l'école. PNG/JPG, fond de préférence transparent ou blanc.">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary/40">
+                    {editingEtab.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={editingEtab.logoUrl} alt="" className="size-full object-contain" />
+                    ) : (
+                      <Building2 className="size-6 text-muted-foreground" />
+                    )}
+                  </span>
+                  <Input type="file" accept="image/*" onChange={handleLogoChange} disabled={logoUploading} className="flex-1" />
+                </div>
+              </Field>
               <Field label="Nom de l'établissement *">
                 <Input
                   required
@@ -592,6 +624,13 @@ export default function SuperAdminEtablissementsPage() {
                   placeholder="Ex : Quartier ACI 2000, Bamako"
                   value={editForm.adresse}
                   onChange={(e) => setEditForm({ ...editForm, adresse: e.target.value })}
+                />
+              </Field>
+              <Field label="Devise" hint="Utilisée pour les frais de scolarité, reçus et rapports financiers de cette école.">
+                <Input
+                  placeholder="Ex : FCFA, EUR, USD"
+                  value={editForm.devise}
+                  onChange={(e) => setEditForm({ ...editForm, devise: e.target.value })}
                 />
               </Field>
               <DialogFooter>
