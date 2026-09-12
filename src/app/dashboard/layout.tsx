@@ -73,7 +73,7 @@ type SessionUser = {
   etablissementNom?: string;
   etablissementLogoUrl?: string;
   etablissementSlogan?: string;
-  etablissementType?: 'ECOLE' | 'CRECHE';
+  aClassesCreche?: boolean;
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -98,7 +98,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const role = user?.role || 'DIRECTEUR';
   const menuItems = [...(MENUS_BY_ROLE[role] || MENUS_BY_ROLE.DIRECTEUR)];
-  if (user?.etablissementType === 'CRECHE' && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
+  if (user?.aClassesCreche && ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'].includes(role)) {
     const presencesIdx = menuItems.findIndex((m) => m.path === M.presences.path);
     menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
   }
