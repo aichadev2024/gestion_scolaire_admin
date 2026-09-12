@@ -23,6 +23,20 @@ export interface EleveImportRapport {
   resultats: EleveImportLigneResultat[];
 }
 
+export interface PromotionLigneResultat {
+  eleveId: number;
+  succes: boolean;
+  nomComplet?: string;
+  erreur?: string;
+}
+
+export interface PromotionRapport {
+  totalDemandes: number;
+  succes: number;
+  echecs: number;
+  resultats: PromotionLigneResultat[];
+}
+
 export const eleveService = {
   getEleves: async (): Promise<Eleve[]> => {
     const response = await api.get<Eleve[]>('/eleves');
@@ -70,6 +84,11 @@ export const eleveService = {
 
   telechargerModeleImport: async (): Promise<Blob> => {
     const response = await api.get('/eleves/import/modele', { responseType: 'blob' });
+    return response.data;
+  },
+
+  promouvoir: async (classeDestinationId: number, eleveIds: number[]): Promise<PromotionRapport> => {
+    const response = await api.post<PromotionRapport>('/eleves/promotion', { classeDestinationId, eleveIds });
     return response.data;
   },
 };

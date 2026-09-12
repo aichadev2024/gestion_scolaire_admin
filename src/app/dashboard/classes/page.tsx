@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { BookOpen, Pencil, Plus, School, Trash2, Users } from 'lucide-react';
+import { ArrowUpCircle, BookOpen, Pencil, Plus, School, Trash2, Users } from 'lucide-react';
 import { classeService } from '@/services/classe.service';
 import { enseignantService } from '@/services/enseignant.service';
 import { matiereService } from '@/services/matiere.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
-import { Classe, Niveau, Enseignant, Matiere } from '@/types';
+import { eleveService, PromotionRapport } from '@/services/eleve.service';
+import { Classe, Niveau, Enseignant, Matiere, Eleve } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -47,6 +48,14 @@ export default function ClassesPage() {
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [assignError, setAssignError] = useState('');
   const [assignForm, setAssignForm] = useState(ASSIGN_EMPTY);
+
+  const [promotingClasse, setPromotingClasse] = useState<Classe | null>(null);
+  const [promotionEleves, setPromotionEleves] = useState<Eleve[]>([]);
+  const [promotionSelected, setPromotionSelected] = useState<Set<number>>(new Set());
+  const [promotionDestId, setPromotionDestId] = useState('');
+  const [promotionLoading, setPromotionLoading] = useState(false);
+  const [promotionSubmitting, setPromotionSubmitting] = useState(false);
+  const [promotionRapport, setPromotionRapport] = useState<PromotionRapport | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -181,6 +190,51 @@ export default function ClassesPage() {
     }
   };
 
+  const openPromotion = async (c: Classe) => {
+    setPromotingClasse(c);
+    setPromotionDestId('');
+    setPromotionRapport(null);
+    setPromotionLoading(true);
+    try {
+      const roster = await eleveService.getElevesParClasse(c.id);
+      setPromotionEleves(roster);
+      // Sélectionnés par défaut — l'admin décoche les redoublants qui restent dans la classe.
+      setPromotionSelected(new Set(roster.map((e) => e.id)));
+    } catch {
+      toast.error('Impossible de charger les élèves de cette classe.');
+      setPromotionEleves([]);
+    } finally {
+      setPromotionLoading(false);
+    }
+  };
+
+  const togglePromotionSelected = (id: number) => {
+    setPromotionSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handlePromotionSubmit = async () => {
+    if (!promotionDestId || promotionSelected.size === 0) return;
+    setPromotionSubmitting(true);
+    try {
+      const rapport = await eleveService.promouvoir(parseInt(promotionDestId), [...promotionSelected]);
+      setPromotionRapport(rapport);
+      if (rapport.echecs === 0) {
+        toast.success(`${rapport.succes} élève(s) passé(s) en classe supérieure.`);
+      } else {
+        toast.warning(`${rapport.succes} réussi(s), ${rapport.echecs} échec(s) — voir le détail.`);
+      }
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erreur lors du passage en classe supérieure'));
+    } finally {
+      setPromotionSubmitting(false);
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -274,6 +328,9 @@ export default function ClassesPage() {
                         }}
                       >
                         <BookOpen /> Matières
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => openPromotion(c)}>
+                        <ArrowUpCircle /> Passage
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => openEditClasse(c)}>
                         <Pencil /> Modifier
@@ -471,6 +528,91 @@ export default function ClassesPage() {
               <Button type="submit" loading={assignSubmitting}>Assigner</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Passage en classe supérieure */}
+      <Dialog open={!!promotingClasse} onOpenChange={(open) => !open && setPromotingClasse(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Passage en classe supérieure — {promotingClasse?.nom}</DialogTitle>
+          </DialogHeader>
+
+          {promotionLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : promotionEleves.length === 0 ? (
+            <EmptyState icon={<Users />} title="Aucun élève dans cette classe" />
+          ) : (
+            <div className="space-y-4">
+              <Field label="Classe de destination *">
+                <Select value={promotionDestId} onChange={(e) => setPromotionDestId(e.target.value)} disabled={!!promotionRapport}>
+                  <option value="">— Sélectionner —</option>
+                  {classes
+                    .filter((c) => c.id !== promotingClasse?.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>
+                    ))}
+                </Select>
+              </Field>
+
+              <div>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Décochez les redoublants — ils resteront dans « {promotingClasse?.nom} ».
+                </p>
+                <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-border p-2">
+                  {promotionEleves.map((e) => {
+                    const resultat = promotionRapport?.resultats.find((r) => r.eleveId === e.id);
+                    return (
+                      <label
+                        key={e.id}
+                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={promotionSelected.has(e.id)}
+                            disabled={!!promotionRapport}
+                            onChange={() => togglePromotionSelected(e.id)}
+                          />
+                          {e.profil?.prenom} {e.profil?.nom}
+                        </span>
+                        {resultat && (
+                          <Badge variant={resultat.succes ? 'success' : 'destructive'}>
+                            {resultat.succes ? 'Passé(e)' : resultat.erreur || 'Échec'}
+                          </Badge>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {promotionRapport && (
+                <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+                  {promotionRapport.succes}/{promotionRapport.totalDemandes} élève(s) passé(s) avec succès.
+                </p>
+              )}
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setPromotingClasse(null)}>
+                  {promotionRapport ? 'Fermer' : 'Annuler'}
+                </Button>
+                {!promotionRapport && (
+                  <Button
+                    onClick={handlePromotionSubmit}
+                    loading={promotionSubmitting}
+                    disabled={!promotionDestId || promotionSelected.size === 0}
+                  >
+                    <ArrowUpCircle /> Faire passer {promotionSelected.size} élève(s)
+                  </Button>
+                )}
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
