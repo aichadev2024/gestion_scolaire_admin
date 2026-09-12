@@ -54,7 +54,7 @@ export default function SuperAdminEtablissementsPage() {
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
-  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA' });
+  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '' });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [tarifs, setTarifs] = useState<TarifPlan[]>([]);
@@ -119,6 +119,7 @@ export default function SuperAdminEtablissementsPage() {
       telephone: e.telephone || '',
       adresse: e.adresse || '',
       devise: e.devise || 'FCFA',
+      slogan: e.slogan || '',
     });
   };
 
@@ -626,11 +627,18 @@ export default function SuperAdminEtablissementsPage() {
                   onChange={(e) => setEditForm({ ...editForm, adresse: e.target.value })}
                 />
               </Field>
-              <Field label="Devise" hint="Utilisée pour les frais de scolarité, reçus et rapports financiers de cette école.">
+              <Field label="Devise (monnaie)" hint="Utilisée pour les frais de scolarité, reçus et rapports financiers de cette école.">
                 <Input
                   placeholder="Ex : FCFA, EUR, USD"
                   value={editForm.devise}
                   onChange={(e) => setEditForm({ ...editForm, devise: e.target.value })}
+                />
+              </Field>
+              <Field label="Devise de l'école (slogan)" hint="Ex : Travail - Rigueur - Réussite. Affichée dans le tableau de bord de l'école.">
+                <Input
+                  placeholder="Ex : Travail - Rigueur - Réussite"
+                  value={editForm.slogan}
+                  onChange={(e) => setEditForm({ ...editForm, slogan: e.target.value })}
                 />
               </Field>
               <DialogFooter>

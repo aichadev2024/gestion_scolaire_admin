@@ -70,6 +70,7 @@ type SessionUser = {
   username?: string;
   etablissementNom?: string;
   etablissementLogoUrl?: string;
+  etablissementSlogan?: string;
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -141,6 +142,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wide text-primary">
               {roleLabel}
             </span>
+            {user?.etablissementSlogan && (
+              <p className="mt-2 truncate text-xs italic text-muted-foreground">{user.etablissementSlogan}</p>
+            )}
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">

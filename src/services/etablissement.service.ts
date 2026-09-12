@@ -9,6 +9,7 @@ export interface Etablissement {
   adresse?: string;
   logoUrl?: string;
   devise?: string;
+  slogan?: string;
   statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE';
   planTarifaire: string;
   dateExpirationAbonnement?: string;
@@ -52,7 +53,7 @@ export const etablissementService = {
 
   modifierInfos: async (
     id: number,
-    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string },
+    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string },
   ): Promise<Etablissement> => {
     const response = await api.put<Etablissement>(`/super-admin/etablissements/${id}`, data);
     return response.data;
