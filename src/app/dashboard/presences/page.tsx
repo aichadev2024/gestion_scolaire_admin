@@ -78,14 +78,17 @@ export default function PresencesPage() {
   const [appelEns, setAppelEns] = useState<Record<number, { statut: Statut; heureArrivee: string }>>({});
   const [loadingEns, setLoadingEns] = useState(false);
 
+  const [allEleves, setAllEleves] = useState<Eleve[]>([]);
   const [historyEleveId, setHistoryEleveId] = useState('');
   const [history, setHistory] = useState<PresenceItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historySearched, setHistorySearched] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
+    eleveService.getEleves().then(setAllEleves).catch(() => toast.error('Impossible de charger les élèves.'));
   }, []);
 
   const loadEnseignantsData = useCallback(async () => {
@@ -174,6 +177,7 @@ export default function PresencesPage() {
   const loadHistory = async () => {
     if (!historyEleveId) return;
     setHistoryLoading(true);
+    setHistorySearched(true);
     try {
       setHistory(await presenceService.getByEleve(parseInt(historyEleveId)));
     } catch (err) {
@@ -360,8 +364,19 @@ export default function PresencesPage() {
       {tab === 'HISTORIQUE' && (
         <div className="space-y-5">
           <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
-            <Field label="ID de l'élève" className="min-w-56 flex-1">
-              <Input type="number" placeholder="Ex : 1" value={historyEleveId} onChange={(e) => setHistoryEleveId(e.target.value)} />
+            <Field label="Élève" className="min-w-64 flex-1">
+              <Select
+                value={historyEleveId}
+                onChange={(e) => {
+                  setHistoryEleveId(e.target.value);
+                  setHistorySearched(false);
+                }}
+              >
+                <option value="">— Sélectionner un élève —</option>
+                {allEleves.map((e) => (
+                  <option key={e.id} value={e.id}>{e.matricule} — {e.profil.nom} {e.profil.prenom}{e.classeNom ? ` (${e.classeNom})` : ''}</option>
+                ))}
+              </Select>
             </Field>
             <Button onClick={loadHistory} loading={historyLoading} disabled={!historyEleveId}>
               Voir l&apos;historique
@@ -369,7 +384,11 @@ export default function PresencesPage() {
           </div>
 
           {history.length === 0 ? (
-            <EmptyState icon={<CalendarClock />} title="Aucun historique" description="Saisissez un identifiant d'élève puis lancez la recherche." />
+            <EmptyState
+              icon={<CalendarClock />}
+              title={historySearched ? 'Aucune présence enregistrée pour cet élève' : 'Aucun historique'}
+              description={historySearched ? undefined : 'Choisissez un élève ci-dessus puis lancez la recherche.'}
+            />
           ) : (
             <Table>
               <TableHeader>
