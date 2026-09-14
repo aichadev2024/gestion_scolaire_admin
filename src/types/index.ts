@@ -16,6 +16,8 @@ export interface Eleve {
   statut: string;
   /** Statut du dossier d'inscription : VALIDEE, EN_ATTENTE ou ANNULEE. */
   statutInscription?: string;
+  /** Statut pédagogique dans la classe actuelle : REGULIER ou REDOUBLANT. */
+  statutPedagogique?: string;
   classeId?: number;
   classeNom?: string;
   parentId?: number;

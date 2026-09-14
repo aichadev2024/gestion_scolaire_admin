@@ -67,6 +67,11 @@ export const eleveService = {
     return response.data;
   },
 
+  modifierStatutPedagogique: async (id: number, statutPedagogique: string): Promise<Eleve> => {
+    const response = await api.patch<Eleve>(`/eleves/${id}/statut-pedagogique`, { statutPedagogique });
+    return response.data;
+  },
+
   deleteEleve: async (id: number): Promise<void> => {
     await api.delete(`/eleves/${id}`);
   },

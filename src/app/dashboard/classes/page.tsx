@@ -214,8 +214,9 @@ export default function ClassesPage() {
     try {
       const roster = await eleveService.getElevesParClasse(c.id);
       setPromotionEleves(roster);
-      // Sélectionnés par défaut — l'admin décoche les redoublants qui restent dans la classe.
-      setPromotionSelected(new Set(roster.map((e) => e.id)));
+      // Sélectionnés par défaut, sauf les redoublants déjà identifiés — ils restent
+      // dans la classe. L'admin peut encore ajuster manuellement au cas par cas.
+      setPromotionSelected(new Set(roster.filter((e) => e.statutPedagogique !== 'REDOUBLANT').map((e) => e.id)));
     } catch {
       toast.error('Impossible de charger les élèves de cette classe.');
       setPromotionEleves([]);
@@ -591,7 +592,7 @@ export default function ClassesPage() {
 
               <div>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Décochez les redoublants — ils resteront dans « {promotingClasse?.nom} ».
+                  Les redoublants sont déjà décochés — ils resteront dans « {promotingClasse?.nom} ». Ajustez si besoin.
                 </p>
                 <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-border p-2">
                   {promotionEleves.map((e) => {
@@ -610,10 +611,12 @@ export default function ClassesPage() {
                           />
                           {e.profil?.prenom} {e.profil?.nom}
                         </span>
-                        {resultat && (
+                        {resultat ? (
                           <Badge variant={resultat.succes ? 'success' : 'destructive'}>
                             {resultat.succes ? 'Passé(e)' : resultat.erreur || 'Échec'}
                           </Badge>
+                        ) : (
+                          e.statutPedagogique === 'REDOUBLANT' && <Badge variant="warning">Redoublant</Badge>
                         )}
                       </label>
                     );

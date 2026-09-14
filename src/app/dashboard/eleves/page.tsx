@@ -43,6 +43,15 @@ const STATUT_INSCRIPTION_COLOR: Record<string, string> = {
   ANNULEE: 'text-destructive',
 };
 
+const STATUT_PEDAGOGIQUE_LABEL: Record<string, string> = {
+  REGULIER: 'Régulier',
+  REDOUBLANT: 'Redoublant',
+};
+const STATUT_PEDAGOGIQUE_COLOR: Record<string, string> = {
+  REGULIER: 'text-success',
+  REDOUBLANT: 'text-warning-foreground',
+};
+
 function msg(err: unknown, fallback: string): string {
   if (err && typeof err === 'object' && 'response' in err) {
     const r = (err as { response?: { data?: { message?: string } } }).response;
@@ -318,6 +327,18 @@ export default function ElevesPage() {
     }
   };
 
+  const handleStatutPedagogiqueChange = async (eleve: Eleve, statutPedagogique: string) => {
+    const precedent = eleve.statutPedagogique;
+    setEleves((prev) => prev.map((e) => (e.id === eleve.id ? { ...e, statutPedagogique } : e)));
+    try {
+      await eleveService.modifierStatutPedagogique(eleve.id, statutPedagogique);
+      toast.success('Statut pédagogique mis à jour.');
+    } catch (err) {
+      setEleves((prev) => prev.map((e) => (e.id === eleve.id ? { ...e, statutPedagogique: precedent } : e)));
+      toast.error(msg(err, 'Erreur lors de la mise à jour du statut.'));
+    }
+  };
+
   const classesById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
 
   const niveaux = useMemo(() => {
@@ -464,6 +485,7 @@ export default function ElevesPage() {
               <TableHead>Classe</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Inscription</TableHead>
+              <TableHead>Pédagogie</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -471,7 +493,7 @@ export default function ElevesPage() {
             {groupesParClasse.map((groupe) => (
               <Fragment key={groupe.classe ? groupe.classe.id : 'SANS_CLASSE'}>
                 <TableRow className="bg-secondary/40 hover:bg-secondary/40">
-                  <TableCell colSpan={7} className="py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <TableCell colSpan={8} className="py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                     {groupe.classe
                       ? `${groupe.classe.niveauNom} — ${groupe.classe.nom}`
                       : 'Sans classe assignée'}{' '}
@@ -516,6 +538,17 @@ export default function ElevesPage() {
                     className={`h-8 w-36 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_INSCRIPTION_COLOR[eleve.statutInscription || 'VALIDEE']}`}
                   >
                     {Object.entries(STATUT_INSCRIPTION_LABEL).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={eleve.statutPedagogique || 'REGULIER'}
+                    onChange={(e) => handleStatutPedagogiqueChange(eleve, e.target.value)}
+                    className={`h-8 w-32 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_PEDAGOGIQUE_COLOR[eleve.statutPedagogique || 'REGULIER']}`}
+                  >
+                    {Object.entries(STATUT_PEDAGOGIQUE_LABEL).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
                     ))}
                   </Select>
