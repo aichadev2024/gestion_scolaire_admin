@@ -309,6 +309,11 @@ export default function ElevesPage() {
       }
       if (rapport.echecs > 0) {
         toast.warning(`${rapport.echecs} ligne(s) en erreur — voir le détail ci-dessous.`);
+      } else if (rapport.succes > 0) {
+        // Tout le fichier est passé sans erreur : rien à vérifier, la fenêtre se
+        // ferme seule. S'il y a des lignes en échec, elle reste ouverte pour que
+        // le détail par ligne (colonne Résultat) reste visible et consultable.
+        setTimeout(() => setShowImport(false), 1500);
       }
     } catch (err) {
       toast.error(msg(err, "Erreur lors de l'import du fichier."));
