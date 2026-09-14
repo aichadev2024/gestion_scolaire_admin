@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  Briefcase,
   ClipboardList,
   Crown,
   Lock,
@@ -41,6 +42,7 @@ function buildRoles(uniquementCreche: boolean): { value: string; label: string; 
     { value: 'SECRETAIRE', label: 'Secrétaire', Icon: ClipboardList },
     { value: 'COMPTABLE', label: 'Comptable', Icon: Wallet },
     { value: 'ENSEIGNANT', label: uniquementCreche ? 'Monitrice' : 'Enseignant', Icon: UsersRound },
+    { value: 'PROMOTEUR', label: 'Promoteur', Icon: Briefcase },
     { value: 'PARENT', label: 'Parent', Icon: Users },
   ];
 }

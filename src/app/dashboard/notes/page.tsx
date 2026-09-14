@@ -18,6 +18,18 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/form-field';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+const ABREVIATIONS_TYPE_EVALUATION: Record<string, string> = {
+  DEVOIR: 'DEV',
+  GRAND_DEVOIR: 'G.DEV',
+  EXAMEN: 'EXA',
+  PARTICIPATION: 'PAR',
+};
+
+function abregerTypeEvaluation(type?: string): string {
+  if (!type) return '';
+  return ABREVIATIONS_TYPE_EVALUATION[type] || type.slice(0, 3);
+}
+
 function categoriePourClasse(c?: Classe): 'LYCEE' | 'COLLEGE' | 'PRIMAIRE' | 'MATERNELLE' | 'ALL' {
   if (!c) return 'ALL';
   const t = `${c.niveauNom || ''} ${c.nom || ''}`.toLowerCase();
@@ -206,7 +218,7 @@ export default function NotesPage() {
                         notesEleve.map((n, i) => (
                           <Badge key={i} variant="secondary">
                             {n.valeur}/{n.noteMax}
-                            <span className="ml-1 opacity-70">{n.typeEvaluation?.slice(0, 3)}</span>
+                            <span className="ml-1 opacity-70">{abregerTypeEvaluation(n.typeEvaluation)}</span>
                           </Badge>
                         ))
                       )}
@@ -241,6 +253,7 @@ export default function NotesPage() {
                           onChange={(e) => setTypeEvaluation(e.target.value)}
                         >
                           <option value="DEVOIR">Devoir</option>
+                          <option value="GRAND_DEVOIR">Grand devoir</option>
                           <option value="EXAMEN">Examen</option>
                           <option value="PARTICIPATION">Participation</option>
                         </Select>
