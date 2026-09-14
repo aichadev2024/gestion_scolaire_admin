@@ -40,6 +40,7 @@ const PERIODE_LABEL: Record<string, string> = {
   TRIMESTRE_3: '3e trimestre',
   SEMESTRE_1: '1er semestre',
   SEMESTRE_2: '2e semestre',
+  ANNUEL: 'Bulletin annuel',
 };
 const formatPeriode = (p: string) => PERIODE_LABEL[p] ?? p?.replace('_', ' ') ?? '';
 
@@ -238,6 +239,9 @@ export default function BulletinsPage() {
                 <option value="TRIMESTRE_3">3e trimestre</option>
               </optgroup>
             )}
+            <optgroup label="Fin d'année">
+              <option value="ANNUEL">Bulletin annuel (moyenne de l&apos;année)</option>
+            </optgroup>
           </Select>
         </Field>
         <div className="flex gap-2">

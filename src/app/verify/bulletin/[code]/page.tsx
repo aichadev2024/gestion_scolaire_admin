@@ -23,6 +23,7 @@ const PERIODE_LABEL: Record<string, string> = {
   COMPOSITION_4: 'Composition n°4', COMPOSITION_5: 'Composition n°5', COMPOSITION_6: 'Composition n°6',
   TRIMESTRE_1: '1er trimestre', TRIMESTRE_2: '2e trimestre', TRIMESTRE_3: '3e trimestre',
   SEMESTRE_1: '1er semestre', SEMESTRE_2: '2e semestre',
+  ANNUEL: 'Bulletin annuel',
 };
 
 export default function VerifyBulletinPage() {
