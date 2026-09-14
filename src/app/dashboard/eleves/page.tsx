@@ -686,6 +686,11 @@ export default function ElevesPage() {
             </button>
             , remplissez-le, puis importez-le ci-dessous.
           </p>
+          <p className="text-xs text-muted-foreground">
+            Vous avez déjà un fichier d&apos;élèves ? Il fonctionne aussi tel quel, même avec ses propres
+            intitulés de colonnes ou un ordre différent (Prénom, Nom, Genre, Date de naissance, Téléphone,
+            Email, Classe, Téléphone du parent) — tant que la première ligne contient les titres des colonnes.
+          </p>
 
           <form onSubmit={handleImportSubmit} className="space-y-4">
             <Field
