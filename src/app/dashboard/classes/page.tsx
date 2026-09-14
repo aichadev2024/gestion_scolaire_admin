@@ -94,6 +94,7 @@ export default function ClassesPage() {
   }, [selectedClasseId]);
 
   const niveauSuperviseId = authService.getCurrentUser()?.niveauSuperviseId;
+  const isEnseignant = authService.getCurrentUser()?.role === 'ENSEIGNANT';
 
   const classesGroupees = useMemo(() => {
     const map = new Map<string, { niveauNom: string; classes: Classe[] }>();
@@ -257,12 +258,14 @@ export default function ClassesPage() {
       <PageHeader
         title={tab === 'CLASSES' ? 'Gestion des classes' : 'Matières par classe'}
         description={
-          tab === 'CLASSES'
-            ? 'Créez vos classes et désignez leurs professeurs principaux.'
-            : 'Liez chaque matière et son enseignant à une classe, avec un coefficient.'
+          isEnseignant
+            ? 'Les classes où vous intervenez.'
+            : tab === 'CLASSES'
+              ? 'Créez vos classes et désignez leurs professeurs principaux.'
+              : 'Liez chaque matière et son enseignant à une classe, avec un coefficient.'
         }
       >
-        {tab === 'CLASSES' ? (
+        {isEnseignant ? null : tab === 'CLASSES' ? (
           <Button onClick={openCreateClasse}>
             <Plus /> Nouvelle classe
           </Button>
@@ -303,8 +306,12 @@ export default function ClassesPage() {
           <EmptyState
             icon={<School />}
             title="Aucune classe"
-            description="Créez vos classes (Terminale, 9ème A, CM2…) pour y inscrire des élèves."
-            action={<Button onClick={openCreateClasse}><Plus /> Créer une classe</Button>}
+            description={
+              isEnseignant
+                ? "Aucune classe ne vous est assignée pour le moment — contactez la direction."
+                : 'Créez vos classes (Terminale, 9ème A, CM2…) pour y inscrire des élèves.'
+            }
+            action={isEnseignant ? undefined : <Button onClick={openCreateClasse}><Plus /> Créer une classe</Button>}
           />
         ) : (
           <Table>
@@ -350,20 +357,24 @@ export default function ClassesPage() {
                     >
                       <BookOpen /> Matières
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => openPromotion(c)}>
-                      <ArrowUpCircle /> Passage
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => openEditClasse(c)}>
-                      <Pencil /> Modifier
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => handleDeleteClasse(c)}
-                    >
-                      <Trash2 /> Supprimer
-                    </Button>
+                    {!isEnseignant && (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => openPromotion(c)}>
+                          <ArrowUpCircle /> Passage
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => openEditClasse(c)}>
+                          <Pencil /> Modifier
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleDeleteClasse(c)}
+                        >
+                          <Trash2 /> Supprimer
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </TableCell>
                 </TableRow>
@@ -411,8 +422,12 @@ export default function ClassesPage() {
             <EmptyState
               icon={<BookOpen />}
               title="Aucune matière assignée"
-              description="Assignez les matières de cette classe et leurs enseignants."
-              action={<Button onClick={() => setShowAssignForm(true)}><Plus /> Assigner une matière</Button>}
+              description={
+                isEnseignant
+                  ? "Aucune matière ne vous est assignée dans cette classe."
+                  : 'Assignez les matières de cette classe et leurs enseignants.'
+              }
+              action={isEnseignant ? undefined : <Button onClick={() => setShowAssignForm(true)}><Plus /> Assigner une matière</Button>}
             />
           ) : (
             <Table>
@@ -442,14 +457,16 @@ export default function ClassesPage() {
                     <TableCell className="font-semibold text-accent tabular-nums">{a.coefficient}</TableCell>
                     <TableCell>
                       <div className="flex justify-end">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => handleDeleteAssign(a.id)}
-                        >
-                          <Trash2 /> Retirer
-                        </Button>
+                        {!isEnseignant && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleDeleteAssign(a.id)}
+                          >
+                            <Trash2 /> Retirer
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -27,6 +27,8 @@ export interface AuthResponse {
   niveauSuperviseNom?: string;
   etablissementPlanTarifaire?: string;
   etablissementMaxEnseignants?: number;
+  eleveId?: number;
+  enseignantId?: number;
   requiresOtp?: boolean;
   message?: string;
 }
@@ -53,6 +55,8 @@ type SessionUser = {
   niveauSuperviseNom?: string;
   etablissementPlanTarifaire?: string;
   etablissementMaxEnseignants?: number;
+  eleveId?: number;
+  enseignantId?: number;
 };
 
 /** Durée de vie du cookie de session, alignée sur l'expiration du JWT (défaut 24 h). */
@@ -113,6 +117,8 @@ function userFromResponse(data: AuthResponse): SessionUser {
     niveauSuperviseNom: data.niveauSuperviseNom,
     etablissementPlanTarifaire: data.etablissementPlanTarifaire,
     etablissementMaxEnseignants: data.etablissementMaxEnseignants,
+    eleveId: data.eleveId,
+    enseignantId: data.enseignantId,
   };
 }
 
