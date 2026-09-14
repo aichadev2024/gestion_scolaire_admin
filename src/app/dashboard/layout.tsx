@@ -76,6 +76,7 @@ type SessionUser = {
   aClassesCreche?: boolean;
   etablissementUniquementCreche?: boolean;
   estMonitrice?: boolean;
+  niveauSuperviseNom?: string;
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -114,6 +115,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
   }
   const roleLabel = role === 'ENSEIGNANT' && user?.estMonitrice ? 'Monitrice' : ROLE_LABELS[role] || role;
+  const roleLabelAvecNiveau = user?.niveauSuperviseNom ? `${roleLabel} · ${user.niveauSuperviseNom}` : roleLabel;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||
     'Tableau de bord';
@@ -158,7 +160,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div className="px-4 py-3">
             <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wide text-primary">
-              {roleLabel}
+              {roleLabelAvecNiveau}
             </span>
             {user?.etablissementSlogan && (
               <p className="mt-2 truncate text-xs italic text-muted-foreground">{user.etablissementSlogan}</p>
@@ -195,7 +197,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-foreground">{displayName}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {roleLabel}
+                  {roleLabelAvecNiveau}
                   {user?.etablissementNom ? ` · ${user.etablissementNom}` : ''}
                 </div>
               </div>
@@ -234,7 +236,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <ThemeToggle />
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-medium text-foreground">{user?.email || '…'}</p>
-                <p className="text-xs font-semibold text-primary">{roleLabel}</p>
+                <p className="text-xs font-semibold text-primary">{roleLabelAvecNiveau}</p>
               </div>
               <div className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                 {initial}

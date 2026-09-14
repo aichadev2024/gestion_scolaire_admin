@@ -8,6 +8,7 @@ import { enseignantService } from '@/services/enseignant.service';
 import { matiereService } from '@/services/matiere.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
 import { eleveService, PromotionRapport } from '@/services/eleve.service';
+import { authService } from '@/services/auth.service';
 import { Classe, Niveau, Enseignant, Matiere, Eleve } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -92,9 +93,11 @@ export default function ClassesPage() {
       .finally(() => setAssignLoading(false));
   }, [selectedClasseId]);
 
+  const niveauSuperviseId = authService.getCurrentUser()?.niveauSuperviseId;
+
   const openCreateClasse = () => {
     setEditingClasse(null);
-    setClasseForm(CLASSE_EMPTY);
+    setClasseForm({ ...CLASSE_EMPTY, niveauId: niveauSuperviseId ? String(niveauSuperviseId) : '' });
     setClasseError('');
     setShowClasseForm(true);
   };
@@ -455,10 +458,15 @@ export default function ClassesPage() {
             <Field label="Nom de la classe *">
               <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder="Ex : 9ème A" required />
             </Field>
-            <Field label="Niveau *">
-              <Select value={classeForm.niveauId} onChange={(e) => setClasseForm({ ...classeForm, niveauId: e.target.value })} required>
+            <Field label="Niveau *" hint={niveauSuperviseId ? 'Votre compte est restreint à ce niveau.' : undefined}>
+              <Select
+                value={classeForm.niveauId}
+                onChange={(e) => setClasseForm({ ...classeForm, niveauId: e.target.value })}
+                disabled={!!niveauSuperviseId}
+                required
+              >
                 <option value="">Sélectionner un niveau</option>
-                {niveaux.map((n) => (
+                {(niveauSuperviseId ? niveaux.filter((n) => n.id === niveauSuperviseId) : niveaux).map((n) => (
                   <option key={n.id} value={n.id}>{n.nom}</option>
                 ))}
               </Select>

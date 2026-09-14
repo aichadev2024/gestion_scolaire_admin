@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { utilisateurService, UtilisateurResponse, RegisterPayload } from '@/services/utilisateur.service';
 import { authService } from '@/services/auth.service';
+import { classeService } from '@/services/classe.service';
+import { Niveau } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -55,22 +57,35 @@ const EMPTY: RegisterPayload = {
   profil: { prenom: '', nom: '', telephone: '', genre: 'M', adresse: '' },
 };
 
+// Rôles dont l'accès peut être restreint à un seul niveau — PROMOTEUR (mobile, toujours vue
+// d'ensemble) et PARENT n'ont pas de sens ici.
+const ROLES_SCOPABLES = new Set(['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT']);
+
 export default function UtilisateursPage() {
   const [utilisateurs, setUtilisateurs] = useState<UtilisateurResponse[]>([]);
+  const [niveaux, setNiveaux] = useState<Niveau[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<UtilisateurResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState<RegisterPayload>(EMPTY);
+  const [niveauFormId, setNiveauFormId] = useState('');
+
+  const [directeurCible, setDirecteurCible] = useState<UtilisateurResponse | null>(null);
+  const [niveauDirecteur, setNiveauDirecteur] = useState('');
+  const [nommantDirecteur, setNommantDirecteur] = useState(false);
 
   const ROLES = buildRoles(!!authService.getCurrentUser()?.etablissementUniquementCreche);
   const roleLabel = (nom: string) => ROLES.find((r) => r.value === nom)?.label ?? nom;
+  const niveauNom = (id?: number) => niveaux.find((n) => n.id === id)?.nom;
 
   const fetchAll = async () => {
     try {
       setLoading(true);
-      setUtilisateurs(await utilisateurService.getAll());
+      const [comptes, niv] = await Promise.all([utilisateurService.getAll(), classeService.getNiveaux()]);
+      setUtilisateurs(comptes);
+      setNiveaux(niv);
     } catch {
       toast.error('Impossible de charger les comptes.');
     } finally {
@@ -85,6 +100,7 @@ export default function UtilisateursPage() {
   const openCreateForm = () => {
     setEditingUser(null);
     setForm(EMPTY);
+    setNiveauFormId('');
     setError('');
     setShowForm(true);
   };
@@ -104,6 +120,7 @@ export default function UtilisateursPage() {
         adresse: '',
       },
     });
+    setNiveauFormId(u.niveauSuperviseId ? String(u.niveauSuperviseId) : '');
     setError('');
     setShowForm(true);
   };
@@ -130,12 +147,13 @@ export default function UtilisateursPage() {
       const usernameFinal =
         form.username?.trim() ||
         `${form.profil.prenom}.${form.profil.nom}`.toLowerCase().replace(/\s+/g, '');
+      const niveauSuperviseId = ROLES_SCOPABLES.has(form.role) && niveauFormId ? parseInt(niveauFormId) : null;
 
       if (editingUser) {
-        await utilisateurService.update(editingUser.id, { ...form, username: usernameFinal });
+        await utilisateurService.update(editingUser.id, { ...form, username: usernameFinal, niveauSuperviseId });
         toast.success('Compte mis à jour.');
       } else {
-        await utilisateurService.create({ ...form, username: usernameFinal });
+        await utilisateurService.create({ ...form, username: usernameFinal, niveauSuperviseId });
         toast.success(`Compte ${roleLabel(form.role)} créé (identifiant : ${usernameFinal}).`);
       }
       setShowForm(false);
@@ -157,15 +175,24 @@ export default function UtilisateursPage() {
     }
   };
 
-  const handleNommerDirecteur = async (u: UtilisateurResponse) => {
-    const nom = u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username || u.email;
-    if (!confirm(`Nommer ${nom} directeur de l'établissement ? Le directeur actuel redeviendra Secrétaire.`)) return;
+  const openNommerDirecteur = (u: UtilisateurResponse) => {
+    setDirecteurCible(u);
+    setNiveauDirecteur(u.niveauSuperviseId ? String(u.niveauSuperviseId) : '');
+  };
+
+  const handleNommerDirecteur = async () => {
+    if (!directeurCible || !niveauDirecteur) return;
+    const nom = directeurCible.profil ? `${directeurCible.profil.prenom} ${directeurCible.profil.nom}` : directeurCible.username || directeurCible.email;
+    setNommantDirecteur(true);
     try {
-      await utilisateurService.nommerDirecteur(u.id);
-      toast.success(`${nom} est maintenant directeur.`);
+      await utilisateurService.nommerDirecteur(directeurCible.id, parseInt(niveauDirecteur));
+      toast.success(`${nom} est maintenant directeur(rice) de ${niveauNom(parseInt(niveauDirecteur))}.`);
+      setDirecteurCible(null);
       await fetchAll();
     } catch (err) {
       toast.error(errorMessage(err, 'Erreur lors du changement de directeur'));
+    } finally {
+      setNommantDirecteur(false);
     }
   };
 
@@ -244,7 +271,10 @@ export default function UtilisateursPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{u.email || '—'}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{roleLabel(u.role)}</Badge>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="secondary">{roleLabel(u.role)}</Badge>
+                    {u.niveauSuperviseNom && <Badge variant="outline">{u.niveauSuperviseNom}</Badge>}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={u.estActif ? 'success' : 'destructive'}>
@@ -257,7 +287,7 @@ export default function UtilisateursPage() {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {['SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'].includes(u.role) && (
-                      <Button size="sm" variant="ghost" onClick={() => handleNommerDirecteur(u)}>
+                      <Button size="sm" variant="ghost" onClick={() => openNommerDirecteur(u)}>
                         <Crown /> Nommer directeur
                       </Button>
                     )}
@@ -316,6 +346,22 @@ export default function UtilisateursPage() {
             </div>
           </div>
 
+          {ROLES_SCOPABLES.has(form.role) && (
+            <div className="mt-4 space-y-2">
+              <Label>Niveau supervisé</Label>
+              <Select value={niveauFormId} onChange={(e) => setNiveauFormId(e.target.value)}>
+                <option value="">— Aucune restriction (tout l&apos;établissement) —</option>
+                {niveaux.map((n) => (
+                  <option key={n.id} value={n.id}>{n.nom}</option>
+                ))}
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Si un niveau est choisi, cette personne ne verra et ne gérera que les élèves, classes,
+                notes, présences et comptes de ce niveau — jamais les autres.
+              </p>
+            </div>
+          )}
+
           <FormError message={error} />
 
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
@@ -360,6 +406,37 @@ export default function UtilisateursPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!directeurCible} onOpenChange={(open) => !open && setDirecteurCible(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nommer directeur(rice)</DialogTitle>
+          </DialogHeader>
+          {directeurCible && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {directeurCible.profil ? `${directeurCible.profil.prenom} ${directeurCible.profil.nom}` : directeurCible.username}{' '}
+                deviendra directeur(rice) du niveau choisi. Le directeur actuel de ce même niveau (s&apos;il y en a un) redeviendra Secrétaire.
+                Les directeurs des autres niveaux ne sont pas affectés.
+              </p>
+              <Field label="Niveau à diriger *">
+                <Select value={niveauDirecteur} onChange={(e) => setNiveauDirecteur(e.target.value)} required>
+                  <option value="">— Sélectionner —</option>
+                  {niveaux.map((n) => (
+                    <option key={n.id} value={n.id}>{n.nom}</option>
+                  ))}
+                </Select>
+              </Field>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDirecteurCible(null)}>Annuler</Button>
+                <Button onClick={handleNommerDirecteur} loading={nommantDirecteur} disabled={!niveauDirecteur}>
+                  <Crown /> Nommer
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -23,6 +23,8 @@ export interface AuthResponse {
   aClassesCreche?: boolean;
   etablissementUniquementCreche?: boolean;
   estMonitrice?: boolean;
+  niveauSuperviseId?: number;
+  niveauSuperviseNom?: string;
   etablissementPlanTarifaire?: string;
   etablissementMaxEnseignants?: number;
   requiresOtp?: boolean;
@@ -47,6 +49,8 @@ type SessionUser = {
   aClassesCreche?: boolean;
   etablissementUniquementCreche?: boolean;
   estMonitrice?: boolean;
+  niveauSuperviseId?: number;
+  niveauSuperviseNom?: string;
   etablissementPlanTarifaire?: string;
   etablissementMaxEnseignants?: number;
 };
@@ -105,6 +109,8 @@ function userFromResponse(data: AuthResponse): SessionUser {
     aClassesCreche: data.aClassesCreche,
     etablissementUniquementCreche: data.etablissementUniquementCreche,
     estMonitrice: data.estMonitrice,
+    niveauSuperviseId: data.niveauSuperviseId,
+    niveauSuperviseNom: data.niveauSuperviseNom,
     etablissementPlanTarifaire: data.etablissementPlanTarifaire,
     etablissementMaxEnseignants: data.etablissementMaxEnseignants,
   };

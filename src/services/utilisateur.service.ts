@@ -5,6 +5,8 @@ export interface RegisterPayload {
   email: string;
   motDePasse: string;
   role: string;
+  /** Niveau auquel restreindre ce compte (ex. directeur/censeur d'un seul niveau) — absent/undefined = accès à tout l'établissement. */
+  niveauSuperviseId?: number | null;
   profil: {
     prenom: string;
     nom: string;
@@ -28,6 +30,8 @@ export interface UtilisateurResponse {
     telephone?: string;
     genre?: string;
   };
+  niveauSuperviseId?: number;
+  niveauSuperviseNom?: string;
 }
 
 export const utilisateurService = {
@@ -54,8 +58,9 @@ export const utilisateurService = {
     await api.patch(`/utilisateurs/${id}/statut`, { estActif });
   },
 
-  nommerDirecteur: async (id: number): Promise<UtilisateurResponse> => {
-    const response = await api.patch<UtilisateurResponse>(`/utilisateurs/${id}/nommer-directeur`);
+  /** Nomme cette personne directrice du niveau donné — l'ancien titulaire de CE niveau redevient Secrétaire. */
+  nommerDirecteur: async (id: number, niveauId: number): Promise<UtilisateurResponse> => {
+    const response = await api.patch<UtilisateurResponse>(`/utilisateurs/${id}/nommer-directeur`, { niveauId });
     return response.data;
   },
 };
