@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowUpCircle, BookOpen, Pencil, Plus, School, Trash2, Users } from 'lucide-react';
 import { classeService } from '@/services/classe.service';
@@ -94,6 +94,19 @@ export default function ClassesPage() {
   }, [selectedClasseId]);
 
   const niveauSuperviseId = authService.getCurrentUser()?.niveauSuperviseId;
+
+  const classesGroupees = useMemo(() => {
+    const map = new Map<string, { niveauNom: string; classes: Classe[] }>();
+    for (const c of classes) {
+      const key = c.niveauNom || 'Sans niveau';
+      if (!map.has(key)) map.set(key, { niveauNom: key, classes: [] });
+      map.get(key)!.classes.push(c);
+    }
+    for (const groupe of map.values()) {
+      groupe.classes.sort((a, b) => a.nom.localeCompare(b.nom));
+    }
+    return Array.from(map.values()).sort((a, b) => a.niveauNom.localeCompare(b.niveauNom));
+  }, [classes]);
 
   const openCreateClasse = () => {
     setEditingClasse(null);
@@ -297,7 +310,6 @@ export default function ClassesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nom</TableHead>
-                <TableHead>Niveau</TableHead>
                 <TableHead>Professeur principal</TableHead>
                 <TableHead>Année</TableHead>
                 <TableHead>Capacité</TableHead>
@@ -305,50 +317,57 @@ export default function ClassesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {classes.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-semibold text-primary">{c.nom}</TableCell>
-                  <TableCell>
-                    <Badge variant="warning">{c.niveauNom || '—'}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {c.enseignantPrincipalNom ? (
-                      `Pr. ${c.enseignantPrincipalNom}`
-                    ) : (
-                      <span className="italic">Multi-enseignants par matière</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{c.anneeScolaire}</TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">{c.capaciteMax}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedClasseId(String(c.id));
-                          setTab('ASSIGNATIONS');
-                        }}
-                      >
-                        <BookOpen /> Matières
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => openPromotion(c)}>
-                        <ArrowUpCircle /> Passage
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => openEditClasse(c)}>
-                        <Pencil /> Modifier
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => handleDeleteClasse(c)}
-                      >
-                        <Trash2 /> Supprimer
-                      </Button>
-                    </div>
-                  </TableCell>
+              {classesGroupees.map((groupe) => (
+                <Fragment key={groupe.niveauNom}>
+                  <TableRow className="bg-secondary/40 hover:bg-secondary/40">
+                    <TableCell colSpan={5} className="py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      {groupe.niveauNom}{' '}
+                      <span className="font-normal normal-case text-primary">({groupe.classes.length} classe(s))</span>
+                    </TableCell>
+                  </TableRow>
+                  {groupe.classes.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-semibold text-primary">{c.nom}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {c.enseignantPrincipalNom ? (
+                    `Pr. ${c.enseignantPrincipalNom}`
+                  ) : (
+                    <span className="italic">Multi-enseignants par matière</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{c.anneeScolaire}</TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">{c.capaciteMax}</TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setSelectedClasseId(String(c.id));
+                        setTab('ASSIGNATIONS');
+                      }}
+                    >
+                      <BookOpen /> Matières
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => openPromotion(c)}>
+                      <ArrowUpCircle /> Passage
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => openEditClasse(c)}>
+                      <Pencil /> Modifier
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => handleDeleteClasse(c)}
+                    >
+                      <Trash2 /> Supprimer
+                    </Button>
+                  </div>
+                </TableCell>
                 </TableRow>
+                  ))}
+                </Fragment>
               ))}
             </TableBody>
           </Table>

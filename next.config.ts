@@ -17,7 +17,9 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
   // L'app utilise exclusivement des styles inline (refonte Tailwind + nonce prévue en Phase 3).
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  // Photos/documents hébergés sur Cloudflare R2 (sous-domaine public r2.dev — le hash est
+  // propre à chaque bucket et peut changer si l'accès public est régénéré, d'où le joker).
+  "img-src 'self' data: blob: https://*.r2.dev",
   "font-src 'self' data:",
   `connect-src 'self' ${apiOrigin()}${isProd ? '' : ' ws: http://localhost:*'}`,
   "frame-ancestors 'none'",

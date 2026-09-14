@@ -39,6 +39,7 @@ export default function FinancesPage() {
   const [editingFrais, setEditingFrais] = useState<FraisScolarite | null>(null);
   const [fraisForm, setFraisForm] = useState(FRAIS_EMPTY);
   const [paiementForm, setPaiementForm] = useState(PAIEMENT_EMPTY);
+  const [filtreClasseId, setFiltreClasseId] = useState('');
 
   const fetchData = async () => {
     try {
@@ -77,6 +78,13 @@ export default function FinancesPage() {
 
   const classeNom = (f: FraisScolarite) =>
     f.classeNom || classes.find((c) => c.id === f.classeId)?.nom || '—';
+
+  const resolvedClasseId = (f: FraisScolarite) =>
+    f.classeId || (f.classeNom ? classes.find((c) => c.nom === f.classeNom)?.id : undefined);
+
+  const fraisFiltres = filtreClasseId
+    ? fraisList.filter((f) => String(resolvedClasseId(f) ?? '') === filtreClasseId)
+    : fraisList;
 
   const openEditFrais = (f: FraisScolarite) => {
     setEditingFrais(f);
@@ -250,6 +258,26 @@ export default function FinancesPage() {
           {fraisList.length === 0 ? (
             <EmptyState icon={<Wallet />} title="Aucun frais configuré" description="Définissez les frais par classe et par tranche." />
           ) : (
+            <>
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label="Filtrer par classe" className="min-w-56">
+                  <Select value={filtreClasseId} onChange={(e) => setFiltreClasseId(e.target.value)}>
+                    <option value="">— Toutes les classes —</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom}</option>
+                    ))}
+                  </Select>
+                </Field>
+                {filtreClasseId && (
+                  <span className="rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                    {fraisFiltres.length} frais
+                  </span>
+                )}
+              </div>
+
+              {fraisFiltres.length === 0 ? (
+                <EmptyState icon={<Wallet />} title="Aucun frais pour cette classe" />
+              ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -262,7 +290,7 @@ export default function FinancesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {fraisList.map((f) => (
+                {fraisFiltres.map((f) => (
                   <TableRow key={f.id}>
                     <TableCell>
                       <span className="font-mono text-xs text-muted-foreground">#{f.id}</span>
@@ -292,6 +320,8 @@ export default function FinancesPage() {
                 ))}
               </TableBody>
             </Table>
+              )}
+            </>
           )}
         </div>
       )}
