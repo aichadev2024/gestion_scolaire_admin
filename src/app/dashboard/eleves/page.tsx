@@ -594,8 +594,8 @@ export default function ElevesPage() {
               </Select>
             </Field>
             <Field
-              label="Photo (carte scolaire & trombinoscope)"
-              hint="JPEG, PNG ou WebP, 6 Mo max. Redimensionnée automatiquement."
+              label="Photo de profil"
+              hint="JPEG, PNG ou WebP, 6 Mo max."
               className="sm:col-span-2"
             >
               <div className="flex items-center gap-3">
