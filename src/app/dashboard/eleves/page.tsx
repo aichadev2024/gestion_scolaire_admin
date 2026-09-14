@@ -46,10 +46,12 @@ const STATUT_INSCRIPTION_COLOR: Record<string, string> = {
 const STATUT_PEDAGOGIQUE_LABEL: Record<string, string> = {
   REGULIER: 'Régulier',
   REDOUBLANT: 'Redoublant',
+  CL: 'Candidat libre',
 };
 const STATUT_PEDAGOGIQUE_COLOR: Record<string, string> = {
   REGULIER: 'text-success',
   REDOUBLANT: 'text-warning-foreground',
+  CL: 'text-muted-foreground',
 };
 
 function msg(err: unknown, fallback: string): string {

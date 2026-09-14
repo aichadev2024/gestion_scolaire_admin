@@ -257,6 +257,7 @@ export default function CartesScolairesPage() {
                   }}
                   eleve={eleve}
                   etablissementNom={etablissementLabel}
+                  etablissementLogoUrl={authService.getCurrentUser()?.etablissementLogoUrl}
                   anneeScolaire={anneeScolaire}
                   version={1}
                 />

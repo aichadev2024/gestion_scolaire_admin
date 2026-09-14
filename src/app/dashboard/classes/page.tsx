@@ -222,9 +222,11 @@ export default function ClassesPage() {
     try {
       const roster = await eleveService.getElevesParClasse(c.id);
       setPromotionEleves(roster);
-      // Sélectionnés par défaut, sauf les redoublants déjà identifiés — ils restent
-      // dans la classe. L'admin peut encore ajuster manuellement au cas par cas.
-      setPromotionSelected(new Set(roster.filter((e) => e.statutPedagogique !== 'REDOUBLANT').map((e) => e.id)));
+      // Sélectionnés par défaut, sauf les redoublants et candidats libres déjà identifiés —
+      // ils restent dans la classe. L'admin peut encore ajuster manuellement au cas par cas.
+      setPromotionSelected(
+        new Set(roster.filter((e) => e.statutPedagogique !== 'REDOUBLANT' && e.statutPedagogique !== 'CL').map((e) => e.id)),
+      );
     } catch {
       toast.error('Impossible de charger les élèves de cette classe.');
       setPromotionEleves([]);
@@ -661,9 +663,11 @@ export default function ClassesPage() {
                           <Badge variant={resultat.succes ? 'success' : 'destructive'}>
                             {resultat.succes ? 'Passé(e)' : resultat.erreur || 'Échec'}
                           </Badge>
-                        ) : (
-                          e.statutPedagogique === 'REDOUBLANT' && <Badge variant="warning">Redoublant</Badge>
-                        )}
+                        ) : e.statutPedagogique === 'REDOUBLANT' ? (
+                          <Badge variant="warning">Redoublant</Badge>
+                        ) : e.statutPedagogique === 'CL' ? (
+                          <Badge variant="secondary">Candidat libre</Badge>
+                        ) : null}
                       </label>
                     );
                   })}

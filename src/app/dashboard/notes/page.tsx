@@ -30,13 +30,28 @@ function abregerTypeEvaluation(type?: string): string {
   return ABREVIATIONS_TYPE_EVALUATION[type] || type.slice(0, 3);
 }
 
-function categoriePourClasse(c?: Classe): 'LYCEE' | 'COLLEGE' | 'PRIMAIRE' | 'MATERNELLE' | 'ALL' {
+type CategorieClasse = 'LYCEE' | 'COLLEGE' | 'PRIMAIRE' | 'PRIMAIRE_6' | 'MATERNELLE' | 'ALL';
+
+/**
+ * Le niveau (Crèche/Maternelle/Primaire/Collège/Lycée) est vérifié en premier et seul —
+ * jamais mélangé au nom de la classe dans une même regex : une classe de Primaire nommée
+ * « 6ème Année » matchait autrefois le « 6è » du Collège et perdait ses compositions.
+ * PRIMAIRE_6 = 6ème année/CM2, seule année du primaire qui fonctionne aussi par trimestre.
+ */
+function categoriePourClasse(c?: Classe): CategorieClasse {
   if (!c) return 'ALL';
-  const t = `${c.niveauNom || ''} ${c.nom || ''}`.toLowerCase();
-  if (/lyc[ée]e|10è|11è|12è|term|2nde|1ère s|1ère l|ts[esco]/.test(t)) return 'LYCEE';
-  if (/coll[èe]ge|6è|7è|8è|9è/.test(t)) return 'COLLEGE';
-  if (/maternelle|petite|moyenne|grande/.test(t)) return 'MATERNELLE';
-  if (/primaire|cp|ce1|ce2|cm1|cm2|[1-6](ère|ème) a/.test(t)) return 'PRIMAIRE';
+  const niveau = (c.niveauNom || '').toLowerCase();
+  const nom = (c.nom || '').toLowerCase();
+  if (/lyc[ée]e/.test(niveau)) return 'LYCEE';
+  if (/coll[èe]ge/.test(niveau)) return 'COLLEGE';
+  if (/maternelle/.test(niveau)) return 'MATERNELLE';
+  if (/primaire/.test(niveau)) {
+    return /6\s*[eè]me|cm\s*2/.test(nom) ? 'PRIMAIRE_6' : 'PRIMAIRE';
+  }
+  // Niveau non reconnu (libellé personnalisé) : on retombe sur le nom de la classe.
+  if (/lyc[ée]e|term|2nde|1[eè]re/.test(nom)) return 'LYCEE';
+  if (/coll[èe]ge|6è|7è|8è|9è/.test(nom)) return 'COLLEGE';
+  if (/primaire|cp|ce1|ce2|cm1|cm2/.test(nom)) return 'PRIMAIRE';
   return 'ALL';
 }
 
@@ -162,14 +177,14 @@ export default function NotesPage() {
         </Field>
         <Field label="Période">
           <Select value={selectedPeriode} onChange={(e) => setSelectedPeriode(e.target.value)}>
-            {['PRIMAIRE', 'MATERNELLE', 'COLLEGE', 'ALL'].includes(currentCategory) && (
+            {['PRIMAIRE', 'PRIMAIRE_6', 'MATERNELLE', 'COLLEGE', 'ALL'].includes(currentCategory) && (
               <optgroup label="Compositions">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
                 ))}
               </optgroup>
             )}
-            {['LYCEE', 'COLLEGE', 'PRIMAIRE', 'ALL'].includes(currentCategory) && (
+            {['LYCEE', 'COLLEGE', 'PRIMAIRE_6', 'ALL'].includes(currentCategory) && (
               <optgroup label="Trimestres">
                 <option value="TRIMESTRE_1">1er trimestre</option>
                 <option value="TRIMESTRE_2">2e trimestre</option>

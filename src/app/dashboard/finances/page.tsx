@@ -41,6 +41,11 @@ export default function FinancesPage() {
   const [paiementForm, setPaiementForm] = useState(PAIEMENT_EMPTY);
   const [filtreClasseId, setFiltreClasseId] = useState('');
 
+  const eleveSelectionnePaiement = eleves.find((e) => String(e.id) === paiementForm.eleveId);
+  const fraisPourEleveSelectionne = eleveSelectionnePaiement
+    ? fraisList.filter((f) => (f.classeId ?? classes.find((c) => c.nom === f.classeNom)?.id) === eleveSelectionnePaiement.classeId)
+    : fraisList;
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -333,7 +338,11 @@ export default function FinancesPage() {
             <h2 className="mb-4 font-display text-lg font-bold">Encaisser un paiement</h2>
             <form onSubmit={handlePaiementSubmit} className="grid gap-4 sm:grid-cols-2">
               <Field label="Élève *">
-                <Select value={paiementForm.eleveId} onChange={(e) => setPaiementForm({ ...paiementForm, eleveId: e.target.value })} required>
+                <Select
+                  value={paiementForm.eleveId}
+                  onChange={(e) => setPaiementForm({ ...paiementForm, eleveId: e.target.value, fraisId: '', montantPaye: '' })}
+                  required
+                >
                   <option value="">— Sélectionner un élève —</option>
                   {eleves.map((e) => (
                     <option key={e.id} value={e.id}>{e.matricule} — {e.profil.nom} {e.profil.prenom}</option>
@@ -344,22 +353,28 @@ export default function FinancesPage() {
                 <Select
                   value={paiementForm.fraisId}
                   onChange={(e) => {
-                    const found = fraisList.find((f) => String(f.id) === e.target.value);
+                    const found = fraisPourEleveSelectionne.find((f) => String(f.id) === e.target.value);
                     setPaiementForm({
                       ...paiementForm,
                       fraisId: e.target.value,
                       montantPaye: found ? String(found.montant) : paiementForm.montantPaye,
                     });
                   }}
+                  disabled={!paiementForm.eleveId}
                   required
                 >
-                  <option value="">— Sélectionner un frais —</option>
-                  {fraisList.map((f) => (
+                  <option value="">
+                    {paiementForm.eleveId ? '— Sélectionner un frais —' : '— Choisir d’abord un élève —'}
+                  </option>
+                  {fraisPourEleveSelectionne.map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.titre} ({classeNom(f)}) — {fcfa(f.montant)}
                     </option>
                   ))}
                 </Select>
+                {paiementForm.eleveId && fraisPourEleveSelectionne.length === 0 && (
+                  <p className="mt-1 text-xs text-warning-foreground">Aucun frais configuré pour la classe de cet élève.</p>
+                )}
               </Field>
               <Field label={`Montant payé (${authService.getCurrentUser()?.etablissementDevise || 'FCFA'}) *`}>
                 <Input type="number" value={paiementForm.montantPaye} onChange={(e) => setPaiementForm({ ...paiementForm, montantPaye: e.target.value })} required />

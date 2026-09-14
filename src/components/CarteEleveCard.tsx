@@ -7,6 +7,7 @@ import { Eleve } from '@/types';
 interface CarteProps {
   eleve: Eleve;
   etablissementNom?: string;
+  etablissementLogoUrl?: string;
   anneeScolaire?: string;
   version?: number;
 }
@@ -23,7 +24,7 @@ const FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
-  ({ eleve, etablissementNom, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
+  ({ eleve, etablissementNom, etablissementLogoUrl, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
     const nom = eleve.profil?.nom?.toUpperCase() || '—';
     const prenom = eleve.profil?.prenom || '—';
     const matricule = eleve.matricule || '—';
@@ -31,7 +32,11 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
     const statut = eleve.statut || 'ACTIF';
     const photoUrl = eleve.profil?.photoUrl;
     const [photoEchec, setPhotoEchec] = useState(false);
+    const [logoEchec, setLogoEchec] = useState(false);
     const ecoleNom = (eleve.etablissementNom || etablissementNom || 'ÉTABLISSEMENT SCOLAIRE').toUpperCase();
+    // Le logo de l'établissement lui-même sur sa propre carte officielle — celui de
+    // Netaa uniquement en repli, pour une école qui n'a pas encore importé le sien.
+    const logoSrc = etablissementLogoUrl && !logoEchec ? etablissementLogoUrl : '/logo-reversed.png';
 
     // Public QR verification URL
     const verifyUrl = typeof window !== 'undefined'
@@ -85,7 +90,12 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
         {/* En-tête : logo + établissement + statut */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 12px 8px 12px', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-reversed.png" alt="Netaa" style={{ height: '22px', width: '22px', objectFit: 'contain', flexShrink: 0 }} />
+          <img
+            src={logoSrc}
+            alt={ecoleNom}
+            style={{ height: '22px', width: '22px', objectFit: 'contain', flexShrink: 0, borderRadius: '3px' }}
+            onError={() => setLogoEchec(true)}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {ecoleNom}
