@@ -455,8 +455,11 @@ export default function ClassesPage() {
           </DialogHeader>
           <FormError message={classeError} />
           <form onSubmit={handleClasseSubmit} className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nom de la classe *">
-              <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder="Ex : 9ème A" required />
+            <Field
+              label="Nom de la classe *"
+              hint="Pour plusieurs sections d'un même niveau (sous-classes), créez une classe par section avec un nom différent : 2ème Année A1, 2ème Année A2, 2ème Année B…"
+            >
+              <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder="Ex : 2ème Année A1" required />
             </Field>
             <Field label="Niveau *" hint={niveauSuperviseId ? 'Votre compte est restreint à ce niveau.' : undefined}>
               <Select
