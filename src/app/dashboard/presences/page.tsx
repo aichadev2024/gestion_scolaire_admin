@@ -72,6 +72,7 @@ export default function PresencesPage() {
   const [eleves, setEleves] = useState<Eleve[]>([]);
   const [selectedClasseId, setSelectedClasseId] = useState('');
   const [appel, setAppel] = useState<Record<number, 'PRESENT' | 'ABSENT' | 'RETARD'>>({});
+  const [appelDejaPris, setAppelDejaPris] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [enseignants, setEnseignants] = useState<Enseignant[]>([]);
@@ -123,17 +124,28 @@ export default function PresencesPage() {
     if (!selectedClasseId) {
       setEleves([]);
       setAppel({});
+      setAppelDejaPris(false);
       return;
     }
-    eleveService
-      .getEleves()
-      .then((all) => {
+    Promise.all([
+      eleveService.getEleves(),
+      presenceService.getByClasseDate(parseInt(selectedClasseId), today).catch(() => []),
+    ])
+      .then(([all, dejaSaisies]) => {
         const filtered = all.filter((e) => e.classeId === parseInt(selectedClasseId));
         setEleves(filtered);
-        setAppel(Object.fromEntries(filtered.map((e) => [e.id, 'PRESENT' as const])));
+        // Reflète l'état déjà enregistré aujourd'hui au lieu de reproposer « tout présent » à
+        // chaque ouverture — sinon revalider sans y prêter attention écrase un vrai absent/retard.
+        const parEleve = new Map(dejaSaisies.map((p) => [p.eleve.id, p.statut]));
+        setAppel(
+          Object.fromEntries(
+            filtered.map((e) => [e.id, (parEleve.get(e.id) as 'PRESENT' | 'ABSENT' | 'RETARD') || 'PRESENT']),
+          ),
+        );
+        setAppelDejaPris(parEleve.size > 0);
       })
       .catch(() => toast.error('Impossible de charger les élèves.'));
-  }, [selectedClasseId]);
+  }, [selectedClasseId, today]);
 
   const handleSubmitAppel = async () => {
     if (!selectedClasseId || eleves.length === 0) return;
@@ -234,6 +246,12 @@ export default function PresencesPage() {
               </Select>
             </Field>
           </div>
+
+          {eleves.length > 0 && appelDejaPris && (
+            <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+              L&apos;appel du {today} a déjà été pris pour cette classe — vous consultez l&apos;état enregistré. Le modifier puis valider met à jour les fiches existantes.
+            </p>
+          )}
 
           {eleves.length > 0 && (
             <div className="grid grid-cols-3 gap-3">

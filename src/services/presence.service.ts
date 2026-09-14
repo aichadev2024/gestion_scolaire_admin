@@ -55,6 +55,11 @@ export const presenceService = {
     return response.data;
   },
 
+  getByClasseDate: async (classeId: number, date: string): Promise<PresenceItem[]> => {
+    const response = await api.get<PresenceItem[]>(`/presences/classe/${classeId}`, { params: { date } });
+    return response.data;
+  },
+
   enregistrer: async (data: PresencePayload): Promise<PresenceItem> => {
     const response = await api.post<PresenceItem>('/presences', data);
     return response.data;
