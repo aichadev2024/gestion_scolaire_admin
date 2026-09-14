@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Download, FileText, Lock, Search, Settings2 } from 'lucide-react';
+import { Download, FileText, Lock, Printer, Search, Settings2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
@@ -155,8 +155,30 @@ export default function BulletinsPage() {
     }
   };
 
+  const handlePrint = () => {
+    if (!bulletin) return;
+    window.print();
+  };
+
   return (
     <div>
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #bulletin-imprimable,
+          #bulletin-imprimable * {
+            visibility: visible;
+          }
+          #bulletin-imprimable {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
       <PageHeader title="Bulletins scolaires" description="Consultez, générez et imprimez les bulletins par période." />
 
       <Card className="mb-6 flex flex-wrap items-end gap-4 p-4">
@@ -238,7 +260,7 @@ export default function BulletinsPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           {/* Document imprimable — mise en page officielle conservée */}
           <div className="flex-1 overflow-x-auto rounded-xl border border-border bg-white shadow-sm">
-            <div ref={bulletinRef} style={{ padding: '40px', minWidth: '800px', fontFamily: 'serif', color: '#000', backgroundColor: '#ffffff', position: 'relative' }}>
+            <div id="bulletin-imprimable" ref={bulletinRef} style={{ padding: '40px', minWidth: '800px', fontFamily: 'serif', color: '#000', backgroundColor: '#ffffff', position: 'relative' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '15px', fontSize: '11px' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>RÉPUBLIQUE DU MALI</div>
@@ -389,9 +411,14 @@ export default function BulletinsPage() {
               </p>
             </Card>
 
-            <Button loading={pdfLoading} onClick={handleExportPDF}>
-              <Download /> Télécharger en PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handlePrint}>
+                <Printer /> Imprimer
+              </Button>
+              <Button loading={pdfLoading} onClick={handleExportPDF}>
+                <Download /> Télécharger en PDF
+              </Button>
+            </div>
 
             {canLock && !bulletin.estVerrouille && (
               <Button

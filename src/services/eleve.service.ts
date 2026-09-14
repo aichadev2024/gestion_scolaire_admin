@@ -91,4 +91,12 @@ export const eleveService = {
     const response = await api.post<PromotionRapport>('/eleves/promotion', { classeDestinationId, eleveIds });
     return response.data;
   },
+
+  telechargerRecapitulatif: async (anneeScolaire: string, classeId?: number): Promise<Blob> => {
+    const response = await api.get('/eleves/recapitulatif', {
+      params: { anneeScolaire, classeId },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

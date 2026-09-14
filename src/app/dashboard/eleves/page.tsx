@@ -71,6 +71,10 @@ export default function ElevesPage() {
   const [importRapport, setImportRapport] = useState<EleveImportRapport | null>(null);
   const [filterNiveauId, setFilterNiveauId] = useState('');
   const [filterClasseId, setFilterClasseId] = useState('');
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapClasseId, setRecapClasseId] = useState('');
+  const [recapAnnee, setRecapAnnee] = useState(`${new Date().getFullYear()}/${new Date().getFullYear() + 1}`);
+  const [recapLoading, setRecapLoading] = useState(false);
 
   const photoPreview = useMemo(
     () => (photoFile ? URL.createObjectURL(photoFile) : formData.photoUrl),
@@ -238,6 +242,28 @@ export default function ElevesPage() {
     }
   };
 
+  const handleTelechargerRecapitulatif = async () => {
+    if (!recapAnnee.trim()) return;
+    setRecapLoading(true);
+    try {
+      const blob = await eleveService.telechargerRecapitulatif(
+        recapAnnee.trim(),
+        recapClasseId ? parseInt(recapClasseId) : undefined,
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recapitulatif_${recapAnnee.trim().replace('/', '-')}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      setShowRecap(false);
+    } catch (err) {
+      toast.error(msg(err, 'Impossible de générer le récapitulatif.'));
+    } finally {
+      setRecapLoading(false);
+    }
+  };
+
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!importFile) return;
@@ -336,6 +362,9 @@ export default function ElevesPage() {
         }
       >
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowRecap(true)}>
+            <Download /> Récapitulatif annuel
+          </Button>
           <Button variant="outline" onClick={openImportDialog}>
             <Upload /> Importer (Excel)
           </Button>
@@ -678,6 +707,39 @@ export default function ElevesPage() {
       </Dialog>
 
       <DocumentsEleveDialog eleve={docsEleve} onClose={() => setDocsEleve(null)} />
+
+      <Dialog open={showRecap} onOpenChange={setShowRecap}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Récapitulatif annuel</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Fichier Excel avec, pour chaque élève : moyenne de l&apos;année, taux de présence, absences,
+            retards et statut — utile pour clôturer l&apos;année avant le passage en classe supérieure.
+          </p>
+          <div className="grid gap-4">
+            <div className="space-y-1.5">
+              <Label>Classe (optionnel)</Label>
+              <Select value={recapClasseId} onChange={(e) => setRecapClasseId(e.target.value)}>
+                <option value="">— Toutes les classes —</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nom} ({c.anneeScolaire})</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Année scolaire *</Label>
+              <Input value={recapAnnee} onChange={(e) => setRecapAnnee(e.target.value)} placeholder="2026/2027" required />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowRecap(false)}>Annuler</Button>
+            <Button onClick={handleTelechargerRecapitulatif} loading={recapLoading} disabled={!recapAnnee.trim()}>
+              <Download /> Télécharger
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
