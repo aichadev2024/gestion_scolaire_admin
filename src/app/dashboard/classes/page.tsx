@@ -96,9 +96,16 @@ export default function ClassesPage() {
   const niveauSuperviseId = authService.getCurrentUser()?.niveauSuperviseId;
   const isEnseignant = authService.getCurrentUser()?.role === 'ENSEIGNANT';
 
+  const [filtreNiveauId, setFiltreNiveauId] = useState('');
+
+  const classesFiltrees = useMemo(
+    () => (filtreNiveauId ? classes.filter((c) => String(c.niveauId) === filtreNiveauId) : classes),
+    [classes, filtreNiveauId],
+  );
+
   const classesGroupees = useMemo(() => {
     const map = new Map<string, { niveauNom: string; classes: Classe[] }>();
-    for (const c of classes) {
+    for (const c of classesFiltrees) {
       const key = c.niveauNom || 'Sans niveau';
       if (!map.has(key)) map.set(key, { niveauNom: key, classes: [] });
       map.get(key)!.classes.push(c);
@@ -107,7 +114,7 @@ export default function ClassesPage() {
       groupe.classes.sort((a, b) => a.nom.localeCompare(b.nom));
     }
     return Array.from(map.values()).sort((a, b) => a.niveauNom.localeCompare(b.niveauNom));
-  }, [classes]);
+  }, [classesFiltrees]);
 
   const openCreateClasse = () => {
     setEditingClasse(null);
@@ -314,6 +321,26 @@ export default function ClassesPage() {
             action={isEnseignant ? undefined : <Button onClick={openCreateClasse}><Plus /> Créer une classe</Button>}
           />
         ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label="Filtrer par niveau" className="min-w-56">
+                <Select value={filtreNiveauId} onChange={(e) => setFiltreNiveauId(e.target.value)}>
+                  <option value="">— Tous les niveaux —</option>
+                  {niveaux.map((n) => (
+                    <option key={n.id} value={n.id}>{n.nom}</option>
+                  ))}
+                </Select>
+              </Field>
+              {filtreNiveauId && (
+                <span className="rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                  {classesFiltrees.length} classe(s)
+                </span>
+              )}
+            </div>
+
+            {classesFiltrees.length === 0 ? (
+              <EmptyState icon={<School />} title="Aucune classe pour ce niveau" />
+            ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -383,6 +410,8 @@ export default function ClassesPage() {
               ))}
             </TableBody>
           </Table>
+            )}
+          </div>
         ))}
 
       {/* ─── Onglet Assignations ─── */}

@@ -35,6 +35,8 @@ const PERIODE_LABEL: Record<string, string> = {
   COMPOSITION_4: 'Composition n°4',
   COMPOSITION_5: 'Composition n°5',
   COMPOSITION_6: 'Composition n°6',
+  COMPOSITION_7: 'Composition n°7',
+  COMPOSITION_8: 'Composition n°8',
   TRIMESTRE_1: '1er trimestre',
   TRIMESTRE_2: '2e trimestre',
   TRIMESTRE_3: '3e trimestre',
@@ -227,12 +229,12 @@ export default function BulletinsPage() {
           >
             {['PRIMAIRE', 'MATERNELLE', 'COLLEGE', 'ALL'].includes(currentCategory) && (
               <optgroup label="Compositions">
-                {[1, 2, 3, 4, 5, 6].map((n) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
                 ))}
               </optgroup>
             )}
-            {['LYCEE', 'COLLEGE', 'ALL'].includes(currentCategory) && (
+            {['LYCEE', 'COLLEGE', 'PRIMAIRE', 'ALL'].includes(currentCategory) && (
               <optgroup label="Trimestres">
                 <option value="TRIMESTRE_1">1er trimestre</option>
                 <option value="TRIMESTRE_2">2e trimestre</option>
