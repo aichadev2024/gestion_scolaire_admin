@@ -51,6 +51,24 @@ function msg(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/** Photo si elle charge, sinon initiales — jamais une icône d'image cassée. */
+function AvatarEleve({ eleve }: { eleve: Eleve }) {
+  const [echec, setEchec] = useState(false);
+  const photoUrl = eleve.profil?.photoUrl;
+  const initiales = `${eleve.profil?.prenom?.[0] ?? ''}${eleve.profil?.nom?.[0] ?? ''}`;
+
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-[hsl(var(--gold))]">
+      {photoUrl && !echec ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt="" className="size-full object-cover" onError={() => setEchec(true)} />
+      ) : (
+        initiales
+      )}
+    </span>
+  );
+}
+
 export default function ElevesPage() {
   const [eleves, setEleves] = useState<Eleve[]>([]);
   const [classes, setClasses] = useState<Classe[]>([]);
@@ -362,11 +380,11 @@ export default function ElevesPage() {
         }
       >
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowRecap(true)}>
-            <Download /> Récapitulatif annuel
-          </Button>
           <Button variant="outline" onClick={openImportDialog}>
             <Upload /> Importer (Excel)
+          </Button>
+          <Button variant="outline" onClick={() => setShowRecap(true)}>
+            <Download /> Récapitulatif annuel
           </Button>
           <Button onClick={openNewForm}>
             <Plus /> Nouvel élève
@@ -467,14 +485,7 @@ export default function ElevesPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-[hsl(var(--gold))]">
-                      {eleve.profil?.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={eleve.profil.photoUrl} alt="" className="size-full object-cover" />
-                      ) : (
-                        `${eleve.profil?.prenom?.[0] ?? ''}${eleve.profil?.nom?.[0] ?? ''}`
-                      )}
-                    </span>
+                    <AvatarEleve eleve={eleve} />
                     <div className="min-w-0">
                       <div className="font-medium">{eleve.profil.nom} {eleve.profil.prenom}</div>
                       {eleve.profil.telephone && (

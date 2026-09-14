@@ -1,6 +1,6 @@
 'use client';
 
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Eleve } from '@/types';
 
@@ -30,6 +30,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
     const classe = eleve.classeNom || 'Non affecté';
     const statut = eleve.statut || 'ACTIF';
     const photoUrl = eleve.profil?.photoUrl;
+    const [photoEchec, setPhotoEchec] = useState(false);
     const ecoleNom = (eleve.etablissementNom || etablissementNom || 'ÉTABLISSEMENT SCOLAIRE').toUpperCase();
 
     // Public QR verification URL
@@ -104,9 +105,14 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             border: '2px solid #2E7CB8', background: '#0f2140',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {photoUrl ? (
+            {photoUrl && !photoEchec ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoUrl} alt={`${prenom} ${nom}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img
+                src={photoUrl}
+                alt={`${prenom} ${nom}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={() => setPhotoEchec(true)}
+              />
             ) : (
               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '7px' }}>Photo</span>
             )}
