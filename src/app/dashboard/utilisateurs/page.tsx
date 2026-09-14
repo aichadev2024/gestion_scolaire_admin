@@ -72,7 +72,8 @@ export default function UtilisateursPage() {
   const [form, setForm] = useState<RegisterPayload>(EMPTY);
   const [niveauFormId, setNiveauFormId] = useState('');
 
-  const [directeurCible, setDirecteurCible] = useState<UtilisateurResponse | null>(null);
+  const [showNommerDirecteur, setShowNommerDirecteur] = useState(false);
+  const [personneDirecteurId, setPersonneDirecteurId] = useState('');
   const [niveauDirecteur, setNiveauDirecteur] = useState('');
   const [nommantDirecteur, setNommantDirecteur] = useState(false);
 
@@ -175,19 +176,23 @@ export default function UtilisateursPage() {
     }
   };
 
-  const openNommerDirecteur = (u: UtilisateurResponse) => {
-    setDirecteurCible(u);
-    setNiveauDirecteur(u.niveauSuperviseId ? String(u.niveauSuperviseId) : '');
+  const candidatsDirection = utilisateurs.filter((u) => ['SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'].includes(u.role));
+
+  const openNommerDirecteur = () => {
+    setPersonneDirecteurId('');
+    setNiveauDirecteur('');
+    setShowNommerDirecteur(true);
   };
 
   const handleNommerDirecteur = async () => {
-    if (!directeurCible || !niveauDirecteur) return;
-    const nom = directeurCible.profil ? `${directeurCible.profil.prenom} ${directeurCible.profil.nom}` : directeurCible.username || directeurCible.email;
+    if (!personneDirecteurId || !niveauDirecteur) return;
+    const personne = utilisateurs.find((u) => u.id === parseInt(personneDirecteurId));
+    const nom = personne?.profil ? `${personne.profil.prenom} ${personne.profil.nom}` : personne?.username || personne?.email;
     setNommantDirecteur(true);
     try {
-      await utilisateurService.nommerDirecteur(directeurCible.id, parseInt(niveauDirecteur));
+      await utilisateurService.nommerDirecteur(parseInt(personneDirecteurId), parseInt(niveauDirecteur));
       toast.success(`${nom} est maintenant directeur(rice) de ${niveauNom(parseInt(niveauDirecteur))}.`);
-      setDirecteurCible(null);
+      setShowNommerDirecteur(false);
       await fetchAll();
     } catch (err) {
       toast.error(errorMessage(err, 'Erreur lors du changement de directeur'));
@@ -219,9 +224,14 @@ export default function UtilisateursPage() {
         title="Comptes utilisateurs"
         description="Créez et gérez les accès du personnel de l'établissement."
       >
-        <Button onClick={openCreateForm}>
-          <Plus /> Nouveau compte
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openNommerDirecteur} disabled={candidatsDirection.length === 0}>
+            <Crown /> Nommer directeur
+          </Button>
+          <Button onClick={openCreateForm}>
+            <Plus /> Nouveau compte
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -286,11 +296,6 @@ export default function UtilisateursPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    {['SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'].includes(u.role) && (
-                      <Button size="sm" variant="ghost" onClick={() => openNommerDirecteur(u)}>
-                        <Crown /> Nommer directeur
-                      </Button>
-                    )}
                     <Button size="sm" variant="ghost" onClick={() => openEditForm(u)}>
                       <Pencil /> Modifier
                     </Button>
@@ -409,34 +414,43 @@ export default function UtilisateursPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!directeurCible} onOpenChange={(open) => !open && setDirecteurCible(null)}>
+      <Dialog open={showNommerDirecteur} onOpenChange={setShowNommerDirecteur}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nommer directeur(rice)</DialogTitle>
           </DialogHeader>
-          {directeurCible && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {directeurCible.profil ? `${directeurCible.profil.prenom} ${directeurCible.profil.nom}` : directeurCible.username}{' '}
-                deviendra directeur(rice) du niveau choisi. Le directeur actuel de ce même niveau (s&apos;il y en a un) redeviendra Secrétaire.
-                Les directeurs des autres niveaux ne sont pas affectés.
-              </p>
-              <Field label="Niveau à diriger *">
-                <Select value={niveauDirecteur} onChange={(e) => setNiveauDirecteur(e.target.value)} required>
-                  <option value="">— Sélectionner —</option>
-                  {niveaux.map((n) => (
-                    <option key={n.id} value={n.id}>{n.nom}</option>
-                  ))}
-                </Select>
-              </Field>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDirecteurCible(null)}>Annuler</Button>
-                <Button onClick={handleNommerDirecteur} loading={nommantDirecteur} disabled={!niveauDirecteur}>
-                  <Crown /> Nommer
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choisissez délibérément la personne et le niveau — le directeur actuel de ce même
+              niveau (s&apos;il y en a un) redeviendra Secrétaire. Les directeurs des autres
+              niveaux ne sont pas affectés.
+            </p>
+            <Field label="Personne à nommer *">
+              <Select value={personneDirecteurId} onChange={(e) => setPersonneDirecteurId(e.target.value)} required>
+                <option value="">— Sélectionner —</option>
+                {candidatsDirection.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username} — {roleLabel(u.role)}
+                    {u.niveauSuperviseNom ? ` (${u.niveauSuperviseNom})` : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Niveau à diriger *">
+              <Select value={niveauDirecteur} onChange={(e) => setNiveauDirecteur(e.target.value)} required>
+                <option value="">— Sélectionner —</option>
+                {niveaux.map((n) => (
+                  <option key={n.id} value={n.id}>{n.nom}</option>
+                ))}
+              </Select>
+            </Field>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowNommerDirecteur(false)}>Annuler</Button>
+              <Button onClick={handleNommerDirecteur} loading={nommantDirecteur} disabled={!personneDirecteurId || !niveauDirecteur}>
+                <Crown /> Nommer
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
