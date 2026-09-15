@@ -17,6 +17,7 @@ export interface AuthResponse {
   etablissementId?: number;
   etablissementNom?: string;
   etablissementLogoUrl?: string;
+  etablissementTelephone?: string;
   etablissementDevise?: string;
   etablissementSlogan?: string;
   etablissementType?: 'ECOLE' | 'CRECHE';
@@ -45,6 +46,7 @@ type SessionUser = {
   etablissementId?: number;
   etablissementNom?: string;
   etablissementLogoUrl?: string;
+  etablissementTelephone?: string;
   etablissementDevise?: string;
   etablissementSlogan?: string;
   etablissementType?: 'ECOLE' | 'CRECHE';
@@ -107,6 +109,7 @@ function userFromResponse(data: AuthResponse): SessionUser {
     etablissementId: data.etablissementId,
     etablissementNom: data.etablissementNom,
     etablissementLogoUrl: data.etablissementLogoUrl,
+    etablissementTelephone: data.etablissementTelephone,
     etablissementDevise: data.etablissementDevise,
     etablissementSlogan: data.etablissementSlogan,
     etablissementType: data.etablissementType as 'ECOLE' | 'CRECHE' | undefined,

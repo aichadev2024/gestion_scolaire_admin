@@ -8,6 +8,7 @@ interface CarteProps {
   eleve: Eleve;
   etablissementNom?: string;
   etablissementLogoUrl?: string;
+  etablissementTelephone?: string;
   anneeScolaire?: string;
   version?: number;
 }
@@ -24,7 +25,7 @@ const FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
-  ({ eleve, etablissementNom, etablissementLogoUrl, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
+  ({ eleve, etablissementNom, etablissementLogoUrl, etablissementTelephone, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
     const nom = eleve.profil?.nom?.toUpperCase() || '—';
     const prenom = eleve.profil?.prenom || '—';
     const matricule = eleve.matricule || '—';
@@ -100,7 +101,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             <div style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {ecoleNom}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.06em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '8.5px', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
           </div>
           <div style={{ marginLeft: 'auto', flexShrink: 0, background: statut === 'ACTIF' ? 'rgba(5,205,153,0.18)' : 'rgba(238,93,80,0.18)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
             {statut}
@@ -156,12 +157,19 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
           </div>
         </div>
 
-        {/* Pied : mention officielle + année */}
-        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 12px 6px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '6.5px', letterSpacing: '0.1em', fontWeight: 600, lineHeight: 1.3 }}>
-            CARTE SCOLAIRE OFFICIELLE
-          </span>
-          <span style={{ color: '#5AA9DC', fontSize: '7px', fontWeight: 700, lineHeight: 1.3 }}>{anneeScolaire}</span>
+        {/* Pied : mention officielle + année, puis contact en cas de perte */}
+        <div style={{ flexShrink: 0, padding: '4px 12px 5px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '6.5px', letterSpacing: '0.1em', fontWeight: 600, lineHeight: 1.3 }}>
+              CARTE SCOLAIRE OFFICIELLE
+            </span>
+            <span style={{ color: '#5AA9DC', fontSize: '7px', fontWeight: 700, lineHeight: 1.3 }}>{anneeScolaire}</span>
+          </div>
+          {etablissementTelephone && (
+            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '6.5px', lineHeight: 1.4, marginTop: '2px' }}>
+              En cas de perte, contacter l&apos;école : <span style={{ color: '#ffffff', fontWeight: 700 }}>{etablissementTelephone}</span>
+            </div>
+          )}
         </div>
 
         {/* Bandeau bas — en flux */}
