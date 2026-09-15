@@ -36,7 +36,7 @@ function StatutPicker<T extends string>({
   onChange,
 }: {
   options: readonly T[];
-  value: T;
+  value: T | undefined;
   onChange: (v: T) => void;
 }) {
   return (
@@ -134,14 +134,16 @@ export default function PresencesPage() {
       .then(([all, dejaSaisies]) => {
         const filtered = all.filter((e) => e.classeId === parseInt(selectedClasseId));
         setEleves(filtered);
-        // Reflète l'état déjà enregistré aujourd'hui au lieu de reproposer « tout présent » à
-        // chaque ouverture — sinon revalider sans y prêter attention écrase un vrai absent/retard.
-        const parEleve = new Map(dejaSaisies.map((p) => [p.eleve.id, p.statut]));
-        setAppel(
-          Object.fromEntries(
-            filtered.map((e) => [e.id, (parEleve.get(e.id) as 'PRESENT' | 'ABSENT' | 'RETARD') || 'PRESENT']),
-          ),
-        );
+        // Reflète l'état RÉELLEMENT enregistré aujourd'hui — un élève sans fiche de présence
+        // n'apparaît PAS comme « Présent » par défaut (ça masquait les élèves jamais pris en
+        // compte, ex. après un échec partiel de l'appel, et faussait le décompte affiché).
+        const parEleve = new Map(dejaSaisies.map((p) => [p.eleve.id, p.statut as 'PRESENT' | 'ABSENT' | 'RETARD']));
+        const nouvelAppel: Record<number, 'PRESENT' | 'ABSENT' | 'RETARD'> = {};
+        filtered.forEach((e) => {
+          const existant = parEleve.get(e.id);
+          if (existant) nouvelAppel[e.id] = existant;
+        });
+        setAppel(nouvelAppel);
         setAppelDejaPris(parEleve.size > 0);
       })
       .catch(() => toast.error('Impossible de charger les élèves.'));
@@ -249,16 +251,19 @@ export default function PresencesPage() {
 
           {eleves.length > 0 && appelDejaPris && (
             <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-              L&apos;appel du {today} a déjà été pris pour cette classe — vous consultez l&apos;état enregistré. Le modifier puis valider met à jour les fiches existantes.
+              {Object.keys(appel).length === eleves.length
+                ? <>L&apos;appel du {today} a déjà été pris pour cette classe — vous consultez l&apos;état enregistré. Le modifier puis valider met à jour les fiches existantes.</>
+                : <>L&apos;appel du {today} est <strong>incomplet</strong> pour cette classe : {Object.keys(appel).length}/{eleves.length} élève(s) enregistré(s). Les élèves marqués « Non enregistré » ci-dessous n&apos;ont pas de fiche de présence pour aujourd&apos;hui.</>}
             </p>
           )}
 
           {eleves.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               {[
                 ['Présents', count('PRESENT'), 'text-success'],
                 ['Absents', count('ABSENT'), 'text-destructive'],
                 ['Retards', count('RETARD'), 'text-warning-foreground'],
+                ['Non enregistrés', eleves.length - Object.keys(appel).length, 'text-muted-foreground'],
               ].map(([label, n, cls]) => (
                 <div key={label as string} className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className={cn('font-display text-2xl font-extrabold tabular-nums', cls as string)}>{n}</div>
@@ -292,11 +297,16 @@ export default function PresencesPage() {
                         <span className="font-mono text-xs text-primary">{eleve.matricule}</span>
                       </TableCell>
                       <TableCell>
-                        <StatutPicker
-                          options={['PRESENT', 'ABSENT', 'RETARD'] as const}
-                          value={appel[eleve.id] || 'PRESENT'}
-                          onChange={(v) => setAppel((p) => ({ ...p, [eleve.id]: v }))}
-                        />
+                        <div className="flex flex-col items-center gap-1">
+                          <StatutPicker
+                            options={['PRESENT', 'ABSENT', 'RETARD'] as const}
+                            value={appel[eleve.id]}
+                            onChange={(v) => setAppel((p) => ({ ...p, [eleve.id]: v }))}
+                          />
+                          {!appel[eleve.id] && (
+                            <span className="text-[0.65rem] font-medium text-muted-foreground">Non enregistré</span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
