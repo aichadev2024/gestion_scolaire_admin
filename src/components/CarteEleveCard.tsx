@@ -100,7 +100,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             <div style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {ecoleNom}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '6.5px', letterSpacing: '0.08em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.06em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
           </div>
           <div style={{ marginLeft: 'auto', flexShrink: 0, background: statut === 'ACTIF' ? 'rgba(5,205,153,0.18)' : 'rgba(238,93,80,0.18)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
             {statut}
