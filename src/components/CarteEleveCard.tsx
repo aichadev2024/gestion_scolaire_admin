@@ -24,12 +24,13 @@ const CARD_H = 204;
 const FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-// html2canvas ne respecte pas fiablement `text-overflow: ellipsis` (limitation
-// connue : il redessine le texte lui-même plutôt que de s'appuyer sur le
-// moteur de rendu du navigateur) — un nom d'établissement long s'affichait
-// tronqué à l'écran mais débordait du cadre dans la carte exportée en PDF.
-// On tronque donc la chaîne elle-même, mesurée au pixel près, pour un rendu
-// identique à l'écran et dans l'export.
+// html2canvas ne respecte pas fiablement `text-overflow: ellipsis` ni
+// `-webkit-line-clamp` (limitation connue : il redessine le texte lui-même
+// plutôt que de s'appuyer sur le moteur de rendu du navigateur) — un nom
+// d'établissement long débordait du cadre dans la carte exportée en PDF si on
+// se fiait au CSS. On calcule donc nous-mêmes, mot par mot et mesuré au pixel
+// près, comment répartir le nom sur au maximum `maxLignes` lignes, pour un
+// rendu identique à l'écran et dans l'export.
 let mesureCanvas: HTMLCanvasElement | null = null;
 function tronquerTexte(texte: string, maxWidthPx: number, font: string): string {
   if (typeof document === 'undefined') return texte;
@@ -43,6 +44,40 @@ function tronquerTexte(texte: string, maxWidthPx: number, font: string): string 
     tronque = tronque.slice(0, -1);
   }
   return tronque + '…';
+}
+
+function diviserEnLignes(texte: string, maxWidthPx: number, font: string, maxLignes: number): string[] {
+  if (typeof document === 'undefined') return [texte];
+  if (!mesureCanvas) mesureCanvas = document.createElement('canvas');
+  const ctx = mesureCanvas.getContext('2d');
+  if (!ctx) return [texte];
+  ctx.font = font;
+
+  const mots = texte.split(' ');
+  const lignes: string[] = [];
+  let ligne = '';
+  let i = 0;
+  while (i < mots.length) {
+    const essai = ligne ? `${ligne} ${mots[i]}` : mots[i];
+    const derniereLigne = lignes.length === maxLignes - 1;
+    if (ctx.measureText(essai).width <= maxWidthPx || !ligne) {
+      ligne = essai;
+      i++;
+    } else if (derniereLigne) {
+      break; // le reste sera rattaché puis tronqué ci-dessous
+    } else {
+      lignes.push(ligne);
+      ligne = '';
+    }
+  }
+  lignes.push(ligne);
+
+  const derniereIdx = lignes.length - 1;
+  if (i < mots.length) {
+    lignes[derniereIdx] = `${lignes[derniereIdx]} ${mots.slice(i).join(' ')}`.trim();
+  }
+  lignes[derniereIdx] = tronquerTexte(lignes[derniereIdx], maxWidthPx, font);
+  return lignes;
 }
 
 const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
@@ -60,8 +95,8 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
     // Netaa uniquement en repli, pour une école qui n'a pas encore importé le sien.
     const logoSrc = etablissementLogoUrl && !logoEchec ? etablissementLogoUrl : '/logo-reversed.png';
     // Largeur dispo ≈ CARD_W - paddings - logo - badge statut (worst case "INACTIF").
-    const ecoleNomAffiche = useMemo(
-      () => tronquerTexte(ecoleNom, 190, '800 8.5px ' + FONT_STACK),
+    const ecoleNomLignes = useMemo(
+      () => diviserEnLignes(ecoleNom, 190, '800 8.5px ' + FONT_STACK, 2),
       [ecoleNom],
     );
 
@@ -123,14 +158,16 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             style={{ height: '22px', width: '22px', objectFit: 'contain', flexShrink: 0, borderRadius: '3px' }}
             onError={() => setLogoEchec(true)}
           />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              title={ecoleNom}
-              style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap' }}
-            >
-              {ecoleNomAffiche}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '8.5px', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
+          <div style={{ flex: 1, minWidth: 0 }} title={ecoleNom}>
+            {ecoleNomLignes.map((ligne, idx) => (
+              <div
+                key={idx}
+                style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap' }}
+              >
+                {ligne}
+              </div>
+            ))}
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '8.5px', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1.3, marginTop: '1px' }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
           </div>
           <div style={{ marginLeft: 'auto', flexShrink: 0, background: statut === 'ACTIF' ? 'rgba(5,205,153,0.18)' : 'rgba(238,93,80,0.18)', border: `1px solid ${statut === 'ACTIF' ? '#05cd99' : '#ee5d50'}`, borderRadius: '4px', padding: '2px 6px', fontSize: '7px', fontWeight: 700, color: statut === 'ACTIF' ? '#05cd99' : '#ee5d50' }}>
             {statut}
