@@ -1,6 +1,6 @@
 'use client';
 
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Eleve } from '@/types';
 
@@ -24,6 +24,27 @@ const CARD_H = 204;
 const FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
+// html2canvas ne respecte pas fiablement `text-overflow: ellipsis` (limitation
+// connue : il redessine le texte lui-même plutôt que de s'appuyer sur le
+// moteur de rendu du navigateur) — un nom d'établissement long s'affichait
+// tronqué à l'écran mais débordait du cadre dans la carte exportée en PDF.
+// On tronque donc la chaîne elle-même, mesurée au pixel près, pour un rendu
+// identique à l'écran et dans l'export.
+let mesureCanvas: HTMLCanvasElement | null = null;
+function tronquerTexte(texte: string, maxWidthPx: number, font: string): string {
+  if (typeof document === 'undefined') return texte;
+  if (!mesureCanvas) mesureCanvas = document.createElement('canvas');
+  const ctx = mesureCanvas.getContext('2d');
+  if (!ctx) return texte;
+  ctx.font = font;
+  if (ctx.measureText(texte).width <= maxWidthPx) return texte;
+  let tronque = texte;
+  while (tronque.length > 1 && ctx.measureText(tronque + '…').width > maxWidthPx) {
+    tronque = tronque.slice(0, -1);
+  }
+  return tronque + '…';
+}
+
 const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
   ({ eleve, etablissementNom, etablissementLogoUrl, etablissementTelephone, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
     const nom = eleve.profil?.nom?.toUpperCase() || '—';
@@ -38,6 +59,11 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
     // Le logo de l'établissement lui-même sur sa propre carte officielle — celui de
     // Netaa uniquement en repli, pour une école qui n'a pas encore importé le sien.
     const logoSrc = etablissementLogoUrl && !logoEchec ? etablissementLogoUrl : '/logo-reversed.png';
+    // Largeur dispo ≈ CARD_W - paddings - logo - badge statut (worst case "INACTIF").
+    const ecoleNomAffiche = useMemo(
+      () => tronquerTexte(ecoleNom, 190, '800 8.5px ' + FONT_STACK),
+      [ecoleNom],
+    );
 
     // Public QR verification URL
     const verifyUrl = typeof window !== 'undefined'
@@ -98,8 +124,11 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
             onError={() => setLogoEchec(true)}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {ecoleNom}
+            <div
+              title={ecoleNom}
+              style={{ color: '#5AA9DC', fontSize: '8.5px', fontWeight: 800, letterSpacing: '0.03em', lineHeight: 1.35, whiteSpace: 'nowrap' }}
+            >
+              {ecoleNomAffiche}
             </div>
             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '8.5px', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1.3 }}>CARTE D&apos;IDENTITÉ SCOLAIRE</div>
           </div>
