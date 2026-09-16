@@ -90,14 +90,49 @@ export default function CartesScolairesPage() {
       const rowsPerPage = Math.max(1, Math.floor((PAGE_H - 2 * MARGIN_MM + GAP_MM) / (CARD_H_MM + GAP_MM)));
       const perPage = cardsPerRow * rowsPerPage;
 
+      // Les photos/logos viennent du bucket R2, qui ne renvoie pas d'en-têtes
+      // CORS : une balise <img> classique les affiche très bien à l'écran,
+      // mais html2canvas ne peut pas « lire » ses pixels sans CORS — la photo
+      // sortait alors vide du PDF. On relaie chaque image externe via le
+      // backend (même origine autorisée niveau CORS) et on la convertit en
+      // blob local avant la capture. Le cache évite de re-télécharger le
+      // logo de l'établissement, identique sur chaque carte.
+      const blobCache = new Map<string, string>();
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8089/api').replace(/\/+$/, '');
+      const versDataLocale = async (src: string): Promise<string | null> => {
+        if (blobCache.has(src)) return blobCache.get(src)!;
+        try {
+          const res = await fetch(`${apiBase}/public/image-proxy?url=${encodeURIComponent(src)}`);
+          if (!res.ok) return null;
+          const blob = await res.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          blobCache.set(src, objectUrl);
+          return objectUrl;
+        } catch {
+          return null;
+        }
+      };
+      const preparerImagesPourCapture = async (el: HTMLElement) => {
+        const imgs = Array.from(el.querySelectorAll('img'));
+        await Promise.all(
+          imgs.map(async (img) => {
+            if (!img.src.startsWith('http') || img.src.startsWith(window.location.origin)) return;
+            const local = await versDataLocale(img.src);
+            if (local) img.src = local;
+          }),
+        );
+      };
+
       let placed = 0; // nombre de cartes réellement posées (sert au découpage en pages)
       for (let i = 0; i < elevesToShow.length; i++) {
         const eleve = elevesToShow[i];
         const el = carteRefs.current.get(eleve.matricule);
         if (!el) continue;
 
+        await preparerImagesPourCapture(el);
+
         const canvas = await html2canvas(el, {
-          scale: 2,
+          scale: 3,
           useCORS: true,
           backgroundColor: null,
           logging: false,
