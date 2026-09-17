@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from 'lucide-react';
+import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Pencil, Plus, RefreshCw, Search } from 'lucide-react';
 import {
   etablissementService,
   Etablissement,
@@ -100,14 +100,77 @@ export default function SuperAdminEtablissementsPage() {
     return niveauNom ? `${role} — ${niveauNom}` : role;
   };
 
-  const updateDirecteur = (idx: number, patch: Partial<DirecteurForm>) =>
-    setDirecteurs((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
-  const addDirecteur = () => setDirecteurs((prev) => [...prev, { ...EMPTY_DIRECTEUR }]);
-  const removeDirecteur = (idx: number) => setDirecteurs((prev) => prev.filter((_, i) => i !== idx));
+  // Les 5 champs (prénom, nom, identifiant, email, mot de passe) communs à chaque directeur,
+  // réutilisés que ce soit le seul directeur ou l'un des directeurs par niveau.
+  const champsDirecteur = (d: DirecteurForm, onChange: (patch: Partial<DirecteurForm>) => void) => (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Prénom *">
+        <Input required value={d.prenom} onChange={(e) => onChange({ prenom: e.target.value })} />
+      </Field>
+      <Field label="Nom *">
+        <Input required value={d.nom} onChange={(e) => onChange({ nom: e.target.value })} />
+      </Field>
+      <Field label="Nom d'utilisateur (login) *">
+        <Input
+          placeholder="admin.julesverne"
+          required
+          value={d.username}
+          onChange={(e) =>
+            onChange({
+              username: e.target.value,
+              email: d.email || `${e.target.value}@${formData.codeEtablissement || 'ecole'}.netaa-ecole.com`,
+            })
+          }
+        />
+      </Field>
+      <Field label="Email">
+        <Input
+          type="email"
+          placeholder="admin@julesverne.netaa-ecole.com"
+          value={d.email}
+          onChange={(e) => onChange({ email: e.target.value })}
+        />
+      </Field>
+      <Field label="Mot de passe initial *" className="sm:col-span-2">
+        <div className="relative">
+          <Input
+            type={showAdminPassword ? 'text' : 'password'}
+            required
+            minLength={6}
+            placeholder="••••••••"
+            value={d.motDePasse}
+            onChange={(e) => onChange({ motDePasse: e.target.value })}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowAdminPassword((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={showAdminPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+          >
+            {showAdminPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        </div>
+      </Field>
+    </div>
+  );
+
+  // Mode "Un seul directeur" : un seul formulaire, index 0.
+  const updateDirecteurUnique = (patch: Partial<DirecteurForm>) =>
+    setDirecteurs((prev) => prev.map((d, i) => (i === 0 ? { ...d, ...patch } : d)));
+
+  // Mode "Un directeur par niveau" : une case à cocher par niveau. Cocher fait apparaître le
+  // formulaire de cette personne, décocher le retire — pas besoin de bouton "Ajouter".
+  const toggleNiveauDirecteur = (niveauId: number, coche: boolean) =>
+    setDirecteurs((prev) =>
+      coche ? [...prev, { ...EMPTY_DIRECTEUR, niveauSuperviseId: niveauId }] : prev.filter((d) => d.niveauSuperviseId !== niveauId),
+    );
+  const updateDirecteurDeNiveau = (niveauId: number, patch: Partial<DirecteurForm>) =>
+    setDirecteurs((prev) => prev.map((d) => (d.niveauSuperviseId === niveauId ? { ...d, ...patch } : d)));
 
   const changerModeDirection = (mode: 'UNIQUE' | 'PAR_NIVEAU') => {
     setModeDirection(mode);
-    setDirecteurs([{ ...EMPTY_DIRECTEUR }]);
+    setDirecteurs(mode === 'UNIQUE' ? [{ ...EMPTY_DIRECTEUR }] : []);
   };
 
   const labelPlan = (code: string) => {
@@ -143,6 +206,10 @@ export default function SuperAdminEtablissementsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (directeurs.length === 0) {
+      toast.error('Cochez au moins un niveau et renseignez son directeur.');
+      return;
+    }
     setSubmitting(true);
     try {
       const payloadDirecteurs: DirecteurCreationPayload[] = directeurs.map((d) => ({
@@ -608,41 +675,42 @@ export default function SuperAdminEtablissementsPage() {
                 </Field>
               )}
 
-              {directeurs.map((d, idx) => (
-                <div key={idx} className="space-y-3 rounded-lg border border-border p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">{titreDirecteur(d)}</span>
-                    {modeDirection === 'PAR_NIVEAU' && directeurs.length > 1 && (
-                      <Button type="button" size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeDirecteur(idx)}>
-                        <Trash2 /> Retirer
-                      </Button>
-                    )}
-                  </div>
-
-                  {formData.typeEtablissement === 'ECOLE' && modeDirection === 'PAR_NIVEAU' && (
-                    <Field label="Niveau dirigé *">
-                      <Select
-                        required
-                        value={d.niveauSuperviseId ? String(d.niveauSuperviseId) : ''}
-                        onChange={(e) => updateDirecteur(idx, { niveauSuperviseId: e.target.value ? parseInt(e.target.value) : null })}
-                      >
-                        <option value="">— Sélectionner —</option>
-                        {niveaux
-                          .filter((n) => n.id === d.niveauSuperviseId || !directeurs.some((autre, i) => i !== idx && autre.niveauSuperviseId === n.id))
-                          .map((n) => (
-                            <option key={n.id} value={n.id}>{n.nom}</option>
-                          ))}
-                      </Select>
-                    </Field>
+              {formData.typeEtablissement === 'ECOLE' && modeDirection === 'PAR_NIVEAU' ? (
+                // Une case par niveau existant : cocher fait apparaître le formulaire de cette
+                // personne juste en dessous, décocher le retire. Pas de bouton "Ajouter" à chercher.
+                <div className="space-y-3">
+                  {niveaux.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Chargement des niveaux…</p>
                   )}
-                  {formData.typeEtablissement === 'ECOLE' && modeDirection === 'UNIQUE' && (
+                  {niveaux.map((n) => {
+                    const d = directeurs.find((x) => x.niveauSuperviseId === n.id);
+                    return (
+                      <div key={n.id} className="space-y-3 rounded-lg border border-border p-4">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-foreground">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-primary"
+                            checked={!!d}
+                            onChange={(e) => toggleNiveauDirecteur(n.id, e.target.checked)}
+                          />
+                          {roleNomPourNiveau(n.id)} — {n.nom}
+                        </label>
+                        {d && champsDirecteur(d, (patch) => updateDirecteurDeNiveau(n.id, patch))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <span className="text-sm font-semibold text-foreground">{titreDirecteur(directeurs[0] ?? EMPTY_DIRECTEUR)}</span>
+                  {formData.typeEtablissement === 'ECOLE' && (
                     <Field
                       label="Niveau supervisé (optionnel)"
                       hint="Choisir « Lycée » si cet établissement est un lycée : ce compte s'appellera Censeur au lieu de Directeur. Laisser vide pour un accès à tout l'établissement."
                     >
                       <Select
-                        value={d.niveauSuperviseId ? String(d.niveauSuperviseId) : ''}
-                        onChange={(e) => updateDirecteur(idx, { niveauSuperviseId: e.target.value ? parseInt(e.target.value) : null })}
+                        value={directeurs[0]?.niveauSuperviseId ? String(directeurs[0].niveauSuperviseId) : ''}
+                        onChange={(e) => updateDirecteurUnique({ niveauSuperviseId: e.target.value ? parseInt(e.target.value) : null })}
                       >
                         <option value="">— Aucune restriction (tout l&apos;établissement) —</option>
                         {niveaux.map((n) => (
@@ -651,64 +719,8 @@ export default function SuperAdminEtablissementsPage() {
                       </Select>
                     </Field>
                   )}
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Prénom *">
-                      <Input required value={d.prenom} onChange={(e) => updateDirecteur(idx, { prenom: e.target.value })} />
-                    </Field>
-                    <Field label="Nom *">
-                      <Input required value={d.nom} onChange={(e) => updateDirecteur(idx, { nom: e.target.value })} />
-                    </Field>
-                    <Field label="Nom d'utilisateur (login) *">
-                      <Input
-                        placeholder="admin.julesverne"
-                        required
-                        value={d.username}
-                        onChange={(e) =>
-                          updateDirecteur(idx, {
-                            username: e.target.value,
-                            email: d.email || `${e.target.value}@${formData.codeEtablissement || 'ecole'}.netaa-ecole.com`,
-                          })
-                        }
-                      />
-                    </Field>
-                    <Field label="Email">
-                      <Input
-                        type="email"
-                        placeholder="admin@julesverne.netaa-ecole.com"
-                        value={d.email}
-                        onChange={(e) => updateDirecteur(idx, { email: e.target.value })}
-                      />
-                    </Field>
-                    <Field label="Mot de passe initial *" className="sm:col-span-2">
-                      <div className="relative">
-                        <Input
-                          type={showAdminPassword ? 'text' : 'password'}
-                          required
-                          minLength={6}
-                          placeholder="••••••••"
-                          value={d.motDePasse}
-                          onChange={(e) => updateDirecteur(idx, { motDePasse: e.target.value })}
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowAdminPassword((v) => !v)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-                          aria-label={showAdminPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                        >
-                          {showAdminPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                      </div>
-                    </Field>
-                  </div>
+                  {champsDirecteur(directeurs[0] ?? EMPTY_DIRECTEUR, updateDirecteurUnique)}
                 </div>
-              ))}
-
-              {formData.typeEtablissement === 'ECOLE' && modeDirection === 'PAR_NIVEAU' && directeurs.length < niveaux.length && (
-                <Button type="button" variant="outline" onClick={addDirecteur}>
-                  <UserPlus /> Ajouter un directeur de niveau
-                </Button>
               )}
             </fieldset>
 
