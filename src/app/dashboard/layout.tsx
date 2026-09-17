@@ -114,7 +114,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const presencesIdx = menuItems.findIndex((m) => m.path === M.presences.path);
     menuItems.splice(presencesIdx + 1, 0, M.rapportJournalier);
   }
-  const roleLabel = role === 'ENSEIGNANT' && user?.estMonitrice ? 'Monitrice' : ROLE_LABELS[role] || role;
+  // Directeur restreint au niveau Lycée : appellation "Censeur", conforme à l'usage scolaire.
+  // Comparaison souple : le nom réel du niveau peut être plus descriptif que "Lycée" tout court
+  // (ex. "Lycée Secondaire Général (10ème - Terminale)").
+  const estNiveauLycee = /lyc[eé]e/i.test(user?.niveauSuperviseNom || '');
+  const roleLabel =
+    role === 'DIRECTEUR' && estNiveauLycee
+      ? 'Censeur'
+      : role === 'ENSEIGNANT' && user?.estMonitrice
+      ? 'Monitrice'
+      : ROLE_LABELS[role] || role;
   const roleLabelAvecNiveau = user?.niveauSuperviseNom ? `${roleLabel} · ${user.niveauSuperviseNom}` : roleLabel;
   const currentTitle =
     menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||

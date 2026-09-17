@@ -78,7 +78,11 @@ export default function UtilisateursPage() {
   const [nommantDirecteur, setNommantDirecteur] = useState(false);
 
   const ROLES = buildRoles(!!authService.getCurrentUser()?.etablissementUniquementCreche);
-  const roleLabel = (nom: string) => ROLES.find((r) => r.value === nom)?.label ?? nom;
+  // Directeur restreint au niveau Lycée : appellation "Censeur", conforme à l'usage scolaire.
+  // Comparaison souple : le nom réel du niveau peut être plus descriptif que "Lycée" tout court
+  // (ex. "Lycée Secondaire Général (10ème - Terminale)").
+  const roleLabel = (nom: string, niveauSuperviseNom?: string) =>
+    nom === 'DIRECTEUR' && /lyc[eé]e/i.test(niveauSuperviseNom || '') ? 'Censeur' : ROLES.find((r) => r.value === nom)?.label ?? nom;
   const niveauNom = (id?: number) => niveaux.find((n) => n.id === id)?.nom;
 
   const fetchAll = async () => {
@@ -149,13 +153,14 @@ export default function UtilisateursPage() {
         form.username?.trim() ||
         `${form.profil.prenom}.${form.profil.nom}`.toLowerCase().replace(/\s+/g, '');
       const niveauSuperviseId = ROLES_SCOPABLES.has(form.role) && niveauFormId ? parseInt(niveauFormId) : null;
+      const niveauSuperviseNomChoisi = niveauSuperviseId ? niveauNom(niveauSuperviseId) : undefined;
 
       if (editingUser) {
         await utilisateurService.update(editingUser.id, { ...form, username: usernameFinal, niveauSuperviseId });
         toast.success('Compte mis à jour.');
       } else {
         await utilisateurService.create({ ...form, username: usernameFinal, niveauSuperviseId });
-        toast.success(`Compte ${roleLabel(form.role)} créé (identifiant : ${usernameFinal}).`);
+        toast.success(`Compte ${roleLabel(form.role, niveauSuperviseNomChoisi)} créé (identifiant : ${usernameFinal}).`);
       }
       setShowForm(false);
       setEditingUser(null);
@@ -191,7 +196,9 @@ export default function UtilisateursPage() {
     setNommantDirecteur(true);
     try {
       await utilisateurService.nommerDirecteur(parseInt(personneDirecteurId), parseInt(niveauDirecteur));
-      toast.success(`${nom} est maintenant directeur(rice) de ${niveauNom(parseInt(niveauDirecteur))}.`);
+      const niveauCible = niveauNom(parseInt(niveauDirecteur));
+      const fonction = /lyc[eé]e/i.test(niveauCible || '') ? 'censeur(se)' : 'directeur(rice)';
+      toast.success(`${nom} est maintenant ${fonction} de ${niveauCible}.`);
       setShowNommerDirecteur(false);
       await fetchAll();
     } catch (err) {
@@ -282,7 +289,7 @@ export default function UtilisateursPage() {
                 <TableCell className="text-muted-foreground">{u.email || '—'}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    <Badge variant="secondary">{roleLabel(u.role)}</Badge>
+                    <Badge variant="secondary">{roleLabel(u.role, u.niveauSuperviseNom)}</Badge>
                     {u.niveauSuperviseNom && <Badge variant="outline">{u.niveauSuperviseNom}</Badge>}
                   </div>
                 </TableCell>
@@ -407,7 +414,7 @@ export default function UtilisateursPage() {
             <DialogFooter className="sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Annuler</Button>
               <Button type="submit" loading={submitting}>
-                {editingUser ? 'Enregistrer' : `Créer le compte ${roleLabel(form.role)}`}
+                {editingUser ? 'Enregistrer' : `Créer le compte ${roleLabel(form.role, niveauFormId ? niveauNom(parseInt(niveauFormId)) : undefined)}`}
               </Button>
             </DialogFooter>
           </form>
@@ -430,7 +437,7 @@ export default function UtilisateursPage() {
                 <option value="">— Sélectionner —</option>
                 {candidatsDirection.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username} — {roleLabel(u.role)}
+                    {u.profil ? `${u.profil.prenom} ${u.profil.nom}` : u.username} — {roleLabel(u.role, u.niveauSuperviseNom)}
                     {u.niveauSuperviseNom ? ` (${u.niveauSuperviseNom})` : ''}
                   </option>
                 ))}

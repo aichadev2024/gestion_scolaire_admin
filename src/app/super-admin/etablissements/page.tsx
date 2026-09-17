@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Pencil, Plus, RefreshCw, Search } from 'lucide-react';
+import { Ban, Building2, CheckCircle2, Eye, EyeOff, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from 'lucide-react';
 import {
   etablissementService,
   Etablissement,
   CreateEtablissementRequest,
+  DirecteurCreationPayload,
 } from '@/services/etablissement.service';
 import { tarifService, TarifPlan } from '@/services/tarif.service';
+import { classeService } from '@/services/classe.service';
+import { Niveau } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -24,7 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-const EMPTY_FORM: CreateEtablissementRequest = {
+const EMPTY_FORM: Omit<CreateEtablissementRequest, 'directeurs'> = {
   nomEtablissement: '',
   codeEtablissement: '',
   emailContact: '',
@@ -32,10 +35,25 @@ const EMPTY_FORM: CreateEtablissementRequest = {
   adresse: '',
   planTarifaire: 'PRO',
   typeEtablissement: 'ECOLE',
-  adminUsername: '',
-  adminEmail: '',
-  adminMotDePasse: '',
-  adminProfil: { nom: '', prenom: '', telephone: '', adresse: '', genre: 'M', dateNaissance: '1990-01-01' },
+};
+
+// Un directeur en cours de saisie dans le formulaire (état local, converti en DirecteurCreationPayload à la soumission).
+type DirecteurForm = {
+  niveauSuperviseId: number | null;
+  prenom: string;
+  nom: string;
+  username: string;
+  email: string;
+  motDePasse: string;
+};
+
+const EMPTY_DIRECTEUR: DirecteurForm = {
+  niveauSuperviseId: null,
+  prenom: '',
+  nom: '',
+  username: '',
+  email: '',
+  motDePasse: '',
 };
 
 const STATUTS = ['TOUS', 'ACTIF', 'SUSPENDU', 'CLOTURE'] as const;
@@ -49,7 +67,9 @@ export default function SuperAdminEtablissementsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [formData, setFormData] = useState<CreateEtablissementRequest>(EMPTY_FORM);
+  const [formData, setFormData] = useState<Omit<CreateEtablissementRequest, 'directeurs'>>(EMPTY_FORM);
+  const [modeDirection, setModeDirection] = useState<'UNIQUE' | 'PAR_NIVEAU'>('UNIQUE');
+  const [directeurs, setDirecteurs] = useState<DirecteurForm[]>([{ ...EMPTY_DIRECTEUR }]);
   const [nowMs, setNowMs] = useState(0);
   const [renewingEtab, setRenewingEtab] = useState<Etablissement | null>(null);
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
@@ -59,11 +79,36 @@ export default function SuperAdminEtablissementsPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [tarifs, setTarifs] = useState<TarifPlan[]>([]);
+  const [niveaux, setNiveaux] = useState<Niveau[]>([]);
 
   useEffect(() => {
     setNowMs(Date.now());
     tarifService.listerTous().then(setTarifs).catch(() => {});
+    classeService.getNiveaux().then(setNiveaux).catch(() => {});
   }, []);
+
+  // "Censeur" au lieu de "Directeur" quand le compte est restreint au niveau Lycée (cf. dashboard/layout.tsx et utilisateurs/page.tsx).
+  // Comparaison souple : le nom réel du niveau peut être plus descriptif que "Lycée" tout court
+  // (ex. "Lycée Secondaire Général (10ème - Terminale)").
+  const roleNomPourNiveau = (niveauId: number | null) =>
+    /lyc[eé]e/i.test(niveaux.find((n) => n.id === niveauId)?.nom || '') ? 'Censeur' : 'Directeur';
+
+  const titreDirecteur = (d: DirecteurForm) => {
+    if (formData.typeEtablissement === 'CRECHE') return 'Responsable de la crèche';
+    const niveauNom = niveaux.find((n) => n.id === d.niveauSuperviseId)?.nom;
+    const role = roleNomPourNiveau(d.niveauSuperviseId);
+    return niveauNom ? `${role} — ${niveauNom}` : role;
+  };
+
+  const updateDirecteur = (idx: number, patch: Partial<DirecteurForm>) =>
+    setDirecteurs((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+  const addDirecteur = () => setDirecteurs((prev) => [...prev, { ...EMPTY_DIRECTEUR }]);
+  const removeDirecteur = (idx: number) => setDirecteurs((prev) => prev.filter((_, i) => i !== idx));
+
+  const changerModeDirection = (mode: 'UNIQUE' | 'PAR_NIVEAU') => {
+    setModeDirection(mode);
+    setDirecteurs([{ ...EMPTY_DIRECTEUR }]);
+  };
 
   const labelPlan = (code: string) => {
     const t = tarifs.find((x) => x.code === code);
@@ -100,10 +145,24 @@ export default function SuperAdminEtablissementsPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await etablissementService.creer(formData);
-      toast.success('Établissement et compte directeur créés.');
+      const payloadDirecteurs: DirecteurCreationPayload[] = directeurs.map((d) => ({
+        username: d.username,
+        email: d.email || undefined,
+        motDePasse: d.motDePasse,
+        profil: { nom: d.nom, prenom: d.prenom, telephone: '', adresse: '', genre: 'M', dateNaissance: '1990-01-01' },
+        niveauSuperviseId: d.niveauSuperviseId,
+      }));
+      await etablissementService.creer({ ...formData, directeurs: payloadDirecteurs });
+      const labels = directeurs.map((d) => roleNomPourNiveau(d.niveauSuperviseId).toLowerCase());
+      toast.success(
+        directeurs.length === 1
+          ? `Établissement et compte ${labels[0]} créés.`
+          : `Établissement créé avec ${directeurs.length} comptes de direction (${labels.join(', ')}) — chacun a reçu son e-mail d'identifiants.`,
+      );
       setModalOpen(false);
       setFormData(EMPTY_FORM);
+      setModeDirection('UNIQUE');
+      setDirecteurs([{ ...EMPTY_DIRECTEUR }]);
       chargerEtablissements();
     } catch (err) {
       toast.error(errorMessage(err, "Erreur lors de la création de l'établissement."));
@@ -431,7 +490,13 @@ export default function SuperAdminEtablissementsPage() {
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setFormData({ ...formData, typeEtablissement: t })}
+                      onClick={() => {
+                        setFormData({ ...formData, typeEtablissement: t });
+                        if (t === 'CRECHE') {
+                          setModeDirection('UNIQUE');
+                          setDirecteurs([{ ...EMPTY_DIRECTEUR }]);
+                        }
+                      }}
                       className={cn(
                         'rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors',
                         formData.typeEtablissement === t
@@ -513,79 +578,138 @@ export default function SuperAdminEtablissementsPage() {
               </Field>
             </fieldset>
 
-            <fieldset className="grid gap-4 sm:grid-cols-2">
+            <fieldset className="space-y-4">
               <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
-                2. {formData.typeEtablissement === 'CRECHE' ? 'Responsable de la crèche' : "Directeur de l'établissement"}
+                2. Direction de l&apos;établissement
               </legend>
-              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Prénom du/de la responsable *' : 'Prénom du directeur *'}>
-                <Input
-                  required
-                  value={formData.adminProfil.prenom}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      adminProfil: { ...formData.adminProfil, prenom: e.target.value },
-                    })
-                  }
-                />
-              </Field>
-              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Nom du/de la responsable *' : 'Nom du directeur *'}>
-                <Input
-                  required
-                  value={formData.adminProfil.nom}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      adminProfil: { ...formData.adminProfil, nom: e.target.value },
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Nom d'utilisateur (login) *">
-                <Input
-                  placeholder="admin.julesverne"
-                  required
-                  value={formData.adminUsername}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      adminUsername: e.target.value,
-                      adminEmail:
-                        formData.adminEmail ||
-                        `${e.target.value}@${formData.codeEtablissement || 'ecole'}.netaa-ecole.com`,
-                    })
-                  }
-                />
-              </Field>
-              <Field label={formData.typeEtablissement === 'CRECHE' ? 'Email du/de la responsable' : 'Email du directeur'}>
-                <Input
-                  type="email"
-                  placeholder="admin@julesverne.netaa-ecole.com"
-                  value={formData.adminEmail}
-                  onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
-                />
-              </Field>
-              <Field label="Mot de passe initial *" className="sm:col-span-2">
-                <div className="relative">
-                  <Input
-                    type={showAdminPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    placeholder="••••••••"
-                    value={formData.adminMotDePasse}
-                    onChange={(e) => setFormData({ ...formData, adminMotDePasse: e.target.value })}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAdminPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-                    aria-label={showAdminPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  >
-                    {showAdminPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
+
+              {formData.typeEtablissement === 'ECOLE' && (
+                <Field
+                  label="Organisation de la direction"
+                  hint="Certains établissements ont un seul directeur qui gère tous les niveaux ; d'autres ont un directeur différent par niveau (ex. un censeur pour le Lycée). Chaque directeur créé reçoit son propre e-mail avec ses identifiants."
+                >
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['UNIQUE', 'PAR_NIVEAU'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => changerModeDirection(m)}
+                        className={cn(
+                          'rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors',
+                          modeDirection === m
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-muted-foreground hover:border-primary/40',
+                        )}
+                      >
+                        {m === 'UNIQUE' ? 'Un seul directeur' : 'Un directeur par niveau'}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              )}
+
+              {directeurs.map((d, idx) => (
+                <div key={idx} className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-foreground">{titreDirecteur(d)}</span>
+                    {modeDirection === 'PAR_NIVEAU' && directeurs.length > 1 && (
+                      <Button type="button" size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeDirecteur(idx)}>
+                        <Trash2 /> Retirer
+                      </Button>
+                    )}
+                  </div>
+
+                  {formData.typeEtablissement === 'ECOLE' && modeDirection === 'PAR_NIVEAU' && (
+                    <Field label="Niveau dirigé *">
+                      <Select
+                        required
+                        value={d.niveauSuperviseId ? String(d.niveauSuperviseId) : ''}
+                        onChange={(e) => updateDirecteur(idx, { niveauSuperviseId: e.target.value ? parseInt(e.target.value) : null })}
+                      >
+                        <option value="">— Sélectionner —</option>
+                        {niveaux
+                          .filter((n) => n.id === d.niveauSuperviseId || !directeurs.some((autre, i) => i !== idx && autre.niveauSuperviseId === n.id))
+                          .map((n) => (
+                            <option key={n.id} value={n.id}>{n.nom}</option>
+                          ))}
+                      </Select>
+                    </Field>
+                  )}
+                  {formData.typeEtablissement === 'ECOLE' && modeDirection === 'UNIQUE' && (
+                    <Field
+                      label="Niveau supervisé (optionnel)"
+                      hint="Choisir « Lycée » si cet établissement est un lycée : ce compte s'appellera Censeur au lieu de Directeur. Laisser vide pour un accès à tout l'établissement."
+                    >
+                      <Select
+                        value={d.niveauSuperviseId ? String(d.niveauSuperviseId) : ''}
+                        onChange={(e) => updateDirecteur(idx, { niveauSuperviseId: e.target.value ? parseInt(e.target.value) : null })}
+                      >
+                        <option value="">— Aucune restriction (tout l&apos;établissement) —</option>
+                        {niveaux.map((n) => (
+                          <option key={n.id} value={n.id}>{n.nom}</option>
+                        ))}
+                      </Select>
+                    </Field>
+                  )}
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Prénom *">
+                      <Input required value={d.prenom} onChange={(e) => updateDirecteur(idx, { prenom: e.target.value })} />
+                    </Field>
+                    <Field label="Nom *">
+                      <Input required value={d.nom} onChange={(e) => updateDirecteur(idx, { nom: e.target.value })} />
+                    </Field>
+                    <Field label="Nom d'utilisateur (login) *">
+                      <Input
+                        placeholder="admin.julesverne"
+                        required
+                        value={d.username}
+                        onChange={(e) =>
+                          updateDirecteur(idx, {
+                            username: e.target.value,
+                            email: d.email || `${e.target.value}@${formData.codeEtablissement || 'ecole'}.netaa-ecole.com`,
+                          })
+                        }
+                      />
+                    </Field>
+                    <Field label="Email">
+                      <Input
+                        type="email"
+                        placeholder="admin@julesverne.netaa-ecole.com"
+                        value={d.email}
+                        onChange={(e) => updateDirecteur(idx, { email: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Mot de passe initial *" className="sm:col-span-2">
+                      <div className="relative">
+                        <Input
+                          type={showAdminPassword ? 'text' : 'password'}
+                          required
+                          minLength={6}
+                          placeholder="••••••••"
+                          value={d.motDePasse}
+                          onChange={(e) => updateDirecteur(idx, { motDePasse: e.target.value })}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPassword((v) => !v)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                          aria-label={showAdminPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        >
+                          {showAdminPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                    </Field>
+                  </div>
                 </div>
-              </Field>
+              ))}
+
+              {formData.typeEtablissement === 'ECOLE' && modeDirection === 'PAR_NIVEAU' && directeurs.length < niveaux.length && (
+                <Button type="button" variant="outline" onClick={addDirecteur}>
+                  <UserPlus /> Ajouter un directeur de niveau
+                </Button>
+              )}
             </fieldset>
 
             <DialogFooter>
@@ -593,7 +717,7 @@ export default function SuperAdminEtablissementsPage() {
                 Annuler
               </Button>
               <Button type="submit" loading={submitting}>
-                Créer l&apos;établissement &amp; l&apos;admin
+                Créer l&apos;établissement {directeurs.length > 1 ? `& les ${directeurs.length} comptes` : "& l'admin"}
               </Button>
             </DialogFooter>
           </form>

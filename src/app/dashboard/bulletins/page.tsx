@@ -398,7 +398,7 @@ export default function BulletinsPage() {
                   <p style={{ margin: 0, fontSize: '10px', color: '#888', textAlign: 'center' }}>(Visa)</p>
                 </div>
                 <div style={{ width: '200px', border: '1px solid #1B365D', padding: '12px', borderRadius: '6px', minHeight: '110px', display: 'flex', flexDirection: 'column' }}>
-                  <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', textTransform: 'uppercase', color: '#1B365D', fontWeight: 800, textAlign: 'center' }}>Le Directeur</h4>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', textTransform: 'uppercase', color: '#1B365D', fontWeight: 800, textAlign: 'center' }}>{currentCategory === 'LYCEE' ? 'Le Censeur' : 'Le Directeur'}</h4>
                   <div style={{ flex: 1 }}></div>
                   <p style={{ margin: 0, fontSize: '10px', color: '#888', textAlign: 'center' }}>(Signature &amp; cachet)</p>
                 </div>

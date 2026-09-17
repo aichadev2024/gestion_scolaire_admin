@@ -20,6 +20,22 @@ export interface Etablissement {
   adminEmail?: string;
 }
 
+export interface DirecteurCreationPayload {
+  username: string;
+  email?: string;
+  motDePasse: string;
+  profil: {
+    nom: string;
+    prenom: string;
+    telephone: string;
+    adresse: string;
+    genre: 'M' | 'F';
+    dateNaissance: string;
+  };
+  /** Niveau auquel restreindre ce compte (ex. Lycée → "Censeur") — null/absent = accès à tout l'établissement ("Directeur"). */
+  niveauSuperviseId?: number | null;
+}
+
 export interface CreateEtablissementRequest {
   nomEtablissement: string;
   codeEtablissement: string;
@@ -29,17 +45,9 @@ export interface CreateEtablissementRequest {
   planTarifaire?: string;
   dateExpirationAbonnement?: string;
   typeEtablissement?: 'ECOLE' | 'CRECHE';
-  adminUsername: string;
-  adminEmail?: string;
-  adminMotDePasse: string;
-  adminProfil: {
-    nom: string;
-    prenom: string;
-    telephone: string;
-    adresse: string;
-    genre: 'M' | 'F';
-    dateNaissance: string;
-  };
+  /** Un seul directeur (accès à tout) pour la plupart des écoles, ou plusieurs — un par niveau
+   * (ex. Censeur du Lycée + Directeur du Collège) — pour les établissements organisés ainsi. */
+  directeurs: DirecteurCreationPayload[];
 }
 
 export const etablissementService = {
