@@ -28,10 +28,8 @@ export interface IncidentDisciplineItem {
     matiere: { nom: string };
     enseignant?: { profil: { nom: string; prenom: string } };
   };
-  enregistrePar?: {
-    id: number;
-    username: string;
-  };
+  classeId?: number;
+  enregistreParNom?: string;
 }
 
 export const incidentDisciplineService = {
