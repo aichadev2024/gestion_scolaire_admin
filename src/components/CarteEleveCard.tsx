@@ -155,7 +155,7 @@ const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
           <img
             src={logoSrc}
             alt={ecoleNom}
-            style={{ height: '22px', width: '22px', objectFit: 'contain', flexShrink: 0, borderRadius: '3px' }}
+            style={{ height: '34px', width: '34px', objectFit: 'contain', flexShrink: 0, borderRadius: '3px' }}
             onError={() => setLogoEchec(true)}
           />
           <div style={{ flex: 1, minWidth: 0 }} title={ecoleNom}>

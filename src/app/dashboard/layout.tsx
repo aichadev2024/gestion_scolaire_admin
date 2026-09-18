@@ -206,8 +206,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               {user?.etablissementLogoUrl ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={user.etablissementLogoUrl} alt={user.etablissementNom || 'Logo'} className="h-8 w-8 shrink-0 rounded object-contain" />
-                  <span className="truncate text-sm font-bold text-foreground">{user.etablissementNom}</span>
+                  <img src={user.etablissementLogoUrl} alt={user.etablissementNom || 'Logo'} className="h-11 w-11 shrink-0 rounded object-contain" />
+                  <span className="line-clamp-2 text-sm font-bold leading-tight text-foreground">{user.etablissementNom}</span>
                 </>
               ) : (
                 <Logo markClassName="h-8 w-8" />
