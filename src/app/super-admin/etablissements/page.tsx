@@ -70,12 +70,14 @@ export default function SuperAdminEtablissementsPage() {
   const [formData, setFormData] = useState<Omit<CreateEtablissementRequest, 'directeurs'>>(EMPTY_FORM);
   const [modeDirection, setModeDirection] = useState<'UNIQUE' | 'PAR_NIVEAU'>('UNIQUE');
   const [directeurs, setDirecteurs] = useState<DirecteurForm[]>([{ ...EMPTY_DIRECTEUR }]);
+  const [niveauIdsEtab, setNiveauIdsEtab] = useState<number[]>([]);
   const [nowMs, setNowMs] = useState(0);
   const [renewingEtab, setRenewingEtab] = useState<Etablissement | null>(null);
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
   const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '' });
+  const [niveauIdsEdit, setNiveauIdsEdit] = useState<number[]>([]);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [tarifs, setTarifs] = useState<TarifPlan[]>([]);
@@ -219,7 +221,7 @@ export default function SuperAdminEtablissementsPage() {
         profil: { nom: d.nom, prenom: d.prenom, telephone: '', adresse: '', genre: 'M', dateNaissance: '1990-01-01' },
         niveauSuperviseId: d.niveauSuperviseId,
       }));
-      await etablissementService.creer({ ...formData, directeurs: payloadDirecteurs });
+      await etablissementService.creer({ ...formData, directeurs: payloadDirecteurs, niveauIds: niveauIdsEtab });
       const labels = directeurs.map((d) => roleNomPourNiveau(d.niveauSuperviseId).toLowerCase());
       toast.success(
         directeurs.length === 1
@@ -230,6 +232,7 @@ export default function SuperAdminEtablissementsPage() {
       setFormData(EMPTY_FORM);
       setModeDirection('UNIQUE');
       setDirecteurs([{ ...EMPTY_DIRECTEUR }]);
+      setNiveauIdsEtab([]);
       chargerEtablissements();
     } catch (err) {
       toast.error(errorMessage(err, "Erreur lors de la création de l'établissement."));
@@ -248,6 +251,7 @@ export default function SuperAdminEtablissementsPage() {
       devise: e.devise || 'FCFA',
       slogan: e.slogan || '',
     });
+    setNiveauIdsEdit(e.niveauIds || []);
   };
 
   const handleModifierInfos = async (ev: React.FormEvent) => {
@@ -255,7 +259,7 @@ export default function SuperAdminEtablissementsPage() {
     if (!editingEtab) return;
     setEditSubmitting(true);
     try {
-      await etablissementService.modifierInfos(editingEtab.id, editForm);
+      await etablissementService.modifierInfos(editingEtab.id, { ...editForm, niveauIds: niveauIdsEdit });
       toast.success('Coordonnées mises à jour.');
       setEditingEtab(null);
       chargerEtablissements();
@@ -576,6 +580,37 @@ export default function SuperAdminEtablissementsPage() {
                   ))}
                 </div>
               </Field>
+              {formData.typeEtablissement === 'ECOLE' && (
+                <Field
+                  label="Niveaux proposés"
+                  className="sm:col-span-2"
+                  hint="Cochez les niveaux que cet établissement propose (ex. Lycée Général + Enseignement Professionnel). Rien coché = aucune restriction, tous les niveaux restent utilisables."
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {niveaux.map((n) => (
+                      <label
+                        key={n.id}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-medium transition-colors',
+                          niveauIdsEtab.includes(n.id)
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-muted-foreground hover:border-primary/40',
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-3.5 accent-primary"
+                          checked={niveauIdsEtab.includes(n.id)}
+                          onChange={(e) =>
+                            setNiveauIdsEtab((prev) => (e.target.checked ? [...prev, n.id] : prev.filter((id) => id !== n.id)))
+                          }
+                        />
+                        {n.nom}
+                      </label>
+                    ))}
+                  </div>
+                </Field>
+              )}
               <Field label={formData.typeEtablissement === 'CRECHE' ? 'Nom de la crèche *' : "Nom de l'établissement *"}>
                 <Input
                   placeholder={formData.typeEtablissement === 'CRECHE' ? 'Ex : Crèche Les Petits Anges' : 'Ex : Lycée Jules Verne'}
@@ -800,6 +835,36 @@ export default function SuperAdminEtablissementsPage() {
                   onChange={(e) => setEditForm({ ...editForm, slogan: e.target.value })}
                 />
               </Field>
+              {editingEtab?.typeEtablissement === 'ECOLE' && (
+                <Field
+                  label="Niveaux proposés"
+                  hint="Cochez les niveaux que cet établissement propose (ex. Lycée Général + Enseignement Professionnel). Rien coché = aucune restriction."
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {niveaux.map((n) => (
+                      <label
+                        key={n.id}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-medium transition-colors',
+                          niveauIdsEdit.includes(n.id)
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-muted-foreground hover:border-primary/40',
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-3.5 accent-primary"
+                          checked={niveauIdsEdit.includes(n.id)}
+                          onChange={(e) =>
+                            setNiveauIdsEdit((prev) => (e.target.checked ? [...prev, n.id] : prev.filter((id) => id !== n.id)))
+                          }
+                        />
+                        {n.nom}
+                      </label>
+                    ))}
+                  </div>
+                </Field>
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditingEtab(null)}>
                   Annuler

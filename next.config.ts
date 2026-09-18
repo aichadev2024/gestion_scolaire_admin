@@ -14,14 +14,17 @@ function apiOrigin(): string {
 const csp = [
   "default-src 'self'",
   // Next injecte des scripts inline pour l'hydratation ; 'unsafe-eval' requis en dev (HMR / React Refresh).
-  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
+  // gstatic.com : le service worker firebase-messaging-sw.js charge le SDK Firebase compat via
+  // importScripts (seule façon de faire tourner Firebase Messaging dans un service worker).
+  `script-src 'self' 'unsafe-inline' https://www.gstatic.com${isProd ? '' : " 'unsafe-eval'"}`,
   // L'app utilise exclusivement des styles inline (refonte Tailwind + nonce prévue en Phase 3).
   "style-src 'self' 'unsafe-inline'",
   // Photos/documents hébergés sur Cloudflare R2 (sous-domaine public r2.dev — le hash est
   // propre à chaque bucket et peut changer si l'accès public est régénéré, d'où le joker).
   "img-src 'self' data: blob: https://*.r2.dev",
   "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin()}${isProd ? '' : ' ws: http://localhost:*'}`,
+  // fcm.googleapis.com/firebaseinstallations.googleapis.com : requêtes du SDK Firebase Web Push.
+  `connect-src 'self' ${apiOrigin()} https://fcm.googleapis.com https://firebaseinstallations.googleapis.com${isProd ? '' : ' ws: http://localhost:*'}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

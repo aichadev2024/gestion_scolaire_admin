@@ -26,6 +26,8 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/bulletins',
     '/dashboard/finances',
     '/dashboard/utilisateurs',
+    '/dashboard/discipline',
+    '/dashboard/niveaux',
   ],
   SECRETAIRE: [
     '/dashboard',
@@ -37,6 +39,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/cartes-scolaires',
     '/dashboard/notes',
     '/dashboard/bulletins',
+    '/dashboard/discipline',
   ],
   COMPTABLE: [
     '/dashboard',
@@ -49,6 +52,15 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/presences',
     '/dashboard/notes',
     '/dashboard/bulletins',
+  ],
+  // Surveillance générale : discipline (retards, absences, tenue, refus de
+  // travail) restreint par niveau via niveauSupervise comme les autres
+  // comptes transverses ; lecture élèves/classes pour naviguer vers une fiche.
+  SURVEILLANT_GENERAL: [
+    '/dashboard',
+    '/dashboard/eleves',
+    '/dashboard/classes',
+    '/dashboard/discipline',
   ],
   // ÉLÈVE et PARENT n'ont pas d'accès web (voir /mobile-uniquement) — ils
   // utilisent l'application mobile. Volontairement absents de cette liste.

@@ -12,17 +12,22 @@ import {
   CreditCard,
   GraduationCap,
   KeyRound,
+  Layers,
   LayoutDashboard,
   LogOut,
   Menu,
   School,
   ScrollText,
+  ShieldAlert,
   UsersRound,
   Wallet,
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { authService } from '@/services/auth.service';
+import { getMessagingIfSupported } from '@/lib/firebase';
+import { pushNotificationService } from '@/services/pushNotification.service';
 import { Logo } from '@/components/logo';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
@@ -46,14 +51,17 @@ const M = {
   finances: { name: 'Finances', path: '/dashboard/finances', icon: Wallet },
   utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
   rapportJournalier: { name: 'Rapport journalier', path: '/dashboard/rapport-journalier', icon: Baby },
+  niveaux: { name: 'Niveaux', path: '/dashboard/niveaux', icon: Layers },
+  discipline: { name: 'Discipline', path: '/dashboard/discipline', icon: ShieldAlert },
 } satisfies Record<string, MenuItem>;
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.niveaux],
+  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline],
   COMPTABLE: [M.dashboard, M.finances],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
+  SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -62,6 +70,7 @@ const ROLE_LABELS: Record<string, string> = {
   SECRETAIRE: 'Secrétariat',
   COMPTABLE: 'Comptabilité',
   ENSEIGNANT: 'Enseignant',
+  SURVEILLANT_GENERAL: 'Surveillance générale',
 };
 
 type SessionUser = {
@@ -88,6 +97,46 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUser(authService.getCurrentUser());
+  }, []);
+
+  // Une seule fois par session (montage du layout) : demande la permission notification si elle
+  // n'a jamais été tranchée (`default`), enregistre le token push, et écoute les notifications
+  // reçues onglet ouvert (Firebase ne les affiche PAS automatiquement dans ce cas, contrairement
+  // à l'arrière-plan/onglet fermé, géré par public/firebase-messaging-sw.js).
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+
+    let unsubscribe: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const messaging = await getMessagingIfSupported();
+        if (!messaging) return;
+
+        const { getToken, onMessage } = await import('firebase/messaging');
+
+        if (Notification.permission === 'default') {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') return;
+        }
+        if (Notification.permission !== 'granted') return;
+
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+        if (token) await pushNotificationService.enregistrerToken(token, 'WEB');
+
+        unsubscribe = onMessage(messaging, (payload) => {
+          const { title, body } = payload.notification || {};
+          toast(title || 'Notification', { description: body });
+        });
+      } catch {
+        // Navigateur non compatible, permission refusée, ou Firebase non configuré : silencieux,
+        // l'utilisateur garde l'accès aux notifications via l'écran existant.
+      }
+    })();
+
+    return () => unsubscribe?.();
   }, []);
 
   useEffect(() => {

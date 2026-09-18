@@ -10,6 +10,7 @@ import {
   LockOpen,
   Pencil,
   Plus,
+  ShieldAlert,
   ShieldCheck,
   Trash2,
   Users,
@@ -44,6 +45,7 @@ function buildRoles(uniquementCreche: boolean): { value: string; label: string; 
     { value: 'SECRETAIRE', label: 'Secrétaire', Icon: ClipboardList },
     { value: 'COMPTABLE', label: 'Comptable', Icon: Wallet },
     { value: 'ENSEIGNANT', label: uniquementCreche ? 'Monitrice' : 'Enseignant', Icon: UsersRound },
+    { value: 'SURVEILLANT_GENERAL', label: 'Surveillant général', Icon: ShieldAlert },
     { value: 'PROMOTEUR', label: 'Promoteur', Icon: Briefcase },
     { value: 'PARENT', label: 'Parent', Icon: Users },
   ];
@@ -59,7 +61,7 @@ const EMPTY: RegisterPayload = {
 
 // Rôles dont l'accès peut être restreint à un seul niveau — PROMOTEUR (mobile, toujours vue
 // d'ensemble) et PARENT n'ont pas de sens ici.
-const ROLES_SCOPABLES = new Set(['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT']);
+const ROLES_SCOPABLES = new Set(['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT', 'SURVEILLANT_GENERAL']);
 
 export default function UtilisateursPage() {
   const [utilisateurs, setUtilisateurs] = useState<UtilisateurResponse[]>([]);

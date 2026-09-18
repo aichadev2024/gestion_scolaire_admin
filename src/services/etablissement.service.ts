@@ -18,6 +18,9 @@ export interface Etablissement {
   adminUsername?: string;
   adminNomComplet?: string;
   adminEmail?: string;
+  /** Niveaux proposés par cet établissement — vide = aucune restriction. */
+  niveauIds?: number[];
+  niveauNoms?: string[];
 }
 
 export interface DirecteurCreationPayload {
@@ -48,6 +51,8 @@ export interface CreateEtablissementRequest {
   /** Un seul directeur (accès à tout) pour la plupart des écoles, ou plusieurs — un par niveau
    * (ex. Censeur du Lycée + Directeur du Collège) — pour les établissements organisés ainsi. */
   directeurs: DirecteurCreationPayload[];
+  /** Niveaux que cet établissement propose — vide/absent = aucune restriction. */
+  niveauIds?: number[];
 }
 
 export const etablissementService = {
@@ -63,7 +68,7 @@ export const etablissementService = {
 
   modifierInfos: async (
     id: number,
-    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string },
+    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string; niveauIds?: number[] },
   ): Promise<Etablissement> => {
     const response = await api.put<Etablissement>(`/super-admin/etablissements/${id}`, data);
     return response.data;
