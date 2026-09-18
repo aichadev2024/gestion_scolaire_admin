@@ -7,6 +7,7 @@ import { eleveService, EleveImportRapport } from '@/services/eleve.service';
 import DocumentsEleveDialog from '@/components/DocumentsEleveDialog';
 import { classeService } from '@/services/classe.service';
 import { profilService } from '@/services/profil.service';
+import { authService } from '@/services/auth.service';
 import { utilisateurService, UtilisateurResponse } from '@/services/utilisateur.service';
 import { Eleve, Classe } from '@/types';
 import CredentialsBanner from '@/components/CredentialsBanner';
@@ -153,17 +154,25 @@ export default function ElevesPage() {
     setShowForm(true);
   };
 
+  const [lectureSeule, setLectureSeule] = useState(false);
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [elevesData, classesData, usersData] = await Promise.all([
+      const [elevesData, classesData] = await Promise.all([
         eleveService.getEleves(),
         classeService.getClasses(),
-        utilisateurService.getAll(),
       ]);
       setEleves(elevesData);
       setClasses(classesData);
-      setParents(usersData.filter((u) => u.role === 'PARENT'));
+      // La liste des parents ne sert qu'au formulaire d'inscription : réservée au directeur,
+      // son refus (403) ne doit pas empêcher les autres rôles de consulter les élèves.
+      try {
+        const usersData = await utilisateurService.getAll();
+        setParents(usersData.filter((u) => u.role === 'PARENT'));
+      } catch {
+        setParents([]);
+      }
     } catch {
       toast.error('Impossible de charger la liste des élèves.');
     } finally {
@@ -173,6 +182,7 @@ export default function ElevesPage() {
 
   useEffect(() => {
     fetchData();
+    setLectureSeule(authService.getCurrentUser()?.role === 'SURVEILLANT_GENERAL');
   }, []);
 
   const handleInputChange = (
@@ -407,17 +417,19 @@ export default function ElevesPage() {
             : `${elevesFiltres.length} élève(s)${elevesFiltres.length !== eleves.length ? ` sur ${eleves.length}` : ' inscrit(s)'}`
         }
       >
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={openImportDialog}>
-            <Upload /> Importer (Excel)
-          </Button>
-          <Button variant="outline" onClick={() => setShowRecap(true)}>
-            <Download /> Récapitulatif annuel
-          </Button>
-          <Button onClick={openNewForm}>
-            <Plus /> Nouvel élève
-          </Button>
-        </div>
+        {!lectureSeule && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={openImportDialog}>
+              <Upload /> Importer (Excel)
+            </Button>
+            <Button variant="outline" onClick={() => setShowRecap(true)}>
+              <Download /> Récapitulatif annuel
+            </Button>
+            <Button onClick={openNewForm}>
+              <Plus /> Nouvel élève
+            </Button>
+          </div>
+        )}
       </PageHeader>
 
       {!loading && eleves.length > 0 && (
@@ -469,11 +481,17 @@ export default function ElevesPage() {
         <EmptyState
           icon={<GraduationCap />}
           title="Aucun élève inscrit"
-          description="Commencez par inscrire un élève. Un compte lui sera créé automatiquement."
+          description={
+            lectureSeule
+              ? "Aucun élève n'est encore inscrit dans votre périmètre."
+              : 'Commencez par inscrire un élève. Un compte lui sera créé automatiquement.'
+          }
           action={
-            <Button onClick={openNewForm}>
-              <Plus /> Inscrire un élève
-            </Button>
+            lectureSeule ? undefined : (
+              <Button onClick={openNewForm}>
+                <Plus /> Inscrire un élève
+              </Button>
+            )
           }
         />
       ) : elevesFiltres.length === 0 ? (
@@ -539,44 +557,58 @@ export default function ElevesPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={eleve.statutInscription || 'VALIDEE'}
-                    onChange={(e) => handleStatutInscriptionChange(eleve, e.target.value)}
-                    className={`h-8 w-36 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_INSCRIPTION_COLOR[eleve.statutInscription || 'VALIDEE']}`}
-                  >
-                    {Object.entries(STATUT_INSCRIPTION_LABEL).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={eleve.statutPedagogique || 'REGULIER'}
-                    onChange={(e) => handleStatutPedagogiqueChange(eleve, e.target.value)}
-                    className={`h-8 w-32 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_PEDAGOGIQUE_COLOR[eleve.statutPedagogique || 'REGULIER']}`}
-                  >
-                    {Object.entries(STATUT_PEDAGOGIQUE_LABEL).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1.5">
-                    <Button size="sm" variant="ghost" onClick={() => setDocsEleve(eleve)}>
-                      <FileText /> Documents
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => openEditForm(eleve)}>
-                      <Pencil /> Modifier
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => handleDelete(eleve)}
+                  {lectureSeule ? (
+                    <span className={`text-xs font-semibold ${STATUT_INSCRIPTION_COLOR[eleve.statutInscription || 'VALIDEE']}`}>
+                      {STATUT_INSCRIPTION_LABEL[eleve.statutInscription || 'VALIDEE']}
+                    </span>
+                  ) : (
+                    <Select
+                      value={eleve.statutInscription || 'VALIDEE'}
+                      onChange={(e) => handleStatutInscriptionChange(eleve, e.target.value)}
+                      className={`h-8 w-36 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_INSCRIPTION_COLOR[eleve.statutInscription || 'VALIDEE']}`}
                     >
-                      <Trash2 /> Supprimer
-                    </Button>
-                  </div>
+                      {Object.entries(STATUT_INSCRIPTION_LABEL).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </Select>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {lectureSeule ? (
+                    <span className={`text-xs font-semibold ${STATUT_PEDAGOGIQUE_COLOR[eleve.statutPedagogique || 'REGULIER']}`}>
+                      {STATUT_PEDAGOGIQUE_LABEL[eleve.statutPedagogique || 'REGULIER']}
+                    </span>
+                  ) : (
+                    <Select
+                      value={eleve.statutPedagogique || 'REGULIER'}
+                      onChange={(e) => handleStatutPedagogiqueChange(eleve, e.target.value)}
+                      className={`h-8 w-32 py-1 pl-2.5 pr-7 text-xs font-semibold ${STATUT_PEDAGOGIQUE_COLOR[eleve.statutPedagogique || 'REGULIER']}`}
+                    >
+                      {Object.entries(STATUT_PEDAGOGIQUE_LABEL).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </Select>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {!lectureSeule && (
+                    <div className="flex justify-end gap-1.5">
+                      <Button size="sm" variant="ghost" onClick={() => setDocsEleve(eleve)}>
+                        <FileText /> Documents
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => openEditForm(eleve)}>
+                        <Pencil /> Modifier
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleDelete(eleve)}
+                      >
+                        <Trash2 /> Supprimer
+                      </Button>
+                    </div>
+                  )}
                 </TableCell>
                   </TableRow>
                 ))}
