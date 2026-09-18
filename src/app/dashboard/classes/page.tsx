@@ -318,7 +318,7 @@ export default function ClassesPage() {
             description={
               isEnseignant
                 ? "Aucune classe ne vous est assignée pour le moment — contactez la direction."
-                : 'Créez vos classes (Terminale, 9ème A, CM2…) pour y inscrire des élèves.'
+                : 'Créez vos classes pour y inscrire des élèves.'
             }
             action={isEnseignant ? undefined : <Button onClick={openCreateClasse}><Plus /> Créer une classe</Button>}
           />
@@ -525,9 +525,8 @@ export default function ClassesPage() {
           <form onSubmit={handleClasseSubmit} className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Nom de la classe *"
-              hint="Pour plusieurs sections d'un même niveau (sous-classes), créez une classe par section avec un nom différent : 2ème Année A1, 2ème Année A2, 2ème Année B…"
             >
-              <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder="Ex : 2ème Année A1" required />
+              <Input value={classeForm.nom} onChange={(e) => setClasseForm({ ...classeForm, nom: e.target.value })} placeholder="Ex : Section A" required />
             </Field>
             <Field label="Niveau *" hint={niveauSuperviseId ? 'Votre compte est restreint à ce niveau.' : undefined}>
               <Select
@@ -547,7 +546,7 @@ export default function ClassesPage() {
                 value={classeForm.enseignantPrincipalId}
                 onChange={(e) => setClasseForm({ ...classeForm, enseignantPrincipalId: e.target.value })}
               >
-                <option value="">Aucun — multi-enseignants par matière</option>
+                <option value="">Aucun</option>
                 {enseignants.map((en) => (
                   <option key={en.id} value={en.id}>{en.profil.nom} {en.profil.prenom}</option>
                 ))}

@@ -306,7 +306,7 @@ export default function RapportsNiveauPage() {
                 </Select>
               </Field>
             </div>
-            <Field label="Observations" hint="Ex : la classe peine sur les fractions, beaucoup d'absences aux évaluations…">
+            <Field label="Observations">
               <Textarea value={commentaire} onChange={(e) => setCommentaire(e.target.value)} rows={3} />
             </Field>
 
@@ -359,7 +359,7 @@ export default function RapportsNiveauPage() {
           <DialogHeader>
             <DialogTitle>Traiter le rapport — {aTraiter?.classeNom} / {aTraiter?.matiereNom}</DialogTitle>
           </DialogHeader>
-          <Field label="Réponse à l'enseignant (facultatif)" hint="Mesures prises : cours de soutien, entretien avec les parents…">
+          <Field label="Réponse à l'enseignant (facultatif)">
             <Textarea value={reponse} onChange={(e) => setReponse(e.target.value)} rows={3} />
           </Field>
           <DialogFooter>

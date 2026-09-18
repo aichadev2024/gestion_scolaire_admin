@@ -448,7 +448,7 @@ export default function ElevesPage() {
               ))}
             </Select>
           </Field>
-          <Field label="Classe (sous-classe)" className="min-w-48">
+          <Field label="Classe" className="min-w-48">
             <Select value={filterClasseId} onChange={(e) => setFilterClasseId(e.target.value)}>
               <option value="">— Toutes les classes —</option>
               {classesDuFiltre.map((c) => (
@@ -727,7 +727,7 @@ export default function ElevesPage() {
           <form onSubmit={handleImportSubmit} className="space-y-4">
             <Field
               label="Classe par défaut (optionnel)"
-              hint="Utilisée pour les lignes sans colonne « Classe » renseignée. Sinon, laissez vide."
+              hint="Pour les lignes sans classe indiquée dans le fichier."
             >
               <Select value={importClasseId} onChange={(e) => setImportClasseId(e.target.value)}>
                 <option value="">— Aucune (classe indiquée par ligne) —</option>

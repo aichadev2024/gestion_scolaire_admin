@@ -114,8 +114,8 @@ export default function NiveauxPage() {
           </DialogHeader>
           <FormError message={error} />
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field label="Nom du niveau *" hint="Ex : Enseignement Professionnel (CAP - BT2)">
-              <Input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex : Enseignement Professionnel (CAP - BT2)" required />
+            <Field label="Nom du niveau *">
+              <Input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom du niveau" required />
             </Field>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Annuler</Button>

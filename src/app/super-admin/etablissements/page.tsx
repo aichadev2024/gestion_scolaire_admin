@@ -584,7 +584,7 @@ export default function SuperAdminEtablissementsPage() {
                 <Field
                   label="Niveaux proposés"
                   className="sm:col-span-2"
-                  hint="Cochez les niveaux que cet établissement propose (ex. Lycée Général + Enseignement Professionnel). Rien coché = aucune restriction, tous les niveaux restent utilisables."
+                  hint="Rien coché : tous les niveaux restent utilisables."
                 >
                   <div className="flex flex-wrap gap-2">
                     {niveaux.map((n) => (
@@ -688,7 +688,7 @@ export default function SuperAdminEtablissementsPage() {
               {formData.typeEtablissement === 'ECOLE' && (
                 <Field
                   label="Organisation de la direction"
-                  hint="Certains établissements ont un seul directeur qui gère tous les niveaux ; d'autres ont un directeur différent par niveau (ex. un censeur pour le Lycée). Chaque directeur créé reçoit son propre e-mail avec ses identifiants."
+                  hint="Chaque directeur créé reçoit ses identifiants par e-mail."
                 >
                   <div className="grid grid-cols-2 gap-2">
                     {(['UNIQUE', 'PAR_NIVEAU'] as const).map((m) => (
@@ -741,7 +741,7 @@ export default function SuperAdminEtablissementsPage() {
                   {formData.typeEtablissement === 'ECOLE' && (
                     <Field
                       label="Niveau supervisé (optionnel)"
-                      hint="Choisir « Lycée » si cet établissement est un lycée : ce compte s'appellera Censeur au lieu de Directeur. Laisser vide pour un accès à tout l'établissement."
+                      hint="Laisser vide pour un accès à tout l'établissement."
                     >
                       <Select
                         value={directeurs[0]?.niveauSuperviseId ? String(directeurs[0].niveauSuperviseId) : ''}
@@ -779,7 +779,7 @@ export default function SuperAdminEtablissementsPage() {
           </DialogHeader>
           {editingEtab && (
             <form onSubmit={handleModifierInfos} className="space-y-4">
-              <Field label="Logo de l'établissement" hint="Affiché dans le tableau de bord de l'école. PNG/JPG, fond de préférence transparent ou blanc.">
+              <Field label="Logo de l'établissement" hint="PNG ou JPG, fond transparent ou blanc de préférence.">
                 <div className="flex items-center gap-3">
                   <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary/40">
                     {editingEtab.logoUrl ? (
@@ -821,14 +821,14 @@ export default function SuperAdminEtablissementsPage() {
                   onChange={(e) => setEditForm({ ...editForm, adresse: e.target.value })}
                 />
               </Field>
-              <Field label="Devise (monnaie)" hint="Utilisée pour les frais de scolarité, reçus et rapports financiers de cette école.">
+              <Field label="Devise (monnaie)" hint="Utilisée pour les frais, reçus et rapports financiers.">
                 <Input
                   placeholder="Ex : FCFA, EUR, USD"
                   value={editForm.devise}
                   onChange={(e) => setEditForm({ ...editForm, devise: e.target.value })}
                 />
               </Field>
-              <Field label="Devise de l'école (slogan)" hint="Ex : Travail - Rigueur - Réussite. Affichée dans le tableau de bord de l'école.">
+              <Field label="Devise de l'école (slogan)" hint="Affichée dans le tableau de bord de l'école.">
                 <Input
                   placeholder="Ex : Travail - Rigueur - Réussite"
                   value={editForm.slogan}
@@ -838,7 +838,7 @@ export default function SuperAdminEtablissementsPage() {
               {editingEtab?.typeEtablissement === 'ECOLE' && (
                 <Field
                   label="Niveaux proposés"
-                  hint="Cochez les niveaux que cet établissement propose (ex. Lycée Général + Enseignement Professionnel). Rien coché = aucune restriction."
+                  hint="Rien coché : tous les niveaux restent utilisables."
                 >
                   <div className="flex flex-wrap gap-2">
                     {niveaux.map((n) => (
