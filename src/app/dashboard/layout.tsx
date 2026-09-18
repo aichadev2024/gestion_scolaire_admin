@@ -295,7 +295,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-medium text-foreground">{user?.email || '…'}</p>
+                <p className="text-sm font-medium text-foreground">{displayName}</p>
                 <p className="text-xs font-semibold text-primary">{roleLabelAvecNiveau}</p>
               </div>
               <div className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
