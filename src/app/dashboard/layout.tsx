@@ -6,10 +6,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Baby,
   BookOpen,
+  BookOpenCheck,
   CalendarDays,
   CheckSquare,
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
+  FileSignature,
   GraduationCap,
   KeyRound,
   Layers,
@@ -20,6 +23,7 @@ import {
   School,
   ScrollText,
   ShieldAlert,
+  TrendingUp,
   UsersRound,
   Wallet,
   X,
@@ -54,15 +58,19 @@ const M = {
   rapportJournalier: { name: 'Rapport journalier', path: '/dashboard/rapport-journalier', icon: Baby },
   niveaux: { name: 'Niveaux', path: '/dashboard/niveaux', icon: Layers },
   stock: { name: 'Stock', path: '/dashboard/stock', icon: Package },
+  cahierTexte: { name: 'Cahier de texte', path: '/dashboard/cahier-texte', icon: BookOpenCheck },
+  emargement: { name: 'Émargement', path: '/dashboard/emargement', icon: FileSignature },
+  rapportsNiveau: { name: 'Niveau des classes', path: '/dashboard/rapports-niveau', icon: ClipboardCheck },
+  performance: { name: 'Performance', path: '/dashboard/performance', icon: TrendingUp },
   discipline: { name: 'Discipline', path: '/dashboard/discipline', icon: ShieldAlert },
 } satisfies Record<string, MenuItem>;
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.niveaux],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.emargement, M.niveaux],
+  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance, M.emargement],
   COMPTABLE: [M.dashboard, M.finances, M.stock],
-  ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
+  ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cahierTexte, M.rapportsNiveau],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],
 };
 
@@ -197,7 +205,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Sidebar */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:translate-x-0',
+            'print:hidden fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:translate-x-0',
             mobileOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
@@ -277,8 +285,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Contenu */}
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur sm:px-6">
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-64 print:pl-0">
+          <header className="print:hidden sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur sm:px-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}

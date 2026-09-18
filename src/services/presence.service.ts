@@ -1,5 +1,19 @@
 import api from './api';
 
+export interface EmargementEnseignantItem {
+  id: number;
+  enseignantId: number;
+  matricule: string;
+  nom?: string | null;
+  prenom?: string | null;
+  date: string;
+  statut: 'PRESENT' | 'ABSENT' | 'RETARD' | 'CONGE';
+  heureArrivee?: string | null;
+  heureDepart?: string | null;
+  remarques?: string | null;
+  niveaux: string[];
+}
+
 export interface PresencePayload {
   eleveId: number;
   classeMatiereId?: number;
@@ -66,6 +80,11 @@ export const presenceService = {
   },
 
   // ── Enseignants ──
+  getFicheEmargement: async (debut: string, fin: string): Promise<EmargementEnseignantItem[]> => {
+    const response = await api.get<EmargementEnseignantItem[]>('/presences/enseignants/fiche', { params: { debut, fin } });
+    return response.data;
+  },
+
   getPresencesEnseignants: async (date: string): Promise<PresenceEnseignantItem[]> => {
     const response = await api.get<PresenceEnseignantItem[]>(`/presences/enseignants?date=${date}`);
     return response.data;

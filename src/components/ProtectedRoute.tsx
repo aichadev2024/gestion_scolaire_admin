@@ -28,6 +28,10 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/utilisateurs',
     '/dashboard/discipline',
     '/dashboard/stock',
+    '/dashboard/cahier-texte',
+    '/dashboard/performance',
+    '/dashboard/emargement',
+    '/dashboard/rapports-niveau',
     '/dashboard/niveaux',
   ],
   SECRETAIRE: [
@@ -41,6 +45,9 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/notes',
     '/dashboard/bulletins',
     '/dashboard/discipline',
+    '/dashboard/cahier-texte',
+    '/dashboard/performance',
+    '/dashboard/emargement',
   ],
   COMPTABLE: [
     '/dashboard',
@@ -54,6 +61,8 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/presences',
     '/dashboard/notes',
     '/dashboard/bulletins',
+    '/dashboard/cahier-texte',
+    '/dashboard/rapports-niveau',
   ],
   // Surveillance générale : discipline (retards, absences, tenue, refus de
   // travail) restreint par niveau via niveauSupervise comme les autres
