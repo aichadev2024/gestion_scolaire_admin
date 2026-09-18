@@ -70,6 +70,8 @@ export default function BulletinsPage() {
 
   const [bulletin, setBulletin] = useState<Bulletin | null>(null);
   const [nomEtablissement, setNomEtablissement] = useState('');
+  const [logoEtablissement, setLogoEtablissement] = useState('');
+  const [logoEchec, setLogoEchec] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -94,6 +96,7 @@ export default function BulletinsPage() {
   useEffect(() => {
     const user = authService.getCurrentUser();
     if (user?.etablissementNom) setNomEtablissement(user.etablissementNom);
+    if (user?.etablissementLogoUrl) setLogoEtablissement(user.etablissementLogoUrl);
     classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
   }, []);
 
@@ -159,6 +162,22 @@ export default function BulletinsPage() {
     try {
       const { default: jsPDF } = await import('jspdf');
       const { default: html2canvas } = await import('html2canvas');
+
+      // Le logo de l'établissement vient du bucket R2 (sans en-têtes CORS) : html2canvas ne peut pas
+      // lire ses pixels. On le relaie via le backend et on le convertit en blob local avant la capture.
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8089/api').replace(/\/+$/, '');
+      await Promise.all(
+        Array.from(bulletinRef.current.querySelectorAll('img')).map(async (img) => {
+          if (!img.src.startsWith('http') || img.src.startsWith(window.location.origin)) return;
+          try {
+            const res = await fetch(`${apiBase}/public/image-proxy?url=${encodeURIComponent(img.src)}`);
+            if (res.ok) img.src = URL.createObjectURL(await res.blob());
+          } catch {
+            // logo indisponible : la capture se fait avec ce qui est déjà affiché
+          }
+        }),
+      );
+
       const canvas = await html2canvas(bulletinRef.current, { scale: 2, useCORS: true, logging: false });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -297,7 +316,12 @@ export default function BulletinsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px double #1B365D', paddingBottom: '15px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.png" alt="Logo Netaa École" style={{ height: "70px", width: "70px", objectFit: "contain" }} />
+                  <img
+                    src={logoEtablissement && !logoEchec ? logoEtablissement : '/logo.png'}
+                    alt="Logo de l'établissement"
+                    onError={() => setLogoEchec(true)}
+                    style={{ height: "70px", width: "70px", objectFit: "contain" }}
+                  />
                   <div>
                     <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#1B365D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {(nomEtablissement || authService.getCurrentUser()?.etablissementNom || 'ÉTABLISSEMENT SCOLAIRE').toUpperCase()}
