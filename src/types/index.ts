@@ -6,7 +6,7 @@ export interface Profil {
   email?: string;
   photoUrl?: string;
   genre: 'M' | 'F';
-  dateNaissance: string;
+  dateNaissance?: string;
   adresse: string;
 }
 

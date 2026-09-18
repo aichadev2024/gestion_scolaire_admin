@@ -112,7 +112,7 @@ export default function EnseignantsPage() {
           telephone: formData.telephone,
           email: formData.email,
           genre: formData.genre as 'M' | 'F',
-          dateNaissance: formData.dateNaissance,
+          dateNaissance: formData.dateNaissance || undefined,
           adresse: formData.adresse,
         },
       };
@@ -265,8 +265,8 @@ export default function EnseignantsPage() {
                 <option value="F">Féminin</option>
               </Select>
             </Field>
-            <Field label="Date de naissance *">
-              <Input type="date" name="dateNaissance" value={formData.dateNaissance} onChange={handleInputChange} required />
+            <Field label="Date de naissance (optionnel)">
+              <Input type="date" name="dateNaissance" value={formData.dateNaissance} onChange={handleInputChange} />
             </Field>
             <Field label="Téléphone">
               <Input name="telephone" value={formData.telephone} onChange={handleInputChange} placeholder="+223 76 00 00 00" />
