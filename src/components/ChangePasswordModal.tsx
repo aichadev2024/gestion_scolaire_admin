@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from '@/components/ui/label';
 
 interface ChangePasswordModalProps {
@@ -85,15 +86,15 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="ancien">Ancien mot de passe</Label>
-            <Input id="ancien" type="password" autoComplete="current-password" value={ancienMotDePasse} onChange={(e) => setAncien(e.target.value)} required />
+            <PasswordInput id="ancien" autoComplete="current-password" value={ancienMotDePasse} onChange={(e) => setAncien(e.target.value)} required />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="nouveau">Nouveau mot de passe</Label>
-            <Input id="nouveau" type="password" autoComplete="new-password" value={nouveauMotDePasse} onChange={(e) => setNouveau(e.target.value)} required />
+            <PasswordInput id="nouveau" autoComplete="new-password" value={nouveauMotDePasse} onChange={(e) => setNouveau(e.target.value)} required />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm">Confirmer le nouveau mot de passe</Label>
-            <Input id="confirm" type="password" autoComplete="new-password" value={confirmMotDePasse} onChange={(e) => setConfirm(e.target.value)} required />
+            <PasswordInput id="confirm" autoComplete="new-password" value={confirmMotDePasse} onChange={(e) => setConfirm(e.target.value)} required />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => { reset(); onClose(); }}>

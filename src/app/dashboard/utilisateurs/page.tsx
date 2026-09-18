@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from "@/components/ui/password-input";
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -392,8 +393,8 @@ export default function UtilisateursPage() {
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="kouassi.aya@exemple.ml" />
             </Field>
             <Field label={editingUser ? 'Nouveau mot de passe (vide = inchangé)' : 'Mot de passe (min. 6) *'}>
-              <Input
-                type="password"
+              <PasswordInput
+                autoComplete="new-password"
                 value={form.motDePasse}
                 onChange={(e) => setForm({ ...form, motDePasse: e.target.value })}
                 placeholder="••••••••"
