@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
   School,
   ScrollText,
   ShieldAlert,
@@ -52,14 +53,15 @@ const M = {
   utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
   rapportJournalier: { name: 'Rapport journalier', path: '/dashboard/rapport-journalier', icon: Baby },
   niveaux: { name: 'Niveaux', path: '/dashboard/niveaux', icon: Layers },
+  stock: { name: 'Stock', path: '/dashboard/stock', icon: Package },
   discipline: { name: 'Discipline', path: '/dashboard/discipline', icon: ShieldAlert },
 } satisfies Record<string, MenuItem>;
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.niveaux],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.niveaux],
   SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline],
-  COMPTABLE: [M.dashboard, M.finances],
+  COMPTABLE: [M.dashboard, M.finances, M.stock],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],
 };

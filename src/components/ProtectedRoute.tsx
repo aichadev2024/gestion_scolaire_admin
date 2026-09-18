@@ -27,6 +27,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/finances',
     '/dashboard/utilisateurs',
     '/dashboard/discipline',
+    '/dashboard/stock',
     '/dashboard/niveaux',
   ],
   SECRETAIRE: [
@@ -44,6 +45,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
   COMPTABLE: [
     '/dashboard',
     '/dashboard/finances',
+    '/dashboard/stock',
   ],
   ENSEIGNANT: [
     '/dashboard',
