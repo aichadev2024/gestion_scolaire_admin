@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Download, FileSignature, Printer } from 'lucide-react';
 import { presenceService, EmargementEnseignantItem } from '@/services/presence.service';
 import { authService } from '@/services/auth.service';
+import { classeService } from '@/services/classe.service';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -48,9 +49,11 @@ export default function EmargementPage() {
   const [lignes, setLignes] = useState<EmargementEnseignantItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [etablissement, setEtablissement] = useState('');
+  const [niveauxEtab, setNiveauxEtab] = useState<string[]>([]);
 
   useEffect(() => {
     setEtablissement(authService.getCurrentUser()?.etablissementNom || '');
+    classeService.getNiveaux().then((n) => setNiveauxEtab(n.map((x) => x.nom))).catch(() => setNiveauxEtab([]));
   }, []);
 
   const charger = useCallback(async () => {
@@ -69,8 +72,8 @@ export default function EmargementPage() {
   }, [charger]);
 
   const niveauxDisponibles = useMemo(
-    () => Array.from(new Set(lignes.flatMap((l) => l.niveaux))).sort((a, b) => a.localeCompare(b)),
-    [lignes],
+    () => Array.from(new Set([...niveauxEtab, ...lignes.flatMap((l) => l.niveaux)])).sort((a, b) => a.localeCompare(b)),
+    [lignes, niveauxEtab],
   );
 
   const filtrees = useMemo(
