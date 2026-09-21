@@ -10,6 +10,7 @@ import { Classe } from '@/types';
 import { categorieEffective, periodesDisponibles, periodeValide } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +53,7 @@ export default function PerformancePage() {
   const categorie = categorieEffective(classes.find((c) => String(c.id) === classeId), classes);
   const disponibles = periodesDisponibles(categorie);
   const [loading, setLoading] = useState(false);
+  const [groupeEnCours, setGroupeEnCours] = useState(false);
 
   useEffect(() => {
     setPeutDecider(authService.getCurrentUser()?.role === 'DIRECTEUR');
@@ -93,6 +95,53 @@ export default function PerformancePage() {
       toast.success('Décision enregistrée.');
     } catch (err) {
       toast.error(errorMessage(err, "Impossible d'enregistrer la décision."));
+    }
+  };
+
+  /** Décide pour toute la classe d'un coup ; les exceptions se corrigent ensuite élève par élève. */
+  const deciderGroupe = async (mode: 'PROPOSITIONS' | 'TOUS_PASSENT' | 'EFFACER') => {
+    if (!data) return;
+    const cibles = data.eleves
+      .map((e) => {
+        let decision: Decision | 'AUCUNE' | null = null;
+        if (mode === 'PROPOSITIONS') {
+          decision = e.proposition === 'PASSAGE' ? 'PASSAGE' : e.proposition === 'REDOUBLEMENT' ? 'REDOUBLEMENT' : null;
+        } else if (mode === 'TOUS_PASSENT') {
+          decision = 'PASSAGE';
+        } else {
+          decision = e.decision ? 'AUCUNE' : null;
+        }
+        return decision ? { eleveId: e.eleveId, decision } : null;
+      })
+      .filter((c): c is { eleveId: number; decision: Decision | 'AUCUNE' } => c !== null);
+    if (cibles.length === 0) {
+      toast.info('Aucun élève concerné (les élèves « à délibérer » ou sans notes restent à décider à la main).');
+      return;
+    }
+    const libelle =
+      mode === 'PROPOSITIONS' ? 'appliquer les propositions' : mode === 'TOUS_PASSENT' ? 'faire passer toute la classe' : 'effacer les décisions';
+    if (!confirm(`Confirmer : ${libelle} pour ${cibles.length} élève(s) de ${data.classeNom} ?`)) return;
+    setGroupeEnCours(true);
+    try {
+      const resultats = await Promise.allSettled(cibles.map((c) => performanceService.decider(c.eleveId, c.decision)));
+      const reussis = new Map(
+        cibles.filter((_, i) => resultats[i].status === 'fulfilled').map((c) => [c.eleveId, c.decision]),
+      );
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              eleves: d.eleves.map((e) =>
+                reussis.has(e.eleveId) ? { ...e, decision: reussis.get(e.eleveId) === 'AUCUNE' ? null : (reussis.get(e.eleveId) as Decision) } : e,
+              ),
+            }
+          : d,
+      );
+      const echecs = cibles.length - reussis.size;
+      if (echecs === 0) toast.success(`${reussis.size} décision(s) enregistrée(s).`);
+      else toast.warning(`${reussis.size} enregistrée(s), ${echecs} en échec — réessayez pour les autres.`);
+    } finally {
+      setGroupeEnCours(false);
     }
   };
 
@@ -200,6 +249,21 @@ export default function PerformancePage() {
               Moyenne générale pondérée par les coefficients, calculée sur les matières où l&apos;élève a des notes.
               La proposition est indicative : la décision appartient à la direction.
             </p>
+            {peutDecider && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
+                <span className="text-xs font-semibold text-muted-foreground">Pour toute la classe :</span>
+                <Button size="sm" loading={groupeEnCours} onClick={() => deciderGroupe('PROPOSITIONS')}>
+                  Appliquer les propositions
+                </Button>
+                <Button size="sm" variant="outline" disabled={groupeEnCours} onClick={() => deciderGroupe('TOUS_PASSENT')}>
+                  Tous passent
+                </Button>
+                <Button size="sm" variant="ghost" disabled={groupeEnCours} onClick={() => deciderGroupe('EFFACER')}>
+                  Effacer les décisions
+                </Button>
+                <span className="text-xs text-muted-foreground">Les élèves « à délibérer » restent à décider un par un.</span>
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>

@@ -9,6 +9,7 @@ import { matiereService } from '@/services/matiere.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
 import { eleveService, PromotionRapport } from '@/services/eleve.service';
 import { authService } from '@/services/auth.service';
+import { performanceService } from '@/services/performance.service';
 import { Classe, Niveau, Enseignant, Matiere, Eleve } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,7 @@ export default function ClassesPage() {
 
   const [promotingClasse, setPromotingClasse] = useState<Classe | null>(null);
   const [promotionEleves, setPromotionEleves] = useState<Eleve[]>([]);
+  const [promotionDecisions, setPromotionDecisions] = useState<Record<number, 'PASSAGE' | 'REDOUBLEMENT'>>({});
   const [promotionSelected, setPromotionSelected] = useState<Set<number>>(new Set());
   const [promotionDestId, setPromotionDestId] = useState('');
   const [promotionLoading, setPromotionLoading] = useState(false);
@@ -222,10 +224,27 @@ export default function ClassesPage() {
     try {
       const roster = await eleveService.getElevesParClasse(c.id);
       setPromotionEleves(roster);
-      // Sélectionnés par défaut, sauf les redoublants et candidats libres déjà identifiés —
-      // ils restent dans la classe. L'admin peut encore ajuster manuellement au cas par cas.
+      // Décisions de passage/redoublement déjà prises dans « Performance & passage » (facultatif).
+      const decisions: Record<number, 'PASSAGE' | 'REDOUBLEMENT'> = {};
+      try {
+        const perf = await performanceService.classe(c.id, 'ANNUEL', 10, 8);
+        for (const e of perf.eleves) if (e.decision) decisions[e.eleveId] = e.decision;
+      } catch {
+        // pas de performance disponible : on retombe sur le statut pédagogique seul
+      }
+      setPromotionDecisions(decisions);
+      // La décision de la direction prime ; à défaut, tous passent sauf les redoublants et candidats
+      // libres déjà identifiés. L'admin peut encore ajuster manuellement au cas par cas.
       setPromotionSelected(
-        new Set(roster.filter((e) => e.statutPedagogique !== 'REDOUBLANT' && e.statutPedagogique !== 'CL').map((e) => e.id)),
+        new Set(
+          roster
+            .filter((e) =>
+              decisions[e.id]
+                ? decisions[e.id] === 'PASSAGE'
+                : e.statutPedagogique !== 'REDOUBLANT' && e.statutPedagogique !== 'CL',
+            )
+            .map((e) => e.id),
+        ),
       );
     } catch {
       toast.error('Impossible de charger les élèves de cette classe.');
@@ -639,7 +658,7 @@ export default function ClassesPage() {
 
               <div>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Les redoublants sont déjà décochés — ils resteront dans « {promotingClasse?.nom} ». Ajustez si besoin.
+                  Cochés d&apos;après les décisions prises dans « Performance &amp; passage » ; les redoublants sont décochés et resteront dans « {promotingClasse?.nom} ». Ajustez si besoin.
                 </p>
                 <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-border p-2">
                   {promotionEleves.map((e) => {
@@ -661,6 +680,10 @@ export default function ClassesPage() {
                         {resultat ? (
                           <Badge variant={resultat.succes ? 'success' : 'destructive'}>
                             {resultat.succes ? 'Passé(e)' : resultat.erreur || 'Échec'}
+                          </Badge>
+                        ) : promotionDecisions[e.id] ? (
+                          <Badge variant={promotionDecisions[e.id] === 'PASSAGE' ? 'success' : 'warning'}>
+                            {promotionDecisions[e.id] === 'PASSAGE' ? 'Décision : passage' : 'Décision : redoublement'}
                           </Badge>
                         ) : e.statutPedagogique === 'REDOUBLANT' ? (
                           <Badge variant="warning">Redoublant</Badge>
