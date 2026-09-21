@@ -30,7 +30,6 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/stock',
     '/dashboard/cahier-texte',
     '/dashboard/performance',
-    '/dashboard/emargement',
     '/dashboard/rapports-niveau',
     '/dashboard/niveaux',
   ],
@@ -47,7 +46,6 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/discipline',
     '/dashboard/cahier-texte',
     '/dashboard/performance',
-    '/dashboard/emargement',
   ],
   COMPTABLE: [
     '/dashboard',

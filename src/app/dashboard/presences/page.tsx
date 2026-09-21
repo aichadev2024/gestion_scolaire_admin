@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarClock, CheckSquare, GraduationCap, UsersRound } from 'lucide-react';
+import { CalendarClock, CheckSquare, FileSignature, GraduationCap, UsersRound } from 'lucide-react';
+import EmargementEnseignants from '@/components/EmargementEnseignants';
+import { authService } from '@/services/auth.service';
 import { presenceService, PresenceItem } from '@/services/presence.service';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
@@ -67,7 +69,12 @@ function StatutPicker<T extends string>({
 }
 
 export default function PresencesPage() {
-  const [tab, setTab] = useState<'APPEL' | 'ENSEIGNANTS' | 'HISTORIQUE'>('APPEL');
+  const [tab, setTab] = useState<'APPEL' | 'ENSEIGNANTS' | 'HISTORIQUE' | 'EMARGEMENT'>('APPEL');
+  const [peutVoirEmargement, setPeutVoirEmargement] = useState(false);
+  useEffect(() => {
+    const role = authService.getCurrentUser()?.role;
+    setPeutVoirEmargement(role === 'DIRECTEUR' || role === 'SECRETAIRE');
+  }, []);
   const [classes, setClasses] = useState<Classe[]>([]);
   const [eleves, setEleves] = useState<Eleve[]>([]);
   const [selectedClasseId, setSelectedClasseId] = useState('');
@@ -205,17 +212,20 @@ export default function PresencesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Présences & pointage"
-        description="Appel des élèves, pointage des enseignants, historique."
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Présences & pointage"
+          description="Appel des élèves, pointage des enseignants, historique et fiche d'émargement."
+        />
+      </div>
 
-      <div className="mb-6 flex gap-1 border-b border-border">
+      <div className="mb-6 flex gap-1 border-b border-border print:hidden">
         {(
           [
             ['APPEL', 'Appel élèves', GraduationCap],
             ['ENSEIGNANTS', 'Enseignants', UsersRound],
             ['HISTORIQUE', 'Historique', CalendarClock],
+            ...(peutVoirEmargement ? [['EMARGEMENT', "Fiche d'émargement", FileSignature] as const] : []),
           ] as const
         ).map(([t, label, Icon]) => (
           <button
@@ -389,6 +399,9 @@ export default function PresencesPage() {
       )}
 
       {/* ─── Historique ─── */}
+      {/* ─── Fiche d'émargement ─── */}
+      {tab === 'EMARGEMENT' && peutVoirEmargement && <EmargementEnseignants />}
+
       {tab === 'HISTORIQUE' && (
         <div className="space-y-5">
           <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">

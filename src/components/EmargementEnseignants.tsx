@@ -7,7 +7,7 @@ import { presenceService, EmargementEnseignantItem } from '@/services/presence.s
 import { authService } from '@/services/auth.service';
 import { classeService } from '@/services/classe.service';
 import { errorMessage } from '@/lib/errors';
-import { PageHeader } from '@/components/ui/page-header';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -42,7 +42,7 @@ interface Resume {
   conge: number;
 }
 
-export default function EmargementPage() {
+export default function EmargementEnseignants() {
   const [debut, setDebut] = useState(debutMois());
   const [fin, setFin] = useState(iso(new Date()));
   const [niveau, setNiveau] = useState('');
@@ -123,19 +123,10 @@ export default function EmargementPage() {
   return (
     <div>
       <div className="print:hidden">
-        <PageHeader
-          title="Émargement des enseignants"
-          description="Fiche de suivi des présences, retards et absences du personnel enseignant, par période et par niveau."
-        >
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exporterCsv} disabled={filtrees.length === 0}>
-              <Download /> Exporter (Excel)
-            </Button>
-            <Button variant="outline" onClick={() => window.print()} disabled={filtrees.length === 0}>
-              <Printer /> Imprimer
-            </Button>
-          </div>
-        </PageHeader>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Fiche de suivi des présences, retards et absences du personnel enseignant, par période et par niveau. Le pointage
+          se fait dans l&apos;onglet « Enseignants ».
+        </p>
 
         <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
           <Field label="Du">
@@ -152,6 +143,14 @@ export default function EmargementPage() {
               ))}
             </Select>
           </Field>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" onClick={exporterCsv} disabled={filtrees.length === 0}>
+              <Download /> Exporter (Excel)
+            </Button>
+            <Button variant="outline" onClick={() => window.print()} disabled={filtrees.length === 0}>
+              <Printer /> Imprimer
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -12,7 +12,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   CreditCard,
-  FileSignature,
   GraduationCap,
   KeyRound,
   Layers,
@@ -59,7 +58,6 @@ const M = {
   niveaux: { name: 'Niveaux', path: '/dashboard/niveaux', icon: Layers },
   stock: { name: 'Stock', path: '/dashboard/stock', icon: Package },
   cahierTexte: { name: 'Cahier de texte', path: '/dashboard/cahier-texte', icon: BookOpenCheck },
-  emargement: { name: 'Émargement', path: '/dashboard/emargement', icon: FileSignature },
   rapportsNiveau: { name: 'Niveau des classes', path: '/dashboard/rapports-niveau', icon: ClipboardCheck },
   performance: { name: 'Performance', path: '/dashboard/performance', icon: TrendingUp },
   discipline: { name: 'Discipline', path: '/dashboard/discipline', icon: ShieldAlert },
@@ -67,8 +65,8 @@ const M = {
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.emargement, M.niveaux],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance, M.emargement],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.niveaux],
+  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance],
   COMPTABLE: [M.dashboard, M.finances, M.stock],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cahierTexte, M.rapportsNiveau],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],
