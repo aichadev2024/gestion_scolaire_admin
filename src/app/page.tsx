@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   BellRing,
@@ -79,7 +80,27 @@ export default function Home() {
               Un abonnement par établissement · sans limite d&apos;élèves · mise en route accompagnée
             </p>
           </div>
-          <HeroScene />
+          <div className="relative">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-border shadow-lg">
+              <Image
+                src="/photos/classe.jpg"
+                alt="Élèves attentifs pendant un cours"
+                fill
+                priority
+                sizes="(min-width: 768px) 560px, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="absolute -bottom-4 left-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-md sm:left-8">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <BellRing className="size-5" />
+              </span>
+              <span className="text-sm">
+                <span className="block font-semibold text-foreground">Le parent est prévenu</span>
+                <span className="block text-xs text-muted-foreground">absence, note, devoirs, paiement</span>
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -110,6 +131,31 @@ export default function Home() {
             <span className="font-semibold text-foreground">Les parents et les élèves ont leur propre application.</span>{' '}
             Notes, absences, reste à payer et carte scolaire sur leur téléphone — l&apos;établissement ouvre l&apos;accès, rien à installer.
           </p>
+        </div>
+      </section>
+
+      <div className="mudcloth-divider" aria-hidden="true" />
+
+      {/* ── Toute la communauté scolaire ── */}
+      <section className="mx-auto max-w-6xl px-5 py-16">
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          <div className="relative aspect-[3/2] overflow-hidden rounded-2xl border border-border shadow-md">
+            <Image
+              src="/photos/enseignante.jpg"
+              alt="Une élève lit devant sa classe"
+              fill
+              sizes="(min-width: 768px) 560px, 100vw"
+              className="object-cover"
+            />
+          </div>
+          <div>
+            <h2 className="font-display text-2xl font-extrabold text-primary sm:text-3xl">Toute l&apos;école connectée, du directeur à l&apos;élève</h2>
+            <ul className="mt-6 space-y-4 text-sm text-muted-foreground">
+              <li><span className="font-semibold text-foreground">Les enseignants</span> font l&apos;appel, saisissent les notes et tiennent leur cahier de texte depuis leur téléphone.</li>
+              <li><span className="font-semibold text-foreground">Les parents</span> voient les notes, les absences, les devoirs à faire et les reçus de paiement, avec une notification à chaque nouveauté.</li>
+              <li><span className="font-semibold text-foreground">Les élèves</span> retrouvent leur emploi du temps, leurs bulletins et leurs devoirs.</li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -195,8 +241,9 @@ export default function Home() {
       </section>
 
       {/* ── Bandeau conviction ── */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-14 md:flex-row md:items-center md:justify-between">
+      <section className="relative overflow-hidden bg-primary text-primary-foreground">
+        <Image src="/photos/eleves.jpg" alt="" fill sizes="100vw" className="object-cover opacity-20 mix-blend-luminosity" />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-5 py-14 md:flex-row md:items-center md:justify-between">
           <p className="max-w-xl font-display text-xl font-bold leading-snug sm:text-2xl">
             Conçu au Mali, en français, pour le réseau que vous avez — pas pour une connexion parfaite.
           </p>
@@ -223,79 +270,10 @@ export default function Home() {
               <Phone className="size-3.5" /> {CONTACT_TEL}
             </a>
             <span className="mt-1">© {new Date().getFullYear()} · Tous droits réservés</span>
+            <span className="text-xs">Photos : Doug Linstedt, Emmanuel Ikwuegbu, Annie Spratt — Unsplash</span>
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-/** Illustration vectorielle : le bâtiment de l'école et le tableau de bord Netaa. */
-function HeroScene() {
-  return (
-    <div className="relative">
-      <svg
-        viewBox="0 0 440 340"
-        className="w-full rounded-2xl border border-border bg-card shadow-sm"
-        role="img"
-        aria-label="Le bâtiment d'une école malienne et le tableau de bord Netaa École"
-      >
-        <defs>
-          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="hsl(var(--muted))" />
-            <stop offset="1" stopColor="hsl(var(--card))" />
-          </linearGradient>
-        </defs>
-        <rect width="440" height="340" fill="url(#sky)" />
-        {/* grille cousue en filigrane */}
-        <g stroke="hsl(var(--border))" strokeWidth="1" opacity="0.6">
-          <path d="M0 70H440M0 140H440M0 210H440M110 0V340M220 0V340M330 0V340" />
-        </g>
-        {/* soleil */}
-        <circle cx="356" cy="70" r="30" fill="hsl(var(--gold))" opacity="0.9" />
-        {/* sol latérite */}
-        <rect x="0" y="270" width="440" height="70" fill="hsl(var(--accent))" opacity="0.9" />
-        <rect x="0" y="270" width="440" height="8" fill="hsl(var(--accent))" />
-
-        {/* bâtiment de l'école */}
-        <g>
-          <rect x="44" y="150" width="150" height="120" fill="hsl(var(--card))" stroke="hsl(var(--primary))" strokeWidth="3" />
-          {/* toit */}
-          <path d="M36 150 L119 110 L202 150 Z" fill="hsl(var(--primary))" />
-          {/* porte */}
-          <rect x="104" y="214" width="30" height="56" rx="3" fill="hsl(var(--primary))" />
-          {/* fenêtres */}
-          <g fill="hsl(var(--primary))" opacity="0.35">
-            <rect x="60" y="172" width="26" height="24" />
-            <rect x="152" y="172" width="26" height="24" />
-            <rect x="60" y="214" width="26" height="24" />
-            <rect x="152" y="214" width="26" height="24" />
-          </g>
-          {/* mât + drapeau */}
-          <path d="M119 110 V70" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" />
-          <path d="M119 72 h26 v16 h-26 z" fill="hsl(var(--success))" />
-        </g>
-
-        {/* carte tableau de bord */}
-        <g>
-          <rect x="234" y="150" width="168" height="112" rx="10" fill="hsl(var(--card))" stroke="hsl(var(--primary))" strokeWidth="2.5" />
-          <rect x="234" y="150" width="168" height="24" rx="10" fill="hsl(var(--primary))" opacity="0.12" />
-          <circle cx="248" cy="162" r="3.5" fill="hsl(var(--accent))" />
-          <rect x="258" y="159" width="70" height="6" rx="3" fill="hsl(var(--muted-foreground))" opacity="0.5" />
-          {/* barres */}
-          <g fill="hsl(var(--primary))">
-            <rect x="250" y="222" width="18" height="24" rx="2" />
-            <rect x="278" y="210" width="18" height="36" rx="2" />
-            <rect x="306" y="198" width="18" height="48" rx="2" />
-            <rect x="334" y="214" width="18" height="32" rx="2" />
-            <rect x="362" y="190" width="18" height="56" rx="2" />
-          </g>
-          {/* ligne de base */}
-          <path d="M244 246 H392" stroke="hsl(var(--border))" strokeWidth="1.5" />
-          {/* coche */}
-          <path d="M250 190 l6 6 l12 -14" fill="none" stroke="hsl(var(--success))" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
-      </svg>
     </div>
   );
 }
