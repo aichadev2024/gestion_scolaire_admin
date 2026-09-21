@@ -7,6 +7,7 @@ import { authService } from '@/services/auth.service';
 import { classeService } from '@/services/classe.service';
 import { performanceService, Decision, PerformanceClasse, Proposition } from '@/services/performance.service';
 import { Classe } from '@/types';
+import { categoriePourClasse, periodesDisponibles, periodeValide } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,8 @@ export default function PerformancePage() {
   const [seuilPassage, setSeuilPassage] = useState('10');
   const [seuilRedoublement, setSeuilRedoublement] = useState('8');
   const [data, setData] = useState<PerformanceClasse | null>(null);
+  const categorie = categoriePourClasse(classes.find((c) => String(c.id) === classeId));
+  const disponibles = periodesDisponibles(categorie);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -102,7 +105,14 @@ export default function PerformancePage() {
 
       <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
         <Field label="Classe" className="min-w-56">
-          <Select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
+          <Select
+            value={classeId}
+            onChange={(e) => {
+              setClasseId(e.target.value);
+              const cat = categoriePourClasse(classes.find((c) => String(c.id) === e.target.value));
+              if (!periodeValide(periode, cat)) setPeriode('ANNUEL');
+            }}
+          >
             <option value="">— Choisir une classe —</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>{c.niveauNom} — {c.nom}</option>
@@ -112,16 +122,20 @@ export default function PerformancePage() {
         <Field label="Période" className="min-w-44">
           <Select value={periode} onChange={(e) => setPeriode(e.target.value)}>
             <option value="ANNUEL">Année complète</option>
-            <optgroup label="Trimestres">
-              <option value="TRIMESTRE_1">1er trimestre</option>
-              <option value="TRIMESTRE_2">2e trimestre</option>
-              <option value="TRIMESTRE_3">3e trimestre</option>
-            </optgroup>
-            <optgroup label="Compositions">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
-              ))}
-            </optgroup>
+            {disponibles.trimestres && (
+              <optgroup label="Trimestres">
+                <option value="TRIMESTRE_1">1er trimestre</option>
+                <option value="TRIMESTRE_2">2e trimestre</option>
+                <option value="TRIMESTRE_3">3e trimestre</option>
+              </optgroup>
+            )}
+            {disponibles.compositions && (
+              <optgroup label="Compositions">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
+                ))}
+              </optgroup>
+            )}
           </Select>
         </Field>
         <Field label="Seuil de passage" hint="Moyenne minimale" className="w-32">

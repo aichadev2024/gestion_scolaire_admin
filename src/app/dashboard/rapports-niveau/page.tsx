@@ -13,6 +13,7 @@ import {
   RapportNiveau,
 } from '@/services/rapportNiveau.service';
 import { Classe } from '@/types';
+import { categoriePourClasse, periodesDisponibles, periodeParDefaut, periodeValide } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,9 @@ export default function RapportsNiveauPage() {
   const [aTraiter, setATraiter] = useState<RapportNiveau | null>(null);
   const [reponse, setReponse] = useState('');
 
+  const classeDuCours = classes.find((c) => String(c.id) === String(mesCours.find((m) => String(m.classeMatiereId) === coursId)?.classeId));
+  const categorie = categoriePourClasse(classeDuCours);
+  const disponibles = periodesDisponibles(categorie);
   const estEnseignant = role === 'ENSEIGNANT';
   const estDirecteur = role === 'DIRECTEUR';
 
@@ -71,7 +75,8 @@ export default function RapportsNiveauPage() {
     setRole(r);
     if (r === 'ENSEIGNANT') {
       cahierTexteService.mesCours().then(setMesCours).catch(() => toast.error('Impossible de charger vos cours.'));
-    } else if (r === 'DIRECTEUR') {
+    }
+    if (r === 'ENSEIGNANT' || r === 'DIRECTEUR') {
       classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
     }
   }, []);
@@ -275,7 +280,16 @@ export default function RapportsNiveauPage() {
           <FormError message={error} />
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field label="Mon cours *">
-              <Select value={coursId} onChange={(e) => setCoursId(e.target.value)} required>
+              <Select
+                value={coursId}
+                onChange={(e) => {
+                  setCoursId(e.target.value);
+                  const cm = mesCours.find((m) => String(m.classeMatiereId) === e.target.value);
+                  const cat = categoriePourClasse(classes.find((c) => c.id === cm?.classeId));
+                  if (!periodeValide(periode, cat)) setPeriode(periodeParDefaut(cat));
+                }}
+                required
+              >
                 <option value="">— Classe et matière —</option>
                 {mesCours.map((c) => (
                   <option key={c.classeMatiereId} value={c.classeMatiereId}>{c.classeNom} — {c.matiereNom}</option>
@@ -286,16 +300,20 @@ export default function RapportsNiveauPage() {
               <Field label="Période *">
                 <Select value={periode} onChange={(e) => setPeriode(e.target.value)}>
                   <option value="ANNUEL">Année complète</option>
-                  <optgroup label="Trimestres">
-                    <option value="TRIMESTRE_1">1er trimestre</option>
-                    <option value="TRIMESTRE_2">2e trimestre</option>
-                    <option value="TRIMESTRE_3">3e trimestre</option>
-                  </optgroup>
-                  <optgroup label="Compositions">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                      <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
-                    ))}
-                  </optgroup>
+                  {disponibles.trimestres && (
+                    <optgroup label="Trimestres">
+                      <option value="TRIMESTRE_1">1er trimestre</option>
+                      <option value="TRIMESTRE_2">2e trimestre</option>
+                      <option value="TRIMESTRE_3">3e trimestre</option>
+                    </optgroup>
+                  )}
+                  {disponibles.compositions && (
+                    <optgroup label="Compositions">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                        <option key={n} value={`COMPOSITION_${n}`}>Composition n°{n}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </Select>
               </Field>
               <Field label="Niveau général de la classe *">
