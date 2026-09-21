@@ -8,6 +8,7 @@ import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatier
 import { eleveService } from '@/services/eleve.service';
 import { noteService } from '@/services/note.service';
 import { Classe, Eleve, Note } from '@/types';
+import { categorieEffective } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -107,7 +108,7 @@ export default function NotesPage() {
       )
       .catch(() => {});
 
-    const cat = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
+    const cat = categorieEffective(classes.find((c) => String(c.id) === selectedClasseId), classes);
     setSelectedPeriode(cat === 'LYCEE' ? 'TRIMESTRE_1' : 'COMPOSITION_1');
   }, [selectedClasseId, classes]);
 
@@ -115,7 +116,7 @@ export default function NotesPage() {
     loadNotes();
   }, [loadNotes]);
 
-  const currentCategory = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
+  const currentCategory = categorieEffective(classes.find((c) => String(c.id) === selectedClasseId), classes);
 
   const handleSaveNote = async (eleveId: number) => {
     if (valeur === '' || valeur < 0 || valeur > noteMax) {

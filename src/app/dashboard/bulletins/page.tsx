@@ -9,6 +9,7 @@ import { eleveService } from '@/services/eleve.service';
 import { bulletinService } from '@/services/bulletin.service';
 import { authService } from '@/services/auth.service';
 import { Classe, Eleve, Bulletin } from '@/types';
+import { categorieEffective } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -80,7 +81,7 @@ export default function BulletinsPage() {
 
   const role = authService.getCurrentUser()?.role || '';
   const canLock = role === 'DIRECTEUR';
-  const currentCategory = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
+  const currentCategory = categorieEffective(classes.find((c) => String(c.id) === selectedClasseId), classes);
 
   // Totaux affichés AVANT la moyenne : total des coefficients, total des points
   // (Σ moyenne matière × coef) — pour que le calcul de la moyenne générale soit visible.
@@ -118,7 +119,7 @@ export default function BulletinsPage() {
       .catch(() => toast.error('Impossible de charger les élèves.'));
     setSelectedEleveId('');
     setBulletin(null);
-    const cat = categoriePourClasse(classes.find((c) => String(c.id) === selectedClasseId));
+    const cat = categorieEffective(classes.find((c) => String(c.id) === selectedClasseId), classes);
     setSelectedPeriode(cat === 'LYCEE' ? 'TRIMESTRE_1' : 'COMPOSITION_1');
   }, [selectedClasseId, classes]);
 

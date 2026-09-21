@@ -13,7 +13,7 @@ import {
   RapportNiveau,
 } from '@/services/rapportNiveau.service';
 import { Classe } from '@/types';
-import { categoriePourClasse, periodesDisponibles, periodeParDefaut, periodeValide } from '@/lib/periodes';
+import { categorieEffective, periodesDisponibles, periodeParDefaut, periodeValide } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ export default function RapportsNiveauPage() {
   const [reponse, setReponse] = useState('');
 
   const classeDuCours = classes.find((c) => String(c.id) === String(mesCours.find((m) => String(m.classeMatiereId) === coursId)?.classeId));
-  const categorie = categoriePourClasse(classeDuCours);
+  const categorie = categorieEffective(classeDuCours, classes);
   const disponibles = periodesDisponibles(categorie);
   const estEnseignant = role === 'ENSEIGNANT';
   const estDirecteur = role === 'DIRECTEUR';
@@ -285,7 +285,7 @@ export default function RapportsNiveauPage() {
                 onChange={(e) => {
                   setCoursId(e.target.value);
                   const cm = mesCours.find((m) => String(m.classeMatiereId) === e.target.value);
-                  const cat = categoriePourClasse(classes.find((c) => c.id === cm?.classeId));
+                  const cat = categorieEffective(classes.find((c) => c.id === cm?.classeId), classes);
                   if (!periodeValide(periode, cat)) setPeriode(periodeParDefaut(cat));
                 }}
                 required

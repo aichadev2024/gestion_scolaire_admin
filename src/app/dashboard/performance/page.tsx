@@ -7,7 +7,7 @@ import { authService } from '@/services/auth.service';
 import { classeService } from '@/services/classe.service';
 import { performanceService, Decision, PerformanceClasse, Proposition } from '@/services/performance.service';
 import { Classe } from '@/types';
-import { categoriePourClasse, periodesDisponibles, periodeValide } from '@/lib/periodes';
+import { categorieEffective, periodesDisponibles, periodeValide } from '@/lib/periodes';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Input } from '@/components/ui/input';
@@ -49,7 +49,7 @@ export default function PerformancePage() {
   const [seuilPassage, setSeuilPassage] = useState('10');
   const [seuilRedoublement, setSeuilRedoublement] = useState('8');
   const [data, setData] = useState<PerformanceClasse | null>(null);
-  const categorie = categoriePourClasse(classes.find((c) => String(c.id) === classeId));
+  const categorie = categorieEffective(classes.find((c) => String(c.id) === classeId), classes);
   const disponibles = periodesDisponibles(categorie);
   const [loading, setLoading] = useState(false);
 
@@ -109,7 +109,7 @@ export default function PerformancePage() {
             value={classeId}
             onChange={(e) => {
               setClasseId(e.target.value);
-              const cat = categoriePourClasse(classes.find((c) => String(c.id) === e.target.value));
+              const cat = categorieEffective(classes.find((c) => String(c.id) === e.target.value), classes);
               if (!periodeValide(periode, cat)) setPeriode('ANNUEL');
             }}
           >
