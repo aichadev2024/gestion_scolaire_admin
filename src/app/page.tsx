@@ -23,10 +23,19 @@ const CONTACT_TEL = '+223 71 91 93 53';
 const CONTACT_TEL_HREF = 'tel:+22371919353';
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=Demande%20de%20d%C3%A9mo%20Netaa%20%C3%89cole`;
 
+const TITLE = 'Netaa École — Le logiciel de gestion des écoles du Mali';
+const DESCRIPTION =
+  "Inscriptions, notes & bulletins, finances et cartes scolaires pour votre établissement — avec l'application parents incluse. Conçu au Mali, en français.";
+
 export const metadata: Metadata = {
-  title: 'Netaa École — Le logiciel de gestion des écoles du Mali',
-  description:
-    "Inscriptions, notes & bulletins, finances et cartes scolaires pour votre établissement — avec l'application parents incluse. Conçu au Mali, en français.",
+  title: TITLE,
+  description: DESCRIPTION,
+  // openGraph/twitter repris ici (pas seulement dans layout.tsx) pour que la carte de partage
+  // affichée sur WhatsApp/Facebook/X reprenne bien le titre et la description de CETTE page.
+  openGraph: { title: TITLE, description: DESCRIPTION },
+  // Next remplace l'objet `twitter` du layout parent plutôt que de le fusionner : le
+  // `card: 'summary_large_image'` doit donc être répété ici, sinon il retombe sur le défaut.
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 };
 
 const ROLES = [
