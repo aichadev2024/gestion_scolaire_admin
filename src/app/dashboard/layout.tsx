@@ -61,6 +61,7 @@ const M = {
   rapportsNiveau: { name: 'Niveau des classes', path: '/dashboard/rapports-niveau', icon: ClipboardCheck },
   performance: { name: 'Performance', path: '/dashboard/performance', icon: TrendingUp },
   discipline: { name: 'Discipline', path: '/dashboard/discipline', icon: ShieldAlert },
+  promoteur: { name: 'Tableau de bord', path: '/dashboard/promoteur', icon: LayoutDashboard },
 } satisfies Record<string, MenuItem>;
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
@@ -70,6 +71,8 @@ const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
   COMPTABLE: [M.dashboard, M.finances, M.stock],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cahierTexte, M.rapportsNiveau],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],
+  // Lecture seule : une seule page, pas de menu à parcourir.
+  PROMOTEUR: [M.promoteur],
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -79,6 +82,7 @@ const ROLE_LABELS: Record<string, string> = {
   COMPTABLE: 'Comptabilité',
   ENSEIGNANT: 'Enseignant',
   SURVEILLANT_GENERAL: 'Surveillance générale',
+  PROMOTEUR: 'Promoteur',
 };
 
 type SessionUser = {

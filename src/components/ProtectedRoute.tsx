@@ -71,6 +71,11 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/classes',
     '/dashboard/discipline',
   ],
+  // Promoteur (propriétaire) : lecture seule, effectifs + finances réelles + équipe. Même contenu
+  // que l'espace mobile équivalent — au choix, selon qu'il a un ordinateur ou seulement un téléphone.
+  // '/dashboard' reste autorisé pour laisser DashboardPage rediriger vers /dashboard/promoteur
+  // (même mécanisme que SUPER_ADMIN → /super-admin).
+  PROMOTEUR: ['/dashboard', '/dashboard/promoteur'],
   // ÉLÈVE et PARENT n'ont pas d'accès web (voir /mobile-uniquement) — ils
   // utilisent l'application mobile. Volontairement absents de cette liste.
 };

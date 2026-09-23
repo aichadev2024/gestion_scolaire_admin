@@ -42,6 +42,10 @@ export default function DashboardPage() {
       router.push('/super-admin');
       return;
     }
+    if (user.role === 'PROMOTEUR') {
+      router.push('/dashboard/promoteur');
+      return;
+    }
 
     const nomComplet = [user.prenom, user.nom].filter(Boolean).join(' ');
     setUserName(nomComplet || user.username || user.email?.split('@')[0] || 'Utilisateur');
