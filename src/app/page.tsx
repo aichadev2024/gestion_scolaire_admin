@@ -327,7 +327,10 @@ export default function Home() {
             <a href={CONTACT_TEL_HREF} className="flex items-center gap-1.5 transition-colors hover:text-foreground">
               <Phone className="size-3.5" /> {CONTACT_TEL}
             </a>
-            <span className="mt-1">© {new Date().getFullYear()} · Tous droits réservés</span>
+            <Link href="/confidentialite" className="mt-1 transition-colors hover:text-foreground">
+              Politique de confidentialité
+            </Link>
+            <span>© {new Date().getFullYear()} · Tous droits réservés</span>
           </div>
         </div>
       </footer>
