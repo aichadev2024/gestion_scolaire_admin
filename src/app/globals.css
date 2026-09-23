@@ -136,6 +136,30 @@
     background-color: hsl(var(--muted));
     opacity: 0.8;
   }
+
+  /* Halo décoratif derrière le héros de la vitrine — dégradé doux, jamais de texte dessus. */
+  .hero-glow {
+    background:
+      radial-gradient(50% 60% at 12% 8%, hsl(var(--primary) / 0.14), transparent 70%),
+      radial-gradient(45% 55% at 92% 18%, hsl(var(--accent) / 0.12), transparent 70%),
+      radial-gradient(40% 50% at 50% 100%, hsl(var(--gold) / 0.10), transparent 70%);
+  }
+
+  /* Grain très léger pour casser l'aplat sur les grands fonds unis (bandeau, héros). */
+  .grain-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* Carte premium : lève légèrement au survol, bordure qui se teinte. */
+  .card-lift {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-3px);
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: 0 16px 32px -18px hsl(var(--primary) / 0.35);
+  }
 }
 
 /* Styles de base — dans @layer pour ne PAS surcharger les utilitaires Tailwind.
