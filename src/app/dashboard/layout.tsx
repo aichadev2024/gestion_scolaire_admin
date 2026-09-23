@@ -22,6 +22,7 @@ import {
   School,
   ScrollText,
   ShieldAlert,
+  FileCheck2,
   TrendingUp,
   UsersRound,
   Wallet,
@@ -61,13 +62,14 @@ const M = {
   rapportsNiveau: { name: 'Niveau des classes', path: '/dashboard/rapports-niveau', icon: ClipboardCheck },
   performance: { name: 'Performance', path: '/dashboard/performance', icon: TrendingUp },
   discipline: { name: 'Discipline', path: '/dashboard/discipline', icon: ShieldAlert },
+  sujetsDevoirs: { name: 'Sujets de devoirs & examens', path: '/dashboard/sujets-devoirs', icon: FileCheck2 },
   promoteur: { name: 'Tableau de bord', path: '/dashboard/promoteur', icon: LayoutDashboard },
 } satisfies Record<string, MenuItem>;
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.niveaux],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.sujetsDevoirs, M.niveaux],
+  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance, M.sujetsDevoirs],
   COMPTABLE: [M.dashboard, M.finances, M.stock],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cahierTexte, M.rapportsNiveau],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],

@@ -31,6 +31,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/cahier-texte',
     '/dashboard/performance',
     '/dashboard/rapports-niveau',
+    '/dashboard/sujets-devoirs',
     '/dashboard/niveaux',
   ],
   SECRETAIRE: [
@@ -46,6 +47,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard/discipline',
     '/dashboard/cahier-texte',
     '/dashboard/performance',
+    '/dashboard/sujets-devoirs',
   ],
   COMPTABLE: [
     '/dashboard',
