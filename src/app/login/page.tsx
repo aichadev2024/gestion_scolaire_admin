@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { authService, LoginCredentials } from '@/services/auth.service';
+import api from '@/services/api';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,35 @@ import { Label } from '@/components/ui/label';
 
 /** Élèves et parents n'ont pas accès à l'interface web — application mobile uniquement. */
 const ROLES_MOBILE_UNIQUEMENT = ['ELEVE', 'PARENT'];
+
+/** Sous-domaines réservés à la plateforme elle-même — jamais un code d'établissement. */
+const SOUS_DOMAINES_RESERVES = new Set(['www', 'app']);
+
+interface EtablissementBranding {
+  nom: string;
+  slogan?: string | null;
+}
+
+const SUFFIXE_DOMAINE = '.netaa-ecole.com';
+
+/**
+ * Chaque établissement a un sous-domaine (ex. lbfc-iftica.netaa-ecole.com, visible
+ * dans super-admin/etablissements sous « Code / sous-domaine »). On le lit directement
+ * dans l'URL du navigateur — inutile de faire transiter l'info par le middleware,
+ * puisque le même déploiement Next.js répond déjà à tous les sous-domaines (DNS wildcard).
+ *
+ * Vérifie explicitement le suffixe (pas juste « plus de 2 morceaux ») : sur l'URL de
+ * secours gestion-scolaire-admin.vercel.app, cette dernière méthode extrairait à tort
+ * « gestion-scolaire-admin » comme s'il s'agissait d'un code d'établissement.
+ */
+function codeSousDomaine(): string | null {
+  if (typeof window === 'undefined') return null;
+  const hostname = window.location.hostname.toLowerCase();
+  if (!hostname.endsWith(SUFFIXE_DOMAINE)) return null;
+  const candidat = hostname.slice(0, -SUFFIXE_DOMAINE.length);
+  if (!candidat || candidat.includes('.') || SOUS_DOMAINES_RESERVES.has(candidat)) return null;
+  return candidat;
+}
 
 /** Destination après connexion : mobile-uniquement pour élève/parent, sinon ?redirect= ou selon le rôle. */
 function destinationApresLogin(role: string): string {
@@ -46,9 +76,21 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
 
+  const [branding, setBranding] = useState<EtablissementBranding | null>(null);
+
   useEffect(() => {
     authService.checkSetup().then((res) => setSetupRequired(!!res?.setupRequired)).catch(() => {});
     authService.checkSuperAdminExists().then((res) => setSuperAdminExists(!!res?.exists)).catch(() => {});
+
+    const code = codeSousDomaine();
+    if (!code) return;
+    api
+      .get(`/public/verify/etablissement/${encodeURIComponent(code)}`)
+      .then((res) => {
+        const d = res.data;
+        if (d?.valide && d?.statut === 'ACTIF') setBranding({ nom: d.nom, slogan: d.slogan });
+      })
+      .catch(() => {});
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,10 +161,14 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="mb-3" markClassName="h-14 w-14" showEcole={false} />
           <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-accent">
-            Gestion scolaire numérique
+            {branding?.slogan || 'Gestion scolaire numérique'}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Connectez-vous à votre espace d&apos;administration
+            {branding ? (
+              <>Connectez-vous à l&apos;espace de <span className="font-semibold text-foreground">{branding.nom}</span></>
+            ) : (
+              "Connectez-vous à votre espace d'administration"
+            )}
           </p>
         </div>
 
