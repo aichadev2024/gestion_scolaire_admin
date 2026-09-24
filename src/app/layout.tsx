@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 const bricolage = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage', display: 'swap', weight: ['600', '700', '800'] });
 const splineMono = Spline_Sans_Mono({ subsets: ['latin'], variable: '--font-spline-mono', display: 'swap', weight: ['400', '500'] });
 
-const SITE_URL = 'https://gestion-scolaire-admin.vercel.app';
+const SITE_URL = 'https://netaa-ecole.com';
 const TITLE = 'Netaa École — Gestion scolaire';
 const DESCRIPTION =
   "Netaa École — le suivi de la scolarité (notes, présences, bulletins, frais) pour les écoles du Mali, leurs enseignants et les parents d'élèves.";
