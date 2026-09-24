@@ -35,6 +35,8 @@ export interface SituationFinanciere {
   reste: number;
   aucunFraisDefini: boolean;
   toutPaye: boolean;
+  /** Faux tant que seule l'inscription est définie : les tranches/mensualités ne sont pas encore connues. */
+  scolariteDefinie: boolean;
   creditNonUtilise: number;
   lignes: LigneSituation[];
 }

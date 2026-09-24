@@ -356,7 +356,35 @@ export default function FinancesPage() {
               <div className="mb-4 grid gap-3 rounded-xl border border-border bg-secondary/40 p-4 text-sm sm:grid-cols-3">
                 <div><div className="text-xs text-muted-foreground">Total dû</div><div className="font-semibold tabular-nums">{fcfa(situation.totalDu)}</div></div>
                 <div><div className="text-xs text-muted-foreground">Déjà payé</div><div className="font-semibold tabular-nums text-success">{fcfa(situation.totalPaye)}</div></div>
-                <div><div className="text-xs text-muted-foreground">Reste à payer</div><div className="font-semibold tabular-nums text-destructive">{fcfa(situation.reste)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Reste à payer</div><div className={cn('font-semibold tabular-nums', situation.reste > 0 ? 'text-destructive' : 'text-success')}>{fcfa(situation.reste)}</div></div>
+              </div>
+            )}
+            {situation && !situation.aucunFraisDefini && (
+              <div className="mb-4 space-y-3">
+                <div className="divide-y divide-border rounded-xl border border-border text-sm">
+                  {situation.lignes.map((l) => (
+                    <div key={l.fraisId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                      <span className="font-medium">{l.titre}</span>
+                      <span className="flex items-center gap-3 text-muted-foreground">
+                        <span className="tabular-nums">{fcfa(l.paye)} / {fcfa(l.montant)}</span>
+                        <Badge variant={l.statut === 'PAYE' ? 'success' : l.statut === 'EN_RETARD' ? 'destructive' : 'warning'}>
+                          {{ PAYE: 'Payé', PARTIEL: 'Partiel', A_PAYER: 'À payer', EN_RETARD: 'En retard' }[l.statut]}
+                        </Badge>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {situation.reste <= 0 && (
+                  <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+                    Tous les frais définis pour cette classe sont payés : il n&apos;y a rien à encaisser pour le moment.
+                  </p>
+                )}
+                {!situation.scolariteDefinie && (
+                  <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+                    Seule l&apos;inscription est définie pour cette classe. Pour encaisser des tranches ou mensualités,
+                    créez-les d&apos;abord dans l&apos;onglet « Frais de scolarité » (une ligne par tranche, avec sa date d&apos;échéance).
+                  </p>
+                )}
               </div>
             )}
             <form onSubmit={handlePaiementSubmit} className="grid gap-4 sm:grid-cols-2">
@@ -396,7 +424,9 @@ export default function FinancesPage() {
                   </option>
                   {fraisPourEleveSelectionne.length > 0 && (
                     <option value={PAIEMENT_GLOBAL}>
-                      Paiement global — toute la scolarité ({fcfa(situation?.reste ?? fraisPourEleveSelectionne.reduce((t, f) => t + f.montant, 0))} restant)
+                      {situation && situation.reste <= 0
+                        ? 'Paiement global — tout est déjà payé'
+                        : `Paiement global — toute la scolarité (${fcfa(situation?.reste ?? fraisPourEleveSelectionne.reduce((t, f) => t + f.montant, 0))} restant)`}
                     </option>
                   )}
                   {fraisPourEleveSelectionne.map((f) => (
