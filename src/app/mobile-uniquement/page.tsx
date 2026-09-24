@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Smartphone, ArrowRight } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
-const MOBILE_APP_URL = 'https://gestion-scolaire-mobile.vercel.app';
+const MOBILE_APP_URL = 'https://app.netaa-ecole.com';
 
 /**
  * Élèves et parents n'ont pas accès à l'interface web — ils utilisent
