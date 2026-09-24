@@ -10,13 +10,41 @@ export interface CreateFraisPayload {
 
 export interface CreatePaiementPayload {
   eleveId: number;
-  fraisId: number;
+  /** Absent = paiement global : réparti automatiquement par le backend sur les échéances les plus anciennes. */
+  fraisId?: number;
   montantPaye: number;
   modePaiement: string;
   referenceTransaction: string;
 }
 
+export interface LigneSituation {
+  fraisId: number;
+  titre: string;
+  type: string;
+  montant: number;
+  paye: number;
+  reste: number;
+  dateEcheance: string;
+  statut: 'PAYE' | 'PARTIEL' | 'A_PAYER' | 'EN_RETARD';
+}
+
+export interface SituationFinanciere {
+  devise: string;
+  totalDu: number;
+  totalPaye: number;
+  reste: number;
+  aucunFraisDefini: boolean;
+  toutPaye: boolean;
+  creditNonUtilise: number;
+  lignes: LigneSituation[];
+}
+
 export const financeService = {
+  getSituation: async (eleveId: number): Promise<SituationFinanciere> => {
+    const response = await api.get<SituationFinanciere>(`/paiements/eleve/${eleveId}/situation`);
+    return response.data;
+  },
+
   getFraisByClasse: async (classeId: number): Promise<FraisScolarite[]> => {
     const response = await api.get<FraisScolarite[]>(`/frais-scolarite/classe/${classeId}`);
     return response.data;

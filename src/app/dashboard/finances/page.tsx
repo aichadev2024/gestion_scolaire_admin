@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Download, Pencil, Phone, Trash2, TriangleAlert, Wallet } from 'lucide-react';
-import { financeService } from '@/services/finance.service';
+import { financeService, SituationFinanciere } from '@/services/finance.service';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
 import { authService } from '@/services/auth.service';
@@ -23,6 +23,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const FRAIS_EMPTY = { classeId: '', titre: '', montant: '', dateEcheance: '' };
 const PAIEMENT_EMPTY = { eleveId: '', fraisId: '', montantPaye: '', modePaiement: 'ESPECES', referenceTransaction: '' };
+/** Valeur du sélecteur « Frais concerné » pour un paiement global (aucun frais précis côté backend). */
+const PAIEMENT_GLOBAL = 'GLOBAL';
 const fcfa = (n?: number) => `${(n ?? 0).toLocaleString('fr-FR')} ${authService.getCurrentUser()?.etablissementDevise || 'FCFA'}`;
 
 export default function FinancesPage() {
@@ -31,6 +33,7 @@ export default function FinancesPage() {
   const [eleves, setEleves] = useState<Eleve[]>([]);
   const [fraisList, setFraisList] = useState<FraisScolarite[]>([]);
   const [paiementsEleve, setPaiementsEleve] = useState<Paiement[]>([]);
+  const [situation, setSituation] = useState<SituationFinanciere | null>(null);
   const [retards, setRetards] = useState<RetardPaiement[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -70,16 +73,29 @@ export default function FinancesPage() {
     fetchData();
   }, []);
 
+  const chargerPaiementsEtSituation = async (eleveId: number) => {
+    const [paiements, sit] = await Promise.all([
+      financeService.getPaiementsByEleve(eleveId),
+      financeService.getSituation(eleveId).catch(() => null),
+    ]);
+    setPaiementsEleve(paiements);
+    setSituation(sit);
+  };
+
   useEffect(() => {
     if (!paiementForm.eleveId) {
       setPaiementsEleve([]);
+      setSituation(null);
       return;
     }
-    financeService
-      .getPaiementsByEleve(parseInt(paiementForm.eleveId))
-      .then(setPaiementsEleve)
-      .catch(() => toast.error('Impossible de charger les paiements.'));
+    chargerPaiementsEtSituation(parseInt(paiementForm.eleveId)).catch(() =>
+      toast.error('Impossible de charger les paiements.'),
+    );
   }, [paiementForm.eleveId]);
+
+  /** Reste à payer sur un frais (tranche) : ce qui n'est pas encore couvert, jamais son montant plein si déjà entamé. */
+  const resteSurFrais = (f: FraisScolarite): number =>
+    situation?.lignes.find((l) => l.fraisId === f.id)?.reste ?? f.montant;
 
   const classeNom = (f: FraisScolarite) =>
     f.classeNom || classes.find((c) => c.id === f.classeId)?.nom || '—';
@@ -147,15 +163,15 @@ export default function FinancesPage() {
     try {
       await financeService.createPaiement({
         eleveId: parseInt(paiementForm.eleveId),
-        fraisId: parseInt(paiementForm.fraisId),
+        fraisId: paiementForm.fraisId === PAIEMENT_GLOBAL ? undefined : parseInt(paiementForm.fraisId),
         montantPaye: parseFloat(paiementForm.montantPaye),
         modePaiement: paiementForm.modePaiement,
         referenceTransaction: paiementForm.referenceTransaction || 'CASH',
       });
       toast.success('Paiement enregistré.');
-      setPaiementForm((p) => ({ ...p, montantPaye: '', referenceTransaction: '' }));
+      setPaiementForm((p) => ({ ...p, fraisId: '', montantPaye: '', referenceTransaction: '' }));
       if (paiementForm.eleveId) {
-        setPaiementsEleve(await financeService.getPaiementsByEleve(parseInt(paiementForm.eleveId)));
+        await chargerPaiementsEtSituation(parseInt(paiementForm.eleveId));
       }
     } catch (err) {
       toast.error(errorMessage(err, "Erreur lors de l'enregistrement du paiement"));
@@ -336,6 +352,13 @@ export default function FinancesPage() {
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="mb-4 font-display text-lg font-bold">Encaisser un paiement</h2>
+            {situation && !situation.aucunFraisDefini && (
+              <div className="mb-4 grid gap-3 rounded-xl border border-border bg-secondary/40 p-4 text-sm sm:grid-cols-3">
+                <div><div className="text-xs text-muted-foreground">Total dû</div><div className="font-semibold tabular-nums">{fcfa(situation.totalDu)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Déjà payé</div><div className="font-semibold tabular-nums text-success">{fcfa(situation.totalPaye)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Reste à payer</div><div className="font-semibold tabular-nums text-destructive">{fcfa(situation.reste)}</div></div>
+              </div>
+            )}
             <form onSubmit={handlePaiementSubmit} className="grid gap-4 sm:grid-cols-2">
               <Field label="Élève *">
                 <Select
@@ -353,11 +376,16 @@ export default function FinancesPage() {
                 <Select
                   value={paiementForm.fraisId}
                   onChange={(e) => {
-                    const found = fraisPourEleveSelectionne.find((f) => String(f.id) === e.target.value);
+                    const valeur = e.target.value;
+                    const found = fraisPourEleveSelectionne.find((f) => String(f.id) === valeur);
+                    // Paiement par tranche : pré-rempli avec ce qu'il reste sur ce frais ; global : reste total.
+                    const propose = valeur === PAIEMENT_GLOBAL
+                      ? (situation?.reste ?? fraisPourEleveSelectionne.reduce((t, f) => t + f.montant, 0))
+                      : found ? resteSurFrais(found) : undefined;
                     setPaiementForm({
                       ...paiementForm,
-                      fraisId: e.target.value,
-                      montantPaye: found ? String(found.montant) : paiementForm.montantPaye,
+                      fraisId: valeur,
+                      montantPaye: propose !== undefined && propose > 0 ? String(propose) : paiementForm.montantPaye,
                     });
                   }}
                   disabled={!paiementForm.eleveId}
@@ -366,12 +394,23 @@ export default function FinancesPage() {
                   <option value="">
                     {paiementForm.eleveId ? '— Sélectionner un frais —' : '— Choisir d’abord un élève —'}
                   </option>
+                  {fraisPourEleveSelectionne.length > 0 && (
+                    <option value={PAIEMENT_GLOBAL}>
+                      Paiement global — toute la scolarité ({fcfa(situation?.reste ?? fraisPourEleveSelectionne.reduce((t, f) => t + f.montant, 0))} restant)
+                    </option>
+                  )}
                   {fraisPourEleveSelectionne.map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.titre} ({classeNom(f)}) — {fcfa(f.montant)}
+                      {resteSurFrais(f) !== f.montant ? ` · reste ${fcfa(resteSurFrais(f))}` : ''}
                     </option>
                   ))}
                 </Select>
+                {paiementForm.fraisId === PAIEMENT_GLOBAL && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Un seul reçu : le montant est réparti automatiquement sur les échéances, de la plus ancienne à la plus récente.
+                  </p>
+                )}
                 {paiementForm.eleveId && fraisPourEleveSelectionne.length === 0 && (
                   <p className="mt-1 text-xs text-warning-foreground">Aucun frais configuré pour la classe de cet élève.</p>
                 )}
