@@ -41,6 +41,10 @@ export default function FinancesPage() {
 
   const [editingFrais, setEditingFrais] = useState<FraisScolarite | null>(null);
   const [fraisForm, setFraisForm] = useState(FRAIS_EMPTY);
+  // Création d'un frais : une même grille s'applique en général à toutes les sous-classes d'un niveau
+  // (10ème CG1, CG2… ; 11ème Science, SES, Lettre…) — on coche donc plusieurs classes d'un coup.
+  const [classesCochees, setClassesCochees] = useState<number[]>([]);
+  const [filtreClassesFrais, setFiltreClassesFrais] = useState('');
   const [paiementForm, setPaiementForm] = useState(PAIEMENT_EMPTY);
   const [filtreClasseId, setFiltreClasseId] = useState('');
 
@@ -121,22 +125,41 @@ export default function FinancesPage() {
 
   const handleFraisSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingFrais && classesCochees.length === 0) {
+      toast.error('Cochez au moins une classe.');
+      return;
+    }
     setSubmitting(true);
     try {
-      const payload = {
-        classeId: parseInt(fraisForm.classeId),
-        titre: fraisForm.titre,
+      const base = {
+        titre: fraisForm.titre.trim(),
         montant: parseFloat(fraisForm.montant),
         dateEcheance: fraisForm.dateEcheance,
       };
       if (editingFrais) {
-        await financeService.updateFrais(editingFrais.id, payload);
+        await financeService.updateFrais(editingFrais.id, { ...base, classeId: parseInt(fraisForm.classeId) });
         toast.success('Frais mis à jour.');
       } else {
-        await financeService.createFrais(payload);
-        toast.success('Frais créé.');
+        // Une classe qui a déjà ce même titre est ignorée (évite les doublons si on relance).
+        const dejaLa = new Set(
+          fraisList
+            .filter((f) => f.titre.trim().toLowerCase() === base.titre.toLowerCase())
+            .map((f) => resolvedClasseId(f)),
+        );
+        const aCreer = classesCochees.filter((id) => !dejaLa.has(id));
+        const ignorees = classesCochees.length - aCreer.length;
+        const resultats = await Promise.allSettled(
+          aCreer.map((classeId) => financeService.createFrais({ ...base, classeId })),
+        );
+        const echecs = resultats.filter((r) => r.status === 'rejected').length;
+        const crees = aCreer.length - echecs;
+        if (crees > 0) toast.success(`« ${base.titre} » créé pour ${crees} classe${crees > 1 ? 's' : ''}.`);
+        if (ignorees > 0) toast.info(`${ignorees} classe${ignorees > 1 ? 's avaient' : ' avait'} déjà « ${base.titre} » : ignorée${ignorees > 1 ? 's' : ''}.`);
+        if (echecs > 0) toast.error(`${echecs} création${echecs > 1 ? 's ont' : ' a'} échoué : réessayez pour ces classes.`);
+        if (crees === 0 && echecs > 0) return;
       }
       setFraisForm(FRAIS_EMPTY);
+      setClassesCochees([]);
       setEditingFrais(null);
       await fetchData();
     } catch (err) {
@@ -248,14 +271,67 @@ export default function FinancesPage() {
               {editingFrais ? `Modifier le frais « ${editingFrais.titre} »` : 'Nouveau frais de scolarité'}
             </h2>
             <form onSubmit={handleFraisSubmit} className="grid gap-4 sm:grid-cols-2">
-              <Field label="Classe concernée *">
-                <Select value={fraisForm.classeId} onChange={(e) => setFraisForm({ ...fraisForm, classeId: e.target.value })} required>
-                  <option value="">Sélectionner une classe</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nom}</option>
-                  ))}
-                </Select>
-              </Field>
+              {editingFrais ? (
+                <Field label="Classe concernée *">
+                  <Select value={fraisForm.classeId} onChange={(e) => setFraisForm({ ...fraisForm, classeId: e.target.value })} required>
+                    <option value="">Sélectionner une classe</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom}</option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : (
+                <div className="sm:col-span-2">
+                  <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                    <span className="text-sm font-medium">
+                      Classes concernées * <span className="font-normal text-muted-foreground">({classesCochees.length} cochée{classesCochees.length > 1 ? 's' : ''})</span>
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        value={filtreClassesFrais}
+                        onChange={(e) => setFiltreClassesFrais(e.target.value)}
+                        placeholder="Filtrer : 10ème, 11ème, T…"
+                        className="h-8 w-48"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const visibles = classes.filter((c) => c.nom.toLowerCase().includes(filtreClassesFrais.trim().toLowerCase())).map((c) => c.id);
+                          setClassesCochees((prev) => Array.from(new Set([...prev, ...visibles])));
+                        }}
+                      >
+                        Cocher les classes affichées
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setClassesCochees([])}>
+                        Tout décocher
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid max-h-44 gap-1.5 overflow-y-auto rounded-xl border border-border p-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {classes
+                      .filter((c) => c.nom.toLowerCase().includes(filtreClassesFrais.trim().toLowerCase()))
+                      .map((c) => (
+                        <label key={c.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-primary"
+                            checked={classesCochees.includes(c.id)}
+                            onChange={(e) =>
+                              setClassesCochees((prev) => (e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)))
+                            }
+                          />
+                          {c.nom}
+                        </label>
+                      ))}
+                    {classes.length === 0 && <span className="text-sm text-muted-foreground">Aucune classe créée.</span>}
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Le même frais est créé pour chaque classe cochée. Astuce : tapez « 10ème » dans le filtre puis « Cocher les classes affichées » pour prendre toutes les sous-classes d&apos;un niveau.
+                  </p>
+                </div>
+              )}
               <Field label="Titre *">
                 <Input value={fraisForm.titre} onChange={(e) => setFraisForm({ ...fraisForm, titre: e.target.value })} placeholder="Inscription, 1ère tranche…" required />
               </Field>
@@ -271,7 +347,7 @@ export default function FinancesPage() {
                     Annuler
                   </Button>
                 )}
-                <Button type="submit" loading={submitting}>{editingFrais ? 'Enregistrer' : 'Créer le frais'}</Button>
+                <Button type="submit" loading={submitting}>{editingFrais ? 'Enregistrer' : classesCochees.length > 1 ? `Créer le frais pour ${classesCochees.length} classes` : 'Créer le frais'}</Button>
               </div>
             </form>
           </Card>
