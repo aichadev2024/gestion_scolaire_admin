@@ -356,7 +356,7 @@ export default function FinancesPage() {
               <div className="mb-4 grid gap-3 rounded-xl border border-border bg-secondary/40 p-4 text-sm sm:grid-cols-3">
                 <div><div className="text-xs text-muted-foreground">Total dû</div><div className="font-semibold tabular-nums">{fcfa(situation.totalDu)}</div></div>
                 <div><div className="text-xs text-muted-foreground">Déjà payé</div><div className="font-semibold tabular-nums text-success">{fcfa(situation.totalPaye)}</div></div>
-                <div><div className="text-xs text-muted-foreground">Reste à payer</div><div className={cn('font-semibold tabular-nums', situation.reste > 0 ? 'text-destructive' : 'text-success')}>{fcfa(situation.reste)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Reste à payer</div><div className={cn('font-semibold tabular-nums', situation.reste > 0 ? 'text-destructive' : situation.scolariteDefinie ? 'text-success' : 'text-foreground')}>{fcfa(situation.reste)}</div></div>
               </div>
             )}
             {situation && !situation.aucunFraisDefini && (
@@ -374,15 +374,18 @@ export default function FinancesPage() {
                     </div>
                   ))}
                 </div>
-                {situation.reste <= 0 && (
+                {situation.scolariteDefinie && situation.reste <= 0 && (
                   <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
-                    Tous les frais définis pour cette classe sont payés : il n&apos;y a rien à encaisser pour le moment.
+                    Toute la scolarité de cet élève est payée.
                   </p>
                 )}
                 {!situation.scolariteDefinie && (
                   <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
-                    Seule l&apos;inscription est définie pour cette classe. Pour encaisser des tranches ou mensualités,
-                    créez-les d&apos;abord dans l&apos;onglet « Frais de scolarité » (une ligne par tranche, avec sa date d&apos;échéance).
+                    <strong>Seule l&apos;inscription est enregistrée pour cette classe</strong>
+                    {situation.reste <= 0 ? ' et elle est payée' : ''}. Le reste de la scolarité (tranches, mensualités)
+                    n&apos;est pas encore défini : « Reste à payer » ne le compte donc pas. Créez-le dans l&apos;onglet
+                    « Frais de scolarité » (une ligne par tranche, avec son montant et sa date d&apos;échéance) pour pouvoir
+                    l&apos;encaisser.
                   </p>
                 )}
               </div>
@@ -425,7 +428,7 @@ export default function FinancesPage() {
                   {fraisPourEleveSelectionne.length > 0 && (
                     <option value={PAIEMENT_GLOBAL}>
                       {situation && situation.reste <= 0
-                        ? 'Paiement global — tout est déjà payé'
+                        ? (situation.scolariteDefinie ? 'Paiement global — tout est déjà payé' : 'Paiement global — aucune tranche définie pour le moment')
                         : `Paiement global — toute la scolarité (${fcfa(situation?.reste ?? fraisPourEleveSelectionne.reduce((t, f) => t + f.montant, 0))} restant)`}
                     </option>
                   )}
