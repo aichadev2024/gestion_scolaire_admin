@@ -90,8 +90,13 @@ export default function StockPage() {
 
   const handleSubmitArticle = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError('');
+    const unite = articleForm.unite.trim();
+    if (unite && !/\p{L}/u.test(unite)) {
+      setError("L'unité doit être un mot (pièce, boîte, ramette…), pas un nombre. La quantité s'enregistre avec le bouton « Entrée ».");
+      return;
+    }
+    setSubmitting(true);
     const payload = {
       nom: articleForm.nom.trim(),
       categorie: articleForm.categorie.trim() || undefined,
