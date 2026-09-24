@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { FileCheck2, FileText, Download, CheckCircle2, XCircle } from 'lucide-react';
+import { FileCheck2, FileText, Download, Printer, CheckCircle2, XCircle } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { sujetDevoirService, SujetDevoir, StatutSujet } from '@/services/sujetDevoir.service';
 import { errorMessage } from '@/lib/errors';
@@ -34,6 +34,12 @@ const fmtPoids = (octets?: number | null) => {
   const ko = octets / 1024;
   return ko < 1024 ? `${Math.round(ko)} Ko` : `${(ko / 1024).toFixed(1)} Mo`;
 };
+const extensionDe = (contentType?: string | null) =>
+  contentType === 'application/pdf' ? 'pdf' : contentType === 'image/png' ? 'png' : 'jpg';
+const nomFichier = (s: SujetDevoir) => {
+  const base = s.titre.replace(/[^a-zA-Z0-9\-_ ]/g, '').trim().replace(/\s+/g, '-') || 'sujet';
+  return `${base}.${extensionDe(s.contentType)}`;
+};
 
 export default function SujetsDevoirsPage() {
   const [role, setRole] = useState('');
@@ -43,6 +49,7 @@ export default function SujetsDevoirsPage() {
   const [aTraiter, setATraiter] = useState<{ sujet: SujetDevoir; decision: 'VALIDE' | 'REJETE' } | null>(null);
   const [commentaire, setCommentaire] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [actionEnCours, setActionEnCours] = useState<number | null>(null);
 
   const peutTraiter = role === 'DIRECTEUR';
 
@@ -64,6 +71,54 @@ export default function SujetsDevoirsPage() {
   useEffect(() => {
     charger();
   }, [charger]);
+
+  const telecharger = async (s: SujetDevoir) => {
+    setActionEnCours(s.id);
+    try {
+      const blob = await sujetDevoirService.telechargerFichier(s.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nomFichier(s);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Téléchargement impossible.'));
+    } finally {
+      setActionEnCours(null);
+    }
+  };
+
+  const imprimer = async (s: SujetDevoir) => {
+    setActionEnCours(s.id);
+    try {
+      const blob = await sujetDevoirService.telechargerFichier(s.id);
+      const url = URL.createObjectURL(blob);
+      if (s.contentType === 'application/pdf') {
+        // PDF : ouvert dans un nouvel onglet, le lecteur natif du navigateur a son propre bouton Imprimer.
+        window.open(url, '_blank');
+        return;
+      }
+      // Image (JPEG/PNG) : page minimale, impression déclenchée automatiquement une fois chargée.
+      // Construit via le DOM (pas document.write avec le titre en chaîne) pour ne jamais injecter
+      // le titre saisi par l'enseignant comme du HTML.
+      const fenetre = window.open('', '_blank');
+      if (!fenetre) return;
+      fenetre.document.title = s.titre;
+      fenetre.document.body.style.margin = '0';
+      const img = fenetre.document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      img.onload = () => fenetre.print();
+      fenetre.document.body.appendChild(img);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Impression impossible.'));
+    } finally {
+      setActionEnCours(null);
+    }
+  };
 
   const ouvrirTraitement = (sujet: SujetDevoir, decision: 'VALIDE' | 'REJETE') => {
     setATraiter({ sujet, decision });
@@ -131,16 +186,33 @@ export default function SujetsDevoirsPage() {
               {s.description && <p className="mt-3 whitespace-pre-line text-sm">{s.description}</p>}
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                >
-                  <FileText className="size-4" /> Voir le fichier
-                  {s.tailleOctets ? <span className="text-xs text-muted-foreground">({fmtPoids(s.tailleOctets)})</span> : null}
-                  <Download className="size-3.5" />
-                </a>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    <FileText className="size-4" /> Voir le fichier
+                    {s.tailleOctets ? <span className="text-xs text-muted-foreground">({fmtPoids(s.tailleOctets)})</span> : null}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => telecharger(s)}
+                    disabled={actionEnCours === s.id}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <Download className="size-4" /> Télécharger
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => imprimer(s)}
+                    disabled={actionEnCours === s.id}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <Printer className="size-4" /> Imprimer
+                  </button>
+                </div>
 
                 {peutTraiter && s.statut === 'EN_ATTENTE' && (
                   <div className="flex gap-2">
