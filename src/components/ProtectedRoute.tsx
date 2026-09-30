@@ -84,10 +84,16 @@ const ALLOWED_PATHS: Record<string, string[]> = {
   // utilisent l'application mobile. Volontairement absents de cette liste.
 };
 
+// Accessible à tout rôle ayant un accès web (donc à /dashboard) : tout le monde peut
+// recevoir des notifications, pas la peine de lister ce chemin dans chaque rôle et de
+// l'oublier pour un futur rôle.
+const PATH_NOTIFICATIONS = '/dashboard/notifications';
+
 function canAccess(role: string, pathname: string): boolean {
   const allowed = ALLOWED_PATHS[role];
   if (!allowed) return false;
   if (allowed.includes('*')) return true;
+  if (pathname === PATH_NOTIFICATIONS && allowed.includes('/dashboard')) return true;
   // Check exact match or prefix match
   return allowed.some(p => pathname === p || pathname.startsWith(p + '/'));
 }

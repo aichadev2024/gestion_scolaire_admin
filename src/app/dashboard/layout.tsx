@@ -192,8 +192,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       : ROLE_LABELS[role] || role;
   const roleLabelAvecNiveau = user?.niveauSuperviseNom ? `${roleLabel} · ${user.niveauSuperviseNom}` : roleLabel;
   const currentTitle =
-    menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||
-    'Tableau de bord';
+    pathname === '/dashboard/notifications'
+      ? 'Notifications'
+      : menuItems.find((m) => pathname === m.path || (pathname.startsWith(m.path) && m.path !== '/dashboard'))?.name ||
+        'Tableau de bord';
   const displayName = [user?.prenom, user?.nom].filter(Boolean).join(' ') || user?.username || user?.email || 'Utilisateur';
   const initial = (user?.prenom || user?.username || user?.email || '?').charAt(0).toUpperCase();
 
