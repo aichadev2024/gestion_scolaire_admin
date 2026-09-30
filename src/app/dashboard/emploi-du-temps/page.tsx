@@ -37,6 +37,7 @@ const FORM_EMPTY = {
 export default function EmploiDuTempsPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
   const [salles, setSalles] = useState<Salle[]>([]);
+  const [salleEnSaisieLibre, setSalleEnSaisieLibre] = useState(false);
   const [selectedClasseId, setSelectedClasseId] = useState('');
   const [emplois, setEmplois] = useState<EmploiDuTempsItem[]>([]);
   const [classeMatieres, setClasseMatieres] = useState<ClasseMatiereItem[]>([]);
@@ -74,12 +75,16 @@ export default function EmploiDuTempsPage() {
 
   const applyPreset = (p: (typeof PRESETS)[number]) => {
     setTypeCreneau(p.type as 'RECREATION' | 'DEJEUNER');
+    // Les lieux de pause (cour, cantine…) ne font en général pas partie du catalogue de
+    // salles de classe : bascule en saisie libre pour ne pas forcer un choix dans la liste.
+    setSalleEnSaisieLibre(true);
     setFormData((prev) => ({ ...prev, libellePause: p.name, heureDebut: p.debut, heureFin: p.fin, salle: p.salle }));
   };
 
   const openForm = () => {
     setFormData(FORM_EMPTY);
     setTypeCreneau('COURS');
+    setSalleEnSaisieLibre(false);
     setError('');
     setShowForm(true);
   };
@@ -315,19 +320,43 @@ export default function EmploiDuTempsPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Salle / lieu" hint={salles.length > 0 ? 'Suggestions depuis votre catalogue de salles, ou saisie libre.' : undefined}>
-              <Input
-                list="salles-catalogue"
-                value={formData.salle}
-                onChange={(e) => setFormData({ ...formData, salle: e.target.value })}
-                placeholder={typeCreneau === 'COURS' ? 'Salle 101' : 'Cour de récréation'}
-              />
-              {salles.length > 0 && (
-                <datalist id="salles-catalogue">
+            <Field label="Salle / lieu">
+              {salles.length === 0 || salleEnSaisieLibre ? (
+                <div className="space-y-1.5">
+                  <Input
+                    value={formData.salle}
+                    onChange={(e) => setFormData({ ...formData, salle: e.target.value })}
+                    placeholder={typeCreneau === 'COURS' ? 'Salle 101' : 'Cour de récréation'}
+                    autoFocus={salleEnSaisieLibre}
+                  />
+                  {salles.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setSalleEnSaisieLibre(false); setFormData({ ...formData, salle: '' }); }}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      ← Choisir une salle du catalogue
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <Select
+                  value={formData.salle}
+                  onChange={(e) => {
+                    if (e.target.value === '__LIBRE__') {
+                      setSalleEnSaisieLibre(true);
+                      setFormData({ ...formData, salle: '' });
+                    } else {
+                      setFormData({ ...formData, salle: e.target.value });
+                    }
+                  }}
+                >
+                  <option value="">— Sélectionner une salle —</option>
                   {salles.map((s) => (
-                    <option key={s.id} value={s.nom} />
+                    <option key={s.id} value={s.nom}>{s.nom}{s.capacite ? ` (${s.capacite} places)` : ''}</option>
                   ))}
-                </datalist>
+                  <option value="__LIBRE__">Autre (saisie libre)…</option>
+                </Select>
               )}
             </Field>
             <Field label="Heure de début *">
