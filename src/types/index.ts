@@ -62,6 +62,12 @@ export interface Matiere {
   code: string;
 }
 
+export interface Salle {
+  id: number;
+  nom: string;
+  capacite?: number | null;
+}
+
 export interface FraisScolarite {
   id: number;
   titre: string;

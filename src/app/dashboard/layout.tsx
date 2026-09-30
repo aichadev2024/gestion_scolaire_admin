@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   CreditCard,
+  DoorOpen,
   GraduationCap,
   KeyRound,
   Layers,
@@ -49,6 +50,7 @@ const M = {
   enseignants: { name: 'Enseignants', path: '/dashboard/enseignants', icon: UsersRound },
   classes: { name: 'Classes', path: '/dashboard/classes', icon: School },
   matieres: { name: 'Matières', path: '/dashboard/matieres', icon: BookOpen },
+  salles: { name: 'Salles', path: '/dashboard/salles', icon: DoorOpen },
   edt: { name: 'Emploi du temps', path: '/dashboard/emploi-du-temps', icon: CalendarDays },
   presences: { name: 'Présences', path: '/dashboard/presences', icon: CheckSquare },
   notes: { name: 'Notes', path: '/dashboard/notes', icon: ClipboardList },
@@ -69,8 +71,8 @@ const M = {
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.sujetsDevoirs, M.niveaux],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance, M.sujetsDevoirs],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.salles, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.sujetsDevoirs, M.niveaux],
+  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.salles, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance, M.sujetsDevoirs],
   COMPTABLE: [M.dashboard, M.finances, M.stock],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.presences, M.notes, M.bulletins, M.cahierTexte, M.rapportsNiveau],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],

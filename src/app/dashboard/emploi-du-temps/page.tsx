@@ -6,7 +6,8 @@ import { CalendarDays, Clock, Coffee, MapPin, Plus, User, X } from 'lucide-react
 import { emploiDuTempsService, EmploiDuTempsItem } from '@/services/emploiDuTemps.service';
 import { classeService } from '@/services/classe.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
-import { Classe } from '@/types';
+import { salleService } from '@/services/salle.service';
+import { Classe, Salle } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
@@ -35,6 +36,7 @@ const FORM_EMPTY = {
 
 export default function EmploiDuTempsPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
+  const [salles, setSalles] = useState<Salle[]>([]);
   const [selectedClasseId, setSelectedClasseId] = useState('');
   const [emplois, setEmplois] = useState<EmploiDuTempsItem[]>([]);
   const [classeMatieres, setClasseMatieres] = useState<ClasseMatiereItem[]>([]);
@@ -47,6 +49,8 @@ export default function EmploiDuTempsPage() {
 
   useEffect(() => {
     classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
+    // Catalogue facultatif : si l'établissement n'a créé aucune salle, le champ reste en texte libre.
+    salleService.getSalles().then(setSalles).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -311,8 +315,20 @@ export default function EmploiDuTempsPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Salle / lieu">
-              <Input value={formData.salle} onChange={(e) => setFormData({ ...formData, salle: e.target.value })} placeholder={typeCreneau === 'COURS' ? 'Salle 101' : 'Cour de récréation'} />
+            <Field label="Salle / lieu" hint={salles.length > 0 ? 'Suggestions depuis votre catalogue de salles, ou saisie libre.' : undefined}>
+              <Input
+                list="salles-catalogue"
+                value={formData.salle}
+                onChange={(e) => setFormData({ ...formData, salle: e.target.value })}
+                placeholder={typeCreneau === 'COURS' ? 'Salle 101' : 'Cour de récréation'}
+              />
+              {salles.length > 0 && (
+                <datalist id="salles-catalogue">
+                  {salles.map((s) => (
+                    <option key={s.id} value={s.nom} />
+                  ))}
+                </datalist>
+              )}
             </Field>
             <Field label="Heure de début *">
               <Input type="time" value={formData.heureDebut} onChange={(e) => setFormData({ ...formData, heureDebut: e.target.value })} required />
