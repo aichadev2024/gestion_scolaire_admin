@@ -36,6 +36,7 @@ import { pushNotificationService } from '@/services/pushNotification.service';
 import { Logo } from '@/components/logo';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
+import NotificationBell from '@/components/NotificationBell';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -305,6 +306,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <ThemeToggle />
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-medium text-foreground">{displayName}</p>
