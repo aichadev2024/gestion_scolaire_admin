@@ -47,6 +47,20 @@
   --ring: 221 46% 40%;
 
   --radius: 0.625rem;
+
+  /* Palette "matières" — identité par couleur pour l'emploi du temps, 10 teintes
+     fixes (jamais générées à la volée) pour rester reconnaissables d'une classe
+     à l'autre et cohérentes entre le web et le mobile. */
+  --subject-1-bg: 255 38% 95%;   --subject-1-border: 255 34% 80%;   --subject-1-fg: 255 38% 38%;
+  --subject-2-bg: 174 42% 93%;   --subject-2-border: 174 36% 74%;   --subject-2-fg: 174 48% 24%;
+  --subject-3-bg: 26 62% 94%;    --subject-3-border: 26 54% 76%;    --subject-3-fg: 26 62% 34%;
+  --subject-4-bg: 332 48% 95%;   --subject-4-border: 332 40% 80%;   --subject-4-fg: 332 48% 40%;
+  --subject-5-bg: 150 38% 93%;   --subject-5-border: 150 32% 72%;   --subject-5-fg: 150 42% 24%;
+  --subject-6-bg: 205 55% 94%;   --subject-6-border: 205 46% 78%;   --subject-6-fg: 205 55% 34%;
+  --subject-7-bg: 40 62% 91%;    --subject-7-border: 40 50% 68%;    --subject-7-fg: 34 62% 30%;
+  --subject-8-bg: 282 32% 94%;   --subject-8-border: 282 26% 78%;   --subject-8-fg: 282 34% 38%;
+  --subject-9-bg: 352 52% 95%;   --subject-9-border: 352 44% 80%;   --subject-9-fg: 352 52% 40%;
+  --subject-10-bg: 189 48% 92%;  --subject-10-border: 189 40% 72%;  --subject-10-fg: 189 52% 24%;
 }
 
 .dark {
@@ -86,6 +100,17 @@
   --border: 222 24% 25%;
   --input: 222 24% 27%;
   --ring: 210 80% 60%;
+
+  --subject-1-bg: 255 32% 22%;   --subject-1-border: 255 30% 38%;   --subject-1-fg: 255 70% 78%;
+  --subject-2-bg: 174 30% 18%;   --subject-2-border: 174 28% 32%;   --subject-2-fg: 174 50% 62%;
+  --subject-3-bg: 26 35% 20%;    --subject-3-border: 26 32% 36%;    --subject-3-fg: 26 72% 68%;
+  --subject-4-bg: 332 30% 21%;   --subject-4-border: 332 28% 37%;   --subject-4-fg: 332 62% 75%;
+  --subject-5-bg: 150 24% 17%;   --subject-5-border: 150 26% 30%;   --subject-5-fg: 150 46% 60%;
+  --subject-6-bg: 205 34% 21%;   --subject-6-border: 205 32% 38%;   --subject-6-fg: 205 72% 72%;
+  --subject-7-bg: 38 34% 19%;    --subject-7-border: 38 32% 34%;    --subject-7-fg: 38 78% 65%;
+  --subject-8-bg: 282 24% 20%;   --subject-8-border: 282 26% 36%;   --subject-8-fg: 282 52% 72%;
+  --subject-9-bg: 352 30% 21%;   --subject-9-border: 352 30% 37%;   --subject-9-fg: 352 68% 72%;
+  --subject-10-bg: 189 28% 18%;  --subject-10-border: 189 30% 33%;  --subject-10-fg: 189 58% 65%;
 }
 
 @theme inline {
@@ -114,6 +139,37 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+
+  --color-subject-1-bg: hsl(var(--subject-1-bg));
+  --color-subject-1-border: hsl(var(--subject-1-border));
+  --color-subject-1-fg: hsl(var(--subject-1-fg));
+  --color-subject-2-bg: hsl(var(--subject-2-bg));
+  --color-subject-2-border: hsl(var(--subject-2-border));
+  --color-subject-2-fg: hsl(var(--subject-2-fg));
+  --color-subject-3-bg: hsl(var(--subject-3-bg));
+  --color-subject-3-border: hsl(var(--subject-3-border));
+  --color-subject-3-fg: hsl(var(--subject-3-fg));
+  --color-subject-4-bg: hsl(var(--subject-4-bg));
+  --color-subject-4-border: hsl(var(--subject-4-border));
+  --color-subject-4-fg: hsl(var(--subject-4-fg));
+  --color-subject-5-bg: hsl(var(--subject-5-bg));
+  --color-subject-5-border: hsl(var(--subject-5-border));
+  --color-subject-5-fg: hsl(var(--subject-5-fg));
+  --color-subject-6-bg: hsl(var(--subject-6-bg));
+  --color-subject-6-border: hsl(var(--subject-6-border));
+  --color-subject-6-fg: hsl(var(--subject-6-fg));
+  --color-subject-7-bg: hsl(var(--subject-7-bg));
+  --color-subject-7-border: hsl(var(--subject-7-border));
+  --color-subject-7-fg: hsl(var(--subject-7-fg));
+  --color-subject-8-bg: hsl(var(--subject-8-bg));
+  --color-subject-8-border: hsl(var(--subject-8-border));
+  --color-subject-8-fg: hsl(var(--subject-8-fg));
+  --color-subject-9-bg: hsl(var(--subject-9-bg));
+  --color-subject-9-border: hsl(var(--subject-9-border));
+  --color-subject-9-fg: hsl(var(--subject-9-fg));
+  --color-subject-10-bg: hsl(var(--subject-10-bg));
+  --color-subject-10-border: hsl(var(--subject-10-border));
+  --color-subject-10-fg: hsl(var(--subject-10-fg));
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

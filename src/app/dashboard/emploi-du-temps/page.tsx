@@ -10,6 +10,7 @@ import { salleService } from '@/services/salle.service';
 import { Classe, Salle } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { subjectStyle } from '@/lib/subjectColors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -137,6 +138,10 @@ export default function EmploiDuTempsPage() {
     }
   };
 
+  const matieresDeLaClasse = Array.from(
+    new Map(classeMatieres.map((cm) => [cm.matiere.id, cm.matiere])).values(),
+  );
+
   const byJour: Record<number, EmploiDuTempsItem[]> = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
   emplois.forEach((e) => {
     (byJour[e.jourSemaine] ??= []).push(e);
@@ -170,6 +175,20 @@ export default function EmploiDuTempsPage() {
           </span>
         )}
       </div>
+
+      {selectedClasseId && matieresDeLaClasse.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-x-4 gap-y-2">
+          {matieresDeLaClasse.map((m) => {
+            const style = subjectStyle(m.id, m.nom);
+            return (
+              <span key={m.id} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className={cn('size-2.5 rounded-full', style.dot)} />
+                {m.nom}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {!selectedClasseId ? (
         <EmptyState icon={<CalendarDays />} title="Sélectionnez une classe" description="Pour afficher et gérer son emploi du temps." />
@@ -206,17 +225,20 @@ export default function EmploiDuTempsPage() {
                   byJour[jour].map((slot) => {
                     const isPause =
                       slot.typeCreneau !== 'COURS' || !slot.classeMatiere;
+                    const style = !isPause
+                      ? subjectStyle(slot.classeMatiere?.matiere?.id, slot.classeMatiere?.matiere?.nom)
+                      : null;
                     return (
                       <div
                         key={slot.id}
                         className={cn(
-                          'relative rounded-lg border p-3',
-                          isPause ? 'border-accent/40 bg-accent/8' : 'border-primary/30 bg-primary/8',
+                          'card-lift relative rounded-xl border p-3 shadow-sm',
+                          isPause ? 'border-accent/40 bg-accent/8' : cn(style!.tint),
                         )}
                       >
-                        <div className={cn('mb-1 flex items-center gap-1.5 text-sm font-semibold', isPause ? 'text-accent' : 'text-primary')}>
-                          {isPause ? <Coffee className="size-3.5" /> : <CalendarDays className="size-3.5" />}
-                          {isPause ? slot.libellePause || 'Pause' : slot.classeMatiere?.matiere?.nom || 'Matière'}
+                        <div className={cn('mb-1.5 flex items-center gap-1.5 text-sm font-bold', isPause ? 'text-accent' : style!.fg)}>
+                          {isPause ? <Coffee className="size-3.5 shrink-0" /> : <CalendarDays className="size-3.5 shrink-0" />}
+                          <span className="leading-tight">{isPause ? slot.libellePause || 'Pause' : slot.classeMatiere?.matiere?.nom || 'Matière'}</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="size-3" />
