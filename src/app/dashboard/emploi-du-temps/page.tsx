@@ -253,7 +253,7 @@ export default function EmploiDuTempsPage() {
             className="grid"
             style={{
               gridTemplateColumns: '56px repeat(6, minmax(108px, 1fr))',
-              gridTemplateRows: `40px repeat(${totalRows}, 22px)`,
+              gridTemplateRows: `40px repeat(${totalRows}, 16px)`,
               minWidth: '720px',
             }}
           >
@@ -320,10 +320,10 @@ export default function EmploiDuTempsPage() {
                   style={{ gridColumn: slot.jourSemaine + 1, gridRow: `${rowForTime(toMinutes(slot.heureDebut))} / ${rowForTime(toMinutes(slot.heureFin))}` }}
                 >
                   <span className="line-clamp-2">{label}</span>
-                  {dureeMin >= 75 && (
+                  {dureeMin >= 90 && (
                     <span className="text-[10px] font-semibold opacity-75">{debut} – {fin}</span>
                   )}
-                  {dureeMin >= 120 && slot.salle && (
+                  {dureeMin >= 150 && slot.salle && (
                     <span className="text-[10px] font-medium text-muted-foreground">{slot.salle}</span>
                   )}
                   {!isEnseignant && (
