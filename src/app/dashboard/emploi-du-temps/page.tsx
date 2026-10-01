@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarDays, Clock, Coffee, MapPin, Plus, User, X } from 'lucide-react';
+import { CalendarDays, Coffee, Plus, X } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { emploiDuTempsService, EmploiDuTempsItem } from '@/services/emploiDuTemps.service';
 import { classeService } from '@/services/classe.service';
@@ -172,6 +172,24 @@ export default function EmploiDuTempsPage() {
   Object.values(byJour).forEach((list) => list.sort((a, b) => a.heureDebut.localeCompare(b.heureDebut)));
   const todayDow = new Date().getDay();
 
+  // Grille horaire façon emploi du temps classique : un créneau de cours est un bloc
+  // coloré dont la hauteur reflète sa durée, aligné sur un axe des heures — pas une liste
+  // de cartes de hauteur uniforme. Granularité de 30 min (1 ligne de grille = 30 min).
+  const toMinutes = (t?: string) => {
+    if (!t) return 0;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  const SLOT_MIN = 30;
+  const tempsConnus = emplois.flatMap((e) => [toMinutes(e.heureDebut), toMinutes(e.heureFin)]);
+  const gridStartMin = tempsConnus.length ? Math.floor(Math.min(...tempsConnus) / 60) * 60 : 8 * 60;
+  const gridEndMin = tempsConnus.length ? Math.ceil(Math.max(...tempsConnus) / 60) * 60 : 17 * 60;
+  const totalRows = Math.max(1, Math.round((gridEndMin - gridStartMin) / SLOT_MIN));
+  const heureMarks: number[] = [];
+  for (let t = gridStartMin; t <= gridEndMin; t += 60) heureMarks.push(t);
+  // Ligne de grille (1-indexée) correspondant à un instant t — la ligne 1 est l'en-tête des jours.
+  const rowForTime = (t: number) => Math.round((t - gridStartMin) / SLOT_MIN) + 2;
+
   return (
     <div>
       <PageHeader
@@ -222,11 +240,7 @@ export default function EmploiDuTempsPage() {
       {!selectedClasseId ? (
         <EmptyState icon={<CalendarDays />} title="Sélectionnez une classe" description="Pour afficher et gérer son emploi du temps." />
       ) : loading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full" />
-          ))}
-        </div>
+        <Skeleton className="h-96 w-full" />
       ) : emplois.length === 0 ? (
         <EmptyState
           icon={<CalendarDays />}
@@ -234,73 +248,88 @@ export default function EmploiDuTempsPage() {
           action={isEnseignant ? undefined : <Button onClick={openForm}><Plus /> Ajouter un créneau</Button>}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {[1, 2, 3, 4, 5, 6].map((jour) => (
-            <div key={jour}>
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: '56px repeat(6, minmax(108px, 1fr))',
+              gridTemplateRows: `40px repeat(${totalRows}, 22px)`,
+              minWidth: '720px',
+            }}
+          >
+            {/* En-tête des jours */}
+            {[1, 2, 3, 4, 5, 6].map((jour) => (
               <div
+                key={`h-${jour}`}
                 className={cn(
-                  'mb-2 rounded-lg px-3 py-2 text-center text-sm font-semibold',
-                  jour === todayDow ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground',
+                  'flex items-center justify-center border-b border-l border-border text-sm font-semibold',
+                  jour === todayDow ? 'bg-primary text-primary-foreground' : 'bg-secondary/70 text-muted-foreground',
                 )}
+                style={{ gridColumn: jour + 1, gridRow: 1 }}
               >
                 {JOURS[jour]}
               </div>
-              <div className="flex flex-col gap-2">
-                {byJour[jour].length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
-                    Libre
-                  </div>
-                ) : (
-                  byJour[jour].map((slot) => {
-                    const isPause =
-                      slot.typeCreneau !== 'COURS' || !slot.classeMatiere;
-                    const style = !isPause
-                      ? subjectStyle(slot.classeMatiere?.matiere?.id, slot.classeMatiere?.matiere?.nom)
-                      : null;
-                    return (
-                      <div
-                        key={slot.id}
-                        className={cn(
-                          'card-lift relative rounded-xl border p-3 shadow-sm',
-                          isPause ? 'border-accent/40 bg-accent/8' : cn(style!.tint),
-                        )}
-                      >
-                        <div className={cn('mb-1.5 flex items-center gap-1.5 text-sm font-bold', isPause ? 'text-accent' : style!.fg)}>
-                          {isPause ? <Coffee className="size-3.5 shrink-0" /> : <CalendarDays className="size-3.5 shrink-0" />}
-                          <span className="leading-tight">{isPause ? slot.libellePause || 'Pause' : slot.classeMatiere?.matiere?.nom || 'Matière'}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="size-3" />
-                          {slot.heureDebut?.substring(0, 5)} – {slot.heureFin?.substring(0, 5)}
-                        </div>
-                        {slot.salle && (
-                          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="size-3" />
-                            {slot.salle}
-                          </div>
-                        )}
-                        {!isPause && slot.classeMatiere?.enseignant?.profil && (
-                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                            <User className="size-3" />
-                            {slot.classeMatiere.enseignant.profil.prenom} {slot.classeMatiere.enseignant.profil.nom}
-                          </div>
-                        )}
-                        {!isEnseignant && (
-                          <button
-                            onClick={() => handleDelete(slot.id)}
-                            className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground opacity-60 hover:bg-secondary hover:text-destructive hover:opacity-100"
-                            title="Supprimer"
-                          >
-                            <X className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })
+            ))}
+
+            {/* Axe des heures */}
+            {heureMarks.map((t) => (
+              <div
+                key={`t-${t}`}
+                className="border-t border-border px-1.5 pt-0.5 text-right text-[10px] font-medium text-muted-foreground"
+                style={{ gridColumn: 1, gridRow: rowForTime(t) }}
+              >
+                {Math.floor(t / 60)}h{t % 60 ? String(t % 60).padStart(2, '0') : ''}
+              </div>
+            ))}
+
+            {/* Pistes des colonnes de jour (fond + bordure, pleine hauteur) */}
+            {[1, 2, 3, 4, 5, 6].map((jour) => (
+              <div
+                key={`col-${jour}`}
+                className="border-l border-border"
+                style={{ gridColumn: jour + 1, gridRow: `2 / span ${totalRows}` }}
+              >
+                {byJour[jour].length === 0 && (
+                  <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground/70">Libre</div>
                 )}
               </div>
-            </div>
-          ))}
+            ))}
+
+            {/* Créneaux : blocs colorés dimensionnés selon leur durée */}
+            {emplois.map((slot) => {
+              const isPause = slot.typeCreneau !== 'COURS' || !slot.classeMatiere;
+              const style = !isPause
+                ? subjectStyle(slot.classeMatiere?.matiere?.id, slot.classeMatiere?.matiere?.nom)
+                : null;
+              const label = isPause ? slot.libellePause || 'Pause' : slot.classeMatiere?.matiere?.nom || 'Matière';
+              const debut = slot.heureDebut?.substring(0, 5);
+              const fin = slot.heureFin?.substring(0, 5);
+              const titre = `${label} — ${debut}–${fin}${slot.salle ? ' — ' + slot.salle : ''}`;
+
+              return (
+                <div
+                  key={slot.id}
+                  title={titre}
+                  className={cn(
+                    'group relative m-px flex items-center justify-center overflow-hidden rounded-md border px-1 text-center text-[11px] font-bold leading-tight',
+                    isPause ? 'border-accent/40 bg-accent/10 text-accent' : cn(style!.tint, style!.fg),
+                  )}
+                  style={{ gridColumn: slot.jourSemaine + 1, gridRow: `${rowForTime(toMinutes(slot.heureDebut))} / ${rowForTime(toMinutes(slot.heureFin))}` }}
+                >
+                  <span className="line-clamp-2">{label}</span>
+                  {!isEnseignant && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(slot.id); }}
+                      className="absolute right-0.5 top-0.5 rounded bg-card/80 p-0.5 opacity-0 hover:text-destructive group-hover:opacity-100"
+                      title="Supprimer"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
