@@ -305,18 +305,27 @@ export default function EmploiDuTempsPage() {
               const debut = slot.heureDebut?.substring(0, 5);
               const fin = slot.heureFin?.substring(0, 5);
               const titre = `${label} — ${debut}–${fin}${slot.salle ? ' — ' + slot.salle : ''}`;
+              const dureeMin = toMinutes(slot.heureFin) - toMinutes(slot.heureDebut);
 
               return (
                 <div
                   key={slot.id}
                   title={titre}
                   className={cn(
-                    'group relative m-px flex items-center justify-center overflow-hidden rounded-md border px-1 text-center text-[11px] font-bold leading-tight',
+                    // Texte ancré en haut (pas centré) : sur un créneau long, un texte centré
+                    // flotte au milieu d'un grand espace vide et paraît « vide »/cassé.
+                    'group relative m-px flex flex-col items-start justify-start overflow-hidden rounded-md border px-1.5 py-1 text-left text-[11px] font-bold leading-tight',
                     isPause ? 'border-accent/40 bg-accent/10 text-accent' : cn(style!.tint, style!.fg),
                   )}
                   style={{ gridColumn: slot.jourSemaine + 1, gridRow: `${rowForTime(toMinutes(slot.heureDebut))} / ${rowForTime(toMinutes(slot.heureFin))}` }}
                 >
                   <span className="line-clamp-2">{label}</span>
+                  {dureeMin >= 75 && (
+                    <span className="text-[10px] font-semibold opacity-75">{debut} – {fin}</span>
+                  )}
+                  {dureeMin >= 120 && slot.salle && (
+                    <span className="text-[10px] font-medium text-muted-foreground">{slot.salle}</span>
+                  )}
                   {!isEnseignant && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(slot.id); }}
