@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CalendarDays, Clock, Coffee, MapPin, Plus, User, X } from 'lucide-react';
+import { authService } from '@/services/auth.service';
 import { emploiDuTempsService, EmploiDuTempsItem } from '@/services/emploiDuTemps.service';
 import { classeService } from '@/services/classe.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
@@ -36,6 +37,10 @@ const FORM_EMPTY = {
 };
 
 export default function EmploiDuTempsPage() {
+  // L'enseignant consulte son emploi du temps mais ne le construit pas — c'est le
+  // rôle du responsable pédagogique (directeur/secrétaire), qui seul a les droits
+  // backend de création/modification/suppression sur ces créneaux.
+  const isEnseignant = authService.getCurrentUser()?.role === 'ENSEIGNANT';
   const [classes, setClasses] = useState<Classe[]>([]);
   const [salles, setSalles] = useState<Salle[]>([]);
   const [salleEnSaisieLibre, setSalleEnSaisieLibre] = useState(false);
@@ -153,11 +158,17 @@ export default function EmploiDuTempsPage() {
     <div>
       <PageHeader
         title="Emploi du temps"
-        description="Vue hebdomadaire des cours et des pauses, par classe."
+        description={
+          isEnseignant
+            ? 'Vue hebdomadaire de vos cours et pauses, par classe.'
+            : 'Vue hebdomadaire des cours et des pauses, par classe.'
+        }
       >
-        <Button onClick={openForm} disabled={!selectedClasseId}>
-          <Plus /> Nouveau créneau
-        </Button>
+        {!isEnseignant && (
+          <Button onClick={openForm} disabled={!selectedClasseId}>
+            <Plus /> Nouveau créneau
+          </Button>
+        )}
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
@@ -202,7 +213,7 @@ export default function EmploiDuTempsPage() {
         <EmptyState
           icon={<CalendarDays />}
           title="Aucun créneau pour cette classe"
-          action={<Button onClick={openForm}><Plus /> Ajouter un créneau</Button>}
+          action={isEnseignant ? undefined : <Button onClick={openForm}><Plus /> Ajouter un créneau</Button>}
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -256,13 +267,15 @@ export default function EmploiDuTempsPage() {
                             {slot.classeMatiere.enseignant.profil.prenom} {slot.classeMatiere.enseignant.profil.nom}
                           </div>
                         )}
-                        <button
-                          onClick={() => handleDelete(slot.id)}
-                          className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground opacity-60 hover:bg-secondary hover:text-destructive hover:opacity-100"
-                          title="Supprimer"
-                        >
-                          <X className="size-3.5" />
-                        </button>
+                        {!isEnseignant && (
+                          <button
+                            onClick={() => handleDelete(slot.id)}
+                            className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground opacity-60 hover:bg-secondary hover:text-destructive hover:opacity-100"
+                            title="Supprimer"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     );
                   })
