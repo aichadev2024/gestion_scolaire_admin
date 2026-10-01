@@ -8,6 +8,7 @@ import { emploiDuTempsService, EmploiDuTempsItem } from '@/services/emploiDuTemp
 import { classeService } from '@/services/classe.service';
 import { classeMatiereService, ClasseMatiereItem } from '@/services/classeMatiere.service';
 import { salleService } from '@/services/salle.service';
+import { disponibiliteService, DisponibiliteItem } from '@/services/disponibilite.service';
 import { Classe, Salle } from '@/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export default function EmploiDuTempsPage() {
   const [error, setError] = useState('');
   const [typeCreneau, setTypeCreneau] = useState<'COURS' | 'RECREATION' | 'DEJEUNER' | 'PAUSE'>('COURS');
   const [formData, setFormData] = useState(FORM_EMPTY);
+  const [dispoEnseignant, setDispoEnseignant] = useState<DisponibiliteItem[]>([]);
 
   useEffect(() => {
     classeService.getClasses().then(setClasses).catch(() => toast.error('Impossible de charger les classes.'));
@@ -78,6 +80,22 @@ export default function EmploiDuTempsPage() {
       .catch(() => toast.error("Impossible de charger l'emploi du temps."))
       .finally(() => setLoading(false));
   }, [selectedClasseId]);
+
+  // Aide à la planification : affiche les disponibilités que l'enseignant sélectionné a
+  // lui-même déclarées, pour éviter de lui programmer un cours sur un créneau indisponible.
+  useEffect(() => {
+    if (typeCreneau !== 'COURS' || !formData.classeMatiereId) {
+      setDispoEnseignant([]);
+      return;
+    }
+    const cm = classeMatieres.find((c) => c.id === parseInt(formData.classeMatiereId));
+    const enseignantId = cm?.enseignant?.id;
+    if (!enseignantId) {
+      setDispoEnseignant([]);
+      return;
+    }
+    disponibiliteService.listerParEnseignant(enseignantId).then(setDispoEnseignant).catch(() => setDispoEnseignant([]));
+  }, [formData.classeMatiereId, typeCreneau, classeMatieres]);
 
   const applyPreset = (p: (typeof PRESETS)[number]) => {
     setTypeCreneau(p.type as 'RECREATION' | 'DEJEUNER');
@@ -343,7 +361,39 @@ export default function EmploiDuTempsPage() {
                   ))}
                 </Select>
               </Field>
-            ) : (
+            ) : null}
+            {typeCreneau === 'COURS' && dispoEnseignant.length > 0 && (
+              <div className="sm:col-span-2 rounded-lg border border-border bg-secondary/40 p-3 text-xs">
+                <p className="mb-1.5 font-semibold text-muted-foreground">Disponibilités déclarées par cet enseignant :</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dispoEnseignant.map((d) => {
+                    const chevauche =
+                      d.type === 'INDISPONIBLE' &&
+                      d.jourSemaine === parseInt(formData.jourSemaine) &&
+                      formData.heureDebut < d.heureFin.substring(0, 5) &&
+                      d.heureDebut.substring(0, 5) < formData.heureFin;
+                    return (
+                      <span
+                        key={d.id}
+                        className={cn(
+                          'rounded-md border px-2 py-1 font-medium',
+                          d.type === 'DISPONIBLE'
+                            ? 'border-success/30 bg-success/10 text-success'
+                            : chevauche
+                              ? 'border-destructive bg-destructive/15 text-destructive'
+                              : 'border-destructive/30 bg-destructive/8 text-destructive',
+                        )}
+                        title={d.commentaire || undefined}
+                      >
+                        {JOURS[d.jourSemaine]} {d.heureDebut.substring(0, 5)}–{d.heureFin.substring(0, 5)}
+                        {chevauche ? ' ⚠' : ''}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {typeCreneau !== 'COURS' && (
               <Field label="Nom de la pause *" className="sm:col-span-2">
                 <Input value={formData.libellePause} onChange={(e) => setFormData({ ...formData, libellePause: e.target.value })} placeholder="Récréation, pause déjeuner, pause prière…" required />
               </Field>

@@ -60,6 +60,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     '/dashboard',
     '/dashboard/classes',
     '/dashboard/emploi-du-temps',
+    '/dashboard/disponibilites',
     '/dashboard/presences',
     '/dashboard/notes',
     '/dashboard/bulletins',
