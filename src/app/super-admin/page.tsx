@@ -130,7 +130,7 @@ export default function SuperAdminDashboardPage() {
           <h3 className="mb-4 text-sm font-bold text-foreground">Répartition des abonnements</h3>
           <div className="flex flex-col gap-4">
             {tarifs.map((t, i) => ({
-              label: `${t.libelle} (${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois)`,
+              label: `${t.libelle} — ${t.maxEleves != null ? `${t.maxEleves} élèves` : 'illimité'} (${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois)`,
               count: etablissements.filter((e) => e.planTarifaire === t.code).length,
               cls: ['bg-primary/40', 'bg-primary/70', 'bg-primary'][i % 3],
             })).map((row) => (
@@ -207,7 +207,7 @@ export default function SuperAdminDashboardPage() {
                       </code>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={e.planTarifaire === 'ILLIMITE' ? 'default' : 'secondary'}>
+                      <Badge variant={tarifs.some((t) => t.code === e.planTarifaire && t.maxEleves == null) ? 'default' : 'secondary'}>
                         {libellePlan(e.planTarifaire)}
                       </Badge>
                     </TableCell>

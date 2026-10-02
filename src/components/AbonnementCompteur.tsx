@@ -22,7 +22,8 @@ export default function AbonnementCompteur({ className }: { className?: string }
 
   if (!autorise || !abonnement) return null;
 
-  const { elevesActifs, maxEleves, libelle } = abonnement;
+  const { elevesActifs, maxEleves, libelle: nomPlan, mobileInclus } = abonnement;
+  const libelle = `Plan ${nomPlan}${mobileInclus ? '' : ' · sans appli mobile'}`;
   if (maxEleves == null) {
     return (
       <div className={cn('flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm', className)}>

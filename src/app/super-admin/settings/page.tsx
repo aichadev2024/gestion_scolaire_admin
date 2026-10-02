@@ -11,7 +11,7 @@ import { Field } from '@/components/ui/form-field';
 import { Alert } from '@/components/ui/alert';
 import { tarifService } from '@/services/tarif.service';
 
-type PlanForm = { libelle: string; prix: string; limiteEleves: string; limiteEnseignants: string };
+type PlanForm = { libelle: string; prix: string; limiteEleves: string; limiteEnseignants: string; mobileInclus: boolean };
 
 function TarifsAbonnementsCard() {
   const [plans, setPlans] = useState<Record<string, PlanForm>>({});
@@ -30,6 +30,7 @@ function TarifsAbonnementsCard() {
             prix: String(t.prixMensuel),
             limiteEleves: t.maxEleves != null ? String(t.maxEleves) : '',
             limiteEnseignants: t.maxEnseignants != null ? String(t.maxEnseignants) : '',
+            mobileInclus: t.mobileInclus,
           };
         });
         setPlans(next);
@@ -45,12 +46,13 @@ function TarifsAbonnementsCard() {
     setSaving(true);
     try {
       await Promise.all(
-        Object.entries(plans).map(([code, { prix, limiteEleves, limiteEnseignants }]) =>
+        Object.entries(plans).map(([code, { prix, limiteEleves, limiteEnseignants, mobileInclus }]) =>
           tarifService.modifierPlan(
             code,
             Number(prix),
             limiteEleves.trim() === '' ? null : Number(limiteEleves),
             limiteEnseignants.trim() === '' ? null : Number(limiteEnseignants),
+            mobileInclus,
           ),
         ),
       );
@@ -75,7 +77,7 @@ function TarifsAbonnementsCard() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Chargement…</p>
           ) : (
-            Object.entries(plans).map(([code, { libelle, prix, limiteEleves, limiteEnseignants }]) => (
+            Object.entries(plans).map(([code, { libelle, prix, limiteEleves, limiteEnseignants, mobileInclus }]) => (
               <div key={code} className="space-y-3 rounded-lg border border-border p-4">
                 <p className="text-sm font-semibold text-foreground">{libelle}</p>
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -107,6 +109,15 @@ function TarifsAbonnementsCard() {
                     />
                   </Field>
                 </div>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-primary"
+                    checked={mobileInclus}
+                    onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], mobileInclus: e.target.checked } }))}
+                  />
+                  Application mobile incluse (parents, élèves, enseignants)
+                </label>
               </div>
             ))
           )}

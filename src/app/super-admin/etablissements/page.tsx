@@ -33,7 +33,7 @@ const EMPTY_FORM: Omit<CreateEtablissementRequest, 'directeurs'> = {
   emailContact: '',
   telephone: '',
   adresse: '',
-  planTarifaire: 'PLAN_200',
+  planTarifaire: 'STARTER',
   typeEtablissement: 'ECOLE',
 };
 
@@ -73,7 +73,7 @@ export default function SuperAdminEtablissementsPage() {
   const [niveauIdsEtab, setNiveauIdsEtab] = useState<number[]>([]);
   const [nowMs, setNowMs] = useState(0);
   const [renewingEtab, setRenewingEtab] = useState<Etablissement | null>(null);
-  const [renewForm, setRenewForm] = useState({ planTarifaire: 'PLAN_200', dureeMois: 1 });
+  const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
   const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '' });
@@ -177,8 +177,9 @@ export default function SuperAdminEtablissementsPage() {
 
   const libellePlan = (code: string) => tarifs.find((x) => x.code === code)?.libelle ?? code;
 
-  /** Texte d'une option de plan : « Jusqu'à 200 élèves — 15 000 FCFA/mois ». */
-  const optionPlan = (t: TarifPlan) => `${t.libelle} — ${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois`;
+  /** Texte d'une option de plan : « Starter — 300 élèves max, appli mobile — 50 000 FCFA/mois ». */
+  const optionPlan = (t: TarifPlan) =>
+    `${t.libelle} — ${t.maxEleves != null ? `${t.maxEleves} élèves max` : 'élèves illimités'}, ${t.mobileInclus ? 'appli mobile' : 'sans appli mobile'} — ${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois`;
 
   const chargerEtablissements = useCallback(async () => {
     try {
@@ -290,7 +291,7 @@ export default function SuperAdminEtablissementsPage() {
   const openRenewDialog = (e: Etablissement) => {
     setRenewingEtab(e);
     const planActuelConnu = tarifs.some((t) => t.code === e.planTarifaire);
-    setRenewForm({ planTarifaire: planActuelConnu ? e.planTarifaire : (tarifs[0]?.code ?? 'PLAN_200'), dureeMois: 1 });
+    setRenewForm({ planTarifaire: planActuelConnu ? e.planTarifaire : (tarifs[0]?.code ?? 'STARTER'), dureeMois: 1 });
   };
 
   const handleRenouveler = async (ev: React.FormEvent) => {
@@ -335,7 +336,7 @@ export default function SuperAdminEtablissementsPage() {
   const total = etablissements.length;
   const actifs = etablissements.filter((e) => e.statut === 'ACTIF').length;
   const suspendus = etablissements.filter((e) => e.statut === 'SUSPENDU').length;
-  const illimiteCount = etablissements.filter((e) => e.planTarifaire === 'ILLIMITE').length;
+  const illimiteCount = etablissements.filter((e) => tarifs.some((t) => t.code === e.planTarifaire && t.maxEleves == null)).length;
 
   const metrics = [
     { label: 'Total établissements', value: total, Icon: Building2, accent: 'text-primary' },
@@ -477,7 +478,7 @@ export default function SuperAdminEtablissementsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={e.planTarifaire === 'ILLIMITE' ? 'default' : 'secondary'}>
+                      <Badge variant={tarifs.some((t) => t.code === e.planTarifaire && t.maxEleves == null) ? 'default' : 'secondary'}>
                         {libellePlan(e.planTarifaire)}
                       </Badge>
                     </TableCell>
