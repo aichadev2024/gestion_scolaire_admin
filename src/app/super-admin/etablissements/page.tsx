@@ -35,6 +35,7 @@ const EMPTY_FORM: Omit<CreateEtablissementRequest, 'directeurs'> = {
   adresse: '',
   planTarifaire: 'STARTER',
   typeEtablissement: 'ECOLE',
+  nomEnseignementProfessionnel: '',
 };
 
 // Un directeur en cours de saisie dans le formulaire (état local, converti en DirecteurCreationPayload à la soumission).
@@ -76,7 +77,7 @@ export default function SuperAdminEtablissementsPage() {
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
-  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '' });
+  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '', nomEnseignementProfessionnel: '' });
   const [niveauIdsEdit, setNiveauIdsEdit] = useState<number[]>([]);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -251,6 +252,7 @@ export default function SuperAdminEtablissementsPage() {
       adresse: e.adresse || '',
       devise: e.devise || 'FCFA',
       slogan: e.slogan || '',
+      nomEnseignementProfessionnel: e.nomEnseignementProfessionnel || '',
     });
     setNiveauIdsEdit(e.niveauIds || []);
   };
@@ -611,6 +613,19 @@ export default function SuperAdminEtablissementsPage() {
                   </div>
                 </Field>
               )}
+              {niveaux.some((n) => n.nom === 'Enseignement Professionnel' && niveauIdsEtab.includes(n.id)) && (
+                <Field
+                  label="Nom de l'enseignement professionnel"
+                  hint="Le nom que cette école lui donne (ex. IFTICA). Vide : « Enseignement Professionnel »."
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    placeholder="Ex : IFTICA"
+                    value={formData.nomEnseignementProfessionnel || ''}
+                    onChange={(e) => setFormData({ ...formData, nomEnseignementProfessionnel: e.target.value })}
+                  />
+                </Field>
+              )}
               <Field label={formData.typeEtablissement === 'CRECHE' ? 'Nom de la crèche *' : "Nom de l'établissement *"}>
                 <Input
                   placeholder={formData.typeEtablissement === 'CRECHE' ? 'Ex : Crèche Les Petits Anges' : 'Ex : Lycée Jules Verne'}
@@ -864,6 +879,19 @@ export default function SuperAdminEtablissementsPage() {
                       </label>
                     ))}
                   </div>
+                </Field>
+              )}
+              {niveaux.some((n) => n.nom === 'Enseignement Professionnel' && niveauIdsEdit.includes(n.id)) && (
+                <Field
+                  label="Nom de l'enseignement professionnel"
+                  hint="Le nom que cette école lui donne (ex. IFTICA). Vide : « Enseignement Professionnel »."
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    placeholder="Ex : IFTICA"
+                    value={editForm.nomEnseignementProfessionnel}
+                    onChange={(e) => setEditForm({ ...editForm, nomEnseignementProfessionnel: e.target.value })}
+                  />
                 </Field>
               )}
               <DialogFooter>

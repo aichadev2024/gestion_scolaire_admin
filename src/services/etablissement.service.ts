@@ -10,6 +10,8 @@ export interface Etablissement {
   logoUrl?: string;
   devise?: string;
   slogan?: string;
+  /** Nom propre de l'enseignement professionnel de l'école (ex. « IFTICA »). */
+  nomEnseignementProfessionnel?: string;
   typeEtablissement: 'ECOLE' | 'CRECHE';
   statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE';
   planTarifaire: string;
@@ -53,6 +55,8 @@ export interface CreateEtablissementRequest {
   directeurs: DirecteurCreationPayload[];
   /** Niveaux que cet établissement propose — vide/absent = aucune restriction. */
   niveauIds?: number[];
+  /** Nom propre de l'enseignement professionnel (ex. « IFTICA ») — facultatif. */
+  nomEnseignementProfessionnel?: string;
 }
 
 export const etablissementService = {
@@ -68,7 +72,7 @@ export const etablissementService = {
 
   modifierInfos: async (
     id: number,
-    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string; niveauIds?: number[] },
+    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string; niveauIds?: number[]; nomEnseignementProfessionnel?: string },
   ): Promise<Etablissement> => {
     const response = await api.put<Etablissement>(`/super-admin/etablissements/${id}`, data);
     return response.data;
