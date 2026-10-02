@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, ArrowLeft, Mail, Wrench } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Mail } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { errorMessage } from '@/lib/errors';
 import { AuthShell, AuthHeader } from '@/components/ui/auth-shell';
@@ -15,20 +15,17 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [devToken, setDevToken] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
-    setDevToken('');
     setLoading(true);
 
     try {
       const res = await authService.forgotPassword(email);
       setSuccessMsg(res.message);
-      if (res.dev_token) setDevToken(res.dev_token);
     } catch (err) {
       setError(errorMessage(err, 'Erreur lors de la demande. Veuillez réessayer.'));
     } finally {
@@ -59,17 +56,6 @@ export default function ForgotPasswordPage() {
       {successMsg && (
         <Alert tone="success" className="mb-5" icon={<Mail className="size-4" />}>
           {successMsg}
-        </Alert>
-      )}
-      {devToken && (
-        <Alert tone="warning" className="mb-5" icon={<Wrench className="size-4" />}>
-          <span className="font-semibold">Mode Dev (mail non configuré)</span> — lien généré :{' '}
-          <Link
-            href={`/reset-password?token=${devToken}`}
-            className="break-all font-medium text-primary underline"
-          >
-            /reset-password?token={devToken}
-          </Link>
         </Alert>
       )}
 
