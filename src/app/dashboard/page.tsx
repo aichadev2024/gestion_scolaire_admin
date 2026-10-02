@@ -18,6 +18,7 @@ import { enseignantService } from '@/services/enseignant.service';
 import { classeService } from '@/services/classe.service';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import AbonnementCompteur from '@/components/AbonnementCompteur';
 
 interface Stats {
   totalEleves: number;
@@ -114,6 +115,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <AbonnementCompteur className="mb-6" />
 
       {/* Chiffres clés */}
       <div className="grid gap-4 sm:grid-cols-3">

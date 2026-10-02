@@ -14,7 +14,7 @@ import {
   School,
 } from 'lucide-react';
 import { etablissementService, Etablissement } from '@/services/etablissement.service';
-import { tarifService } from '@/services/tarif.service';
+import { tarifService, TarifPlan } from '@/services/tarif.service';
 import { authService } from '@/services/auth.service';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -27,7 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [etablissements, setEtablissements] = useState<Etablissement[]>([]);
-  const [planMrr, setPlanMrr] = useState<Record<string, number>>({ STARTER: 50000, PRO: 75000 });
+  const [tarifs, setTarifs] = useState<TarifPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [userNomComplet, setUserNomComplet] = useState('Super-Admin');
 
@@ -44,19 +44,16 @@ export default function SuperAdminDashboardPage() {
       .finally(() => setLoading(false));
     tarifService
       .listerTous()
-      .then((tarifs) => setPlanMrr(Object.fromEntries(tarifs.map((t) => [t.code, t.prixMensuel]))))
+      .then(setTarifs)
       .catch(() => {});
   }, []);
 
   const total = etablissements.length;
   const actifs = etablissements.filter((e) => e.statut === 'ACTIF').length;
   const suspendus = etablissements.filter((e) => e.statut === 'SUSPENDU').length;
-  const mrr = etablissements.reduce(
-    (acc, e) => (e.statut === 'ACTIF' ? acc + (planMrr[e.planTarifaire] ?? planMrr.STARTER) : acc),
-    0,
-  );
-  const starterCount = etablissements.filter((e) => e.planTarifaire === 'STARTER').length;
-  const proCount = etablissements.filter((e) => e.planTarifaire === 'PRO').length;
+  const prixDuPlan = (code: string) => tarifs.find((t) => t.code === code)?.prixMensuel ?? 0;
+  const libellePlan = (code: string) => tarifs.find((t) => t.code === code)?.libelle ?? code;
+  const mrr = etablissements.reduce((acc, e) => (e.statut === 'ACTIF' ? acc + prixDuPlan(e.planTarifaire) : acc), 0);
 
   const metrics = [
     {
@@ -132,10 +129,11 @@ export default function SuperAdminDashboardPage() {
         <Card className="p-6">
           <h3 className="mb-4 text-sm font-bold text-foreground">Répartition des abonnements</h3>
           <div className="flex flex-col gap-4">
-            {[
-              { label: `Plan Starter (${planMrr.STARTER?.toLocaleString('fr-FR')} FCFA/mois)`, count: starterCount, cls: 'bg-primary/50' },
-              { label: `Plan Pro (${planMrr.PRO?.toLocaleString('fr-FR')} FCFA/mois)`, count: proCount, cls: 'bg-primary' },
-            ].map((row) => (
+            {tarifs.map((t, i) => ({
+              label: `${t.libelle} (${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois)`,
+              count: etablissements.filter((e) => e.planTarifaire === t.code).length,
+              cls: ['bg-primary/40', 'bg-primary/70', 'bg-primary'][i % 3],
+            })).map((row) => (
               <div key={row.label}>
                 <div className="mb-1.5 flex justify-between text-sm">
                   <span className="font-medium text-muted-foreground">{row.label}</span>
@@ -209,8 +207,8 @@ export default function SuperAdminDashboardPage() {
                       </code>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={e.planTarifaire === 'ENTERPRISE' ? 'default' : 'secondary'}>
-                        {e.planTarifaire}
+                      <Badge variant={e.planTarifaire === 'ILLIMITE' ? 'default' : 'secondary'}>
+                        {libellePlan(e.planTarifaire)}
                       </Badge>
                     </TableCell>
                     <TableCell>{statutBadge(e.statut)}</TableCell>

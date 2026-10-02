@@ -33,7 +33,7 @@ const EMPTY_FORM: Omit<CreateEtablissementRequest, 'directeurs'> = {
   emailContact: '',
   telephone: '',
   adresse: '',
-  planTarifaire: 'PRO',
+  planTarifaire: 'PLAN_200',
   typeEtablissement: 'ECOLE',
 };
 
@@ -73,7 +73,7 @@ export default function SuperAdminEtablissementsPage() {
   const [niveauIdsEtab, setNiveauIdsEtab] = useState<number[]>([]);
   const [nowMs, setNowMs] = useState(0);
   const [renewingEtab, setRenewingEtab] = useState<Etablissement | null>(null);
-  const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
+  const [renewForm, setRenewForm] = useState({ planTarifaire: 'PLAN_200', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
   const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '' });
@@ -175,10 +175,10 @@ export default function SuperAdminEtablissementsPage() {
     setDirecteurs(mode === 'UNIQUE' ? [{ ...EMPTY_DIRECTEUR }] : []);
   };
 
-  const labelPlan = (code: string) => {
-    const t = tarifs.find((x) => x.code === code);
-    return t ? `${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois` : code;
-  };
+  const libellePlan = (code: string) => tarifs.find((x) => x.code === code)?.libelle ?? code;
+
+  /** Texte d'une option de plan : « Jusqu'à 200 élèves — 15 000 FCFA/mois ». */
+  const optionPlan = (t: TarifPlan) => `${t.libelle} — ${t.prixMensuel.toLocaleString('fr-FR')} FCFA/mois`;
 
   const chargerEtablissements = useCallback(async () => {
     try {
@@ -289,7 +289,8 @@ export default function SuperAdminEtablissementsPage() {
 
   const openRenewDialog = (e: Etablissement) => {
     setRenewingEtab(e);
-    setRenewForm({ planTarifaire: e.planTarifaire === 'PRO' ? 'PRO' : 'STARTER', dureeMois: 1 });
+    const planActuelConnu = tarifs.some((t) => t.code === e.planTarifaire);
+    setRenewForm({ planTarifaire: planActuelConnu ? e.planTarifaire : (tarifs[0]?.code ?? 'PLAN_200'), dureeMois: 1 });
   };
 
   const handleRenouveler = async (ev: React.FormEvent) => {
@@ -334,15 +335,13 @@ export default function SuperAdminEtablissementsPage() {
   const total = etablissements.length;
   const actifs = etablissements.filter((e) => e.statut === 'ACTIF').length;
   const suspendus = etablissements.filter((e) => e.statut === 'SUSPENDU').length;
-  const proCount = etablissements.filter(
-    (e) => e.planTarifaire === 'PRO' || e.planTarifaire === 'ENTERPRISE',
-  ).length;
+  const illimiteCount = etablissements.filter((e) => e.planTarifaire === 'ILLIMITE').length;
 
   const metrics = [
     { label: 'Total établissements', value: total, Icon: Building2, accent: 'text-primary' },
     { label: 'Écoles actives', value: actifs, Icon: CheckCircle2, accent: 'text-success' },
     { label: 'Suspendus / inactifs', value: suspendus, Icon: Ban, accent: 'text-destructive' },
-    { label: 'Sur plan Pro / Enterprise', value: proCount, Icon: Building2, accent: 'text-accent' },
+    { label: 'Sur le plan illimité', value: illimiteCount, Icon: Building2, accent: 'text-accent' },
   ];
 
   const statutBadge = (s: Etablissement['statut']) =>
@@ -478,8 +477,8 @@ export default function SuperAdminEtablissementsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={e.planTarifaire === 'ENTERPRISE' ? 'default' : 'secondary'}>
-                        {e.planTarifaire}
+                      <Badge variant={e.planTarifaire === 'ILLIMITE' ? 'default' : 'secondary'}>
+                        {libellePlan(e.planTarifaire)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">{expirationCell(e, nowMs)}</TableCell>
@@ -658,8 +657,9 @@ export default function SuperAdminEtablissementsPage() {
                   value={formData.planTarifaire}
                   onChange={(e) => setFormData({ ...formData, planTarifaire: e.target.value })}
                 >
-                  <option value="STARTER">Starter ({labelPlan('STARTER')})</option>
-                  <option value="PRO">Pro ({labelPlan('PRO')})</option>
+                  {tarifs.map((t) => (
+                    <option key={t.code} value={t.code}>{optionPlan(t)}</option>
+                  ))}
                 </Select>
               </Field>
               <Field label="Date de fin d'abonnement" hint="Par défaut : 1 mois à compter de la création.">
@@ -897,8 +897,9 @@ export default function SuperAdminEtablissementsPage() {
                     value={renewForm.planTarifaire}
                     onChange={(e) => setRenewForm({ ...renewForm, planTarifaire: e.target.value })}
                   >
-                    <option value="STARTER">Starter — {labelPlan('STARTER')}</option>
-                    <option value="PRO">Pro — {labelPlan('PRO')}</option>
+                    {tarifs.map((t) => (
+                      <option key={t.code} value={t.code}>{optionPlan(t)}</option>
+                    ))}
                   </Select>
                 </Field>
                 <Field label="Durée payée">

@@ -11,9 +11,7 @@ import { Field } from '@/components/ui/form-field';
 import { Alert } from '@/components/ui/alert';
 import { tarifService } from '@/services/tarif.service';
 
-const PLAN_LABELS: Record<string, string> = { STARTER: 'Starter (web, personnel)', PRO: 'Pro (+ appli mobile parents)' };
-
-type PlanForm = { prix: string; limite: string };
+type PlanForm = { libelle: string; prix: string; limiteEleves: string; limiteEnseignants: string };
 
 function TarifsAbonnementsCard() {
   const [plans, setPlans] = useState<Record<string, PlanForm>>({});
@@ -27,7 +25,12 @@ function TarifsAbonnementsCard() {
       .then((tarifs) => {
         const next: Record<string, PlanForm> = {};
         tarifs.forEach((t) => {
-          next[t.code] = { prix: String(t.prixMensuel), limite: t.maxEnseignants != null ? String(t.maxEnseignants) : '' };
+          next[t.code] = {
+            libelle: t.libelle,
+            prix: String(t.prixMensuel),
+            limiteEleves: t.maxEleves != null ? String(t.maxEleves) : '',
+            limiteEnseignants: t.maxEnseignants != null ? String(t.maxEnseignants) : '',
+          };
         });
         setPlans(next);
       })
@@ -42,8 +45,13 @@ function TarifsAbonnementsCard() {
     setSaving(true);
     try {
       await Promise.all(
-        Object.entries(plans).map(([code, { prix, limite }]) =>
-          tarifService.modifierPlan(code, Number(prix), limite.trim() === '' ? null : Number(limite)),
+        Object.entries(plans).map(([code, { prix, limiteEleves, limiteEnseignants }]) =>
+          tarifService.modifierPlan(
+            code,
+            Number(prix),
+            limiteEleves.trim() === '' ? null : Number(limiteEleves),
+            limiteEnseignants.trim() === '' ? null : Number(limiteEnseignants),
+          ),
         ),
       );
       toast.success('Tarifs des abonnements mis à jour.');
@@ -67,29 +75,38 @@ function TarifsAbonnementsCard() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Chargement…</p>
           ) : (
-            Object.entries(plans).map(([code, { prix, limite }]) => (
-              <div key={code} className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
-                <Field label={`${PLAN_LABELS[code] || code} — prix (FCFA / mois)`}>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={500}
-                    value={prix}
-                    onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], prix: e.target.value } }))}
-                  />
-                </Field>
-                <Field
-                  label="Comptes enseignants max"
-                  hint="Laisser vide pour illimité."
-                >
-                  <Input
-                    type="number"
-                    min={1}
-                    placeholder="Illimité"
-                    value={limite}
-                    onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], limite: e.target.value } }))}
-                  />
-                </Field>
+            Object.entries(plans).map(([code, { libelle, prix, limiteEleves, limiteEnseignants }]) => (
+              <div key={code} className="space-y-3 rounded-lg border border-border p-4">
+                <p className="text-sm font-semibold text-foreground">{libelle}</p>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Prix (FCFA / mois)">
+                    <Input
+                      type="number"
+                      min={0}
+                      step={500}
+                      value={prix}
+                      onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], prix: e.target.value } }))}
+                    />
+                  </Field>
+                  <Field label="Élèves actifs max" hint="Vide = illimité. Au-delà, l'inscription est bloquée.">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Illimité"
+                      value={limiteEleves}
+                      onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], limiteEleves: e.target.value } }))}
+                    />
+                  </Field>
+                  <Field label="Comptes enseignants max" hint="Facultatif — vide = illimité.">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Illimité"
+                      value={limiteEnseignants}
+                      onChange={(e) => setPlans((p) => ({ ...p, [code]: { ...p[code], limiteEnseignants: e.target.value } }))}
+                    />
+                  </Field>
+                </div>
               </div>
             ))
           )}

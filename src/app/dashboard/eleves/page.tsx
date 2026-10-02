@@ -19,6 +19,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import AbonnementCompteur from '@/components/AbonnementCompteur';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
@@ -408,6 +409,8 @@ export default function ElevesPage() {
           onClose={() => setNouveauCompte(null)}
         />
       )}
+
+      <AbonnementCompteur className="mb-4" />
 
       <PageHeader
         title="Gestion des élèves"
