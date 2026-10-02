@@ -10,7 +10,7 @@ export interface Etablissement {
   logoUrl?: string;
   devise?: string;
   slogan?: string;
-  /** Nom propre de l'enseignement professionnel de l'école (ex. « IFTICA »). */
+  /** Nom propre de l'enseignement professionnel de l'école. */
   nomEnseignementProfessionnel?: string;
   typeEtablissement: 'ECOLE' | 'CRECHE';
   statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE';
@@ -55,7 +55,7 @@ export interface CreateEtablissementRequest {
   directeurs: DirecteurCreationPayload[];
   /** Niveaux que cet établissement propose — vide/absent = aucune restriction. */
   niveauIds?: number[];
-  /** Nom propre de l'enseignement professionnel (ex. « IFTICA ») — facultatif. */
+  /** Nom propre de l'enseignement professionnel — facultatif. */
   nomEnseignementProfessionnel?: string;
 }
 

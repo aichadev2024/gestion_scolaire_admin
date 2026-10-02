@@ -616,11 +616,11 @@ export default function SuperAdminEtablissementsPage() {
               {niveaux.some((n) => n.nom === 'Enseignement Professionnel' && niveauIdsEtab.includes(n.id)) && (
                 <Field
                   label="Nom de l'enseignement professionnel"
-                  hint="Le nom que cette école lui donne (ex. IFTICA). Vide : « Enseignement Professionnel »."
+                  hint="Le nom que cette école donne à sa filière professionnelle. Vide : « Enseignement Professionnel »."
                   className="sm:col-span-2"
                 >
                   <Input
-                    placeholder="Ex : IFTICA"
+                    placeholder="Nom de la filière professionnelle"
                     value={formData.nomEnseignementProfessionnel || ''}
                     onChange={(e) => setFormData({ ...formData, nomEnseignementProfessionnel: e.target.value })}
                   />
@@ -884,11 +884,11 @@ export default function SuperAdminEtablissementsPage() {
               {niveaux.some((n) => n.nom === 'Enseignement Professionnel' && niveauIdsEdit.includes(n.id)) && (
                 <Field
                   label="Nom de l'enseignement professionnel"
-                  hint="Le nom que cette école lui donne (ex. IFTICA). Vide : « Enseignement Professionnel »."
+                  hint="Le nom que cette école donne à sa filière professionnelle. Vide : « Enseignement Professionnel »."
                   className="sm:col-span-2"
                 >
                   <Input
-                    placeholder="Ex : IFTICA"
+                    placeholder="Nom de la filière professionnelle"
                     value={editForm.nomEnseignementProfessionnel}
                     onChange={(e) => setEditForm({ ...editForm, nomEnseignementProfessionnel: e.target.value })}
                   />
