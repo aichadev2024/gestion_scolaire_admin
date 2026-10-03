@@ -32,6 +32,7 @@ import {
 const EMPTY = {
   prenom: '', nom: '', telephone: '', email: '', genre: 'M',
   dateNaissance: '', adresse: '', classeId: '', parentId: '', photoUrl: '',
+  arrieresMontant: '', arrieresLibelle: '',
 };
 
 const STATUT_INSCRIPTION_LABEL: Record<string, string> = {
@@ -150,6 +151,8 @@ export default function ElevesPage() {
       classeId: eleve.classeId ? String(eleve.classeId) : '',
       parentId: eleve.parentId ? String(eleve.parentId) : '',
       photoUrl: eleve.profil?.photoUrl || '',
+      arrieresMontant: eleve.arrieresMontant ? String(eleve.arrieresMontant) : '',
+      arrieresLibelle: eleve.arrieresLibelle || '',
     });
     setPhotoFile(null);
     setShowForm(true);
@@ -211,6 +214,9 @@ export default function ElevesPage() {
         },
         classeId: formData.classeId ? parseInt(formData.classeId) : undefined,
         parentId: formData.parentId ? parseInt(formData.parentId) : undefined,
+        // Champ vidé à la modification = arriérés effacés (0) ; à la création, simplement absent.
+        arrieresMontant: formData.arrieresMontant.trim() ? parseInt(formData.arrieresMontant, 10) : (editingEleve ? 0 : undefined),
+        arrieresLibelle: formData.arrieresLibelle.trim() || undefined,
       };
 
       let profilId: number | undefined;
@@ -680,6 +686,17 @@ export default function ElevesPage() {
               </Select>
             </Field>
             <Field
+              label="Arriérés des années précédentes (FCFA)"
+              hint="Reliquat de frais que l'élève doit encore des années passées. Laisser vide s'il n'y en a pas."
+            >
+              <Input type="number" min={0} step={500} name="arrieresMontant" value={formData.arrieresMontant} onChange={handleInputChange} placeholder="Ex : 45000" />
+            </Field>
+            {formData.arrieresMontant.trim() !== '' && (
+              <Field label="Intitulé des arriérés" hint="Facultatif — affiché aux parents (ex. « Arriérés 2025-2026 »).">
+                <Input name="arrieresLibelle" value={formData.arrieresLibelle} onChange={handleInputChange} placeholder="Arriérés des années précédentes" />
+              </Field>
+            )}
+            <Field
               label="Photo de profil"
               hint="JPEG, PNG ou WebP, 6 Mo max."
               className="sm:col-span-2"
@@ -724,7 +741,7 @@ export default function ElevesPage() {
           <p className="text-xs text-muted-foreground">
             Vous avez déjà un fichier d&apos;élèves ? Il fonctionne aussi tel quel, même avec ses propres
             intitulés de colonnes ou un ordre différent (Prénom, Nom, Genre, Date de naissance, Téléphone,
-            Email, Classe, Téléphone du parent) — tant que la première ligne contient les titres des colonnes.
+            Email, Classe, Téléphone du parent et, facultatif, Arriérés) — tant que la première ligne contient les titres des colonnes.
           </p>
 
           <form onSubmit={handleImportSubmit} className="space-y-4">

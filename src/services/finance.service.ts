@@ -18,13 +18,14 @@ export interface CreatePaiementPayload {
 }
 
 export interface LigneSituation {
-  fraisId: number;
+  /** null pour la ligne « Arriérés » (pas rattachée à un frais de classe). */
+  fraisId: number | null;
   titre: string;
   type: string;
   montant: number;
   paye: number;
   reste: number;
-  dateEcheance: string;
+  dateEcheance: string | null;
   statut: 'PAYE' | 'PARTIEL' | 'A_PAYER' | 'EN_RETARD';
 }
 

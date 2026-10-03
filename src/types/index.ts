@@ -24,6 +24,9 @@ export interface Eleve {
   profil: Profil;
   dateInscription: string;
   etablissementNom?: string;
+  /** Arriérés des années précédentes (FCFA) que l'élève doit encore — absent = aucun. */
+  arrieresMontant?: number | null;
+  arrieresLibelle?: string | null;
   /** Présent uniquement dans la réponse de création : mot de passe initial à transmettre. */
   motDePasseInitial?: string;
 }

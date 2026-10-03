@@ -5,6 +5,9 @@ export interface CreateElevePayload {
   profil: Profil;
   classeId?: number;
   parentId?: number;
+  /** Arriérés des années précédentes (FCFA). À la modification : 0 = effacer, absent = inchangé. */
+  arrieresMontant?: number;
+  arrieresLibelle?: string;
 }
 
 export interface EleveImportLigneResultat {

@@ -439,7 +439,7 @@ export default function FinancesPage() {
               <div className="mb-4 space-y-3">
                 <div className="divide-y divide-border rounded-xl border border-border text-sm">
                   {situation.lignes.map((l) => (
-                    <div key={l.fraisId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                    <div key={`${l.fraisId ?? 'arrieres'}-${l.titre}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                       <span className="font-medium">{l.titre}</span>
                       <span className="flex items-center gap-3 text-muted-foreground">
                         <span className="tabular-nums">{fcfa(l.paye)} / {fcfa(l.montant)}</span>
