@@ -145,6 +145,9 @@ export interface Bulletin {
   eleveMatricule: string;
   classeId: number;
   classeNom: string;
+  /** En-tête officiel de l'école (facultatifs). */
+  etablissementRive?: string | null;
+  etablissementCap?: string | null;
   periode: string;
   anneeScolaire: string;
   moyenneGenerale: number;

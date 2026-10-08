@@ -12,6 +12,9 @@ export interface Etablissement {
   slogan?: string;
   /** Nom propre de l'enseignement professionnel de l'école. */
   nomEnseignementProfessionnel?: string;
+  /** En-tête officiel : « RIVE GAUCHE » et « CAP de … » (facultatifs). */
+  rive?: string;
+  cap?: string;
   typeEtablissement: 'ECOLE' | 'CRECHE';
   statut: 'ACTIF' | 'SUSPENDU' | 'CLOTURE';
   planTarifaire: string;
@@ -72,7 +75,7 @@ export const etablissementService = {
 
   modifierInfos: async (
     id: number,
-    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string; niveauIds?: number[]; nomEnseignementProfessionnel?: string },
+    data: { nom: string; emailContact?: string; telephone?: string; adresse?: string; devise?: string; slogan?: string; niveauIds?: number[]; nomEnseignementProfessionnel?: string; rive?: string; cap?: string },
   ): Promise<Etablissement> => {
     const response = await api.put<Etablissement>(`/super-admin/etablissements/${id}`, data);
     return response.data;

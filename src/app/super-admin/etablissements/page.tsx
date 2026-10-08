@@ -77,7 +77,7 @@ export default function SuperAdminEtablissementsPage() {
   const [renewForm, setRenewForm] = useState({ planTarifaire: 'STARTER', dureeMois: 1 });
   const [renewSubmitting, setRenewSubmitting] = useState(false);
   const [editingEtab, setEditingEtab] = useState<Etablissement | null>(null);
-  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '', nomEnseignementProfessionnel: '' });
+  const [editForm, setEditForm] = useState({ nom: '', emailContact: '', telephone: '', adresse: '', devise: 'FCFA', slogan: '', nomEnseignementProfessionnel: '', rive: '', cap: '' });
   const [niveauIdsEdit, setNiveauIdsEdit] = useState<number[]>([]);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -253,6 +253,8 @@ export default function SuperAdminEtablissementsPage() {
       devise: e.devise || 'FCFA',
       slogan: e.slogan || '',
       nomEnseignementProfessionnel: e.nomEnseignementProfessionnel || '',
+      rive: e.rive || '',
+      cap: e.cap || '',
     });
     setNiveauIdsEdit(e.niveauIds || []);
   };
@@ -849,6 +851,20 @@ export default function SuperAdminEtablissementsPage() {
                   placeholder="Ex : Travail - Rigueur - Réussite"
                   value={editForm.slogan}
                   onChange={(e) => setEditForm({ ...editForm, slogan: e.target.value })}
+                />
+              </Field>
+              <Field label="Rive (en-tête officiel)" hint="Ex : RIVE GAUCHE — affiché « BAMAKO RIVE GAUCHE » sur les bulletins et rapports.">
+                <Input
+                  placeholder="RIVE GAUCHE"
+                  value={editForm.rive}
+                  onChange={(e) => setEditForm({ ...editForm, rive: e.target.value })}
+                />
+              </Field>
+              <Field label="CAP (en-tête officiel)" hint="Ex : CAP de Bamako-Centre.">
+                <Input
+                  placeholder="CAP de ..."
+                  value={editForm.cap}
+                  onChange={(e) => setEditForm({ ...editForm, cap: e.target.value })}
                 />
               </Field>
               {editingEtab?.typeEtablissement === 'ECOLE' && (

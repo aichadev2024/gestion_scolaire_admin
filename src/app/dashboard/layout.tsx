@@ -12,6 +12,7 @@ import {
   CheckSquare,
   ClipboardCheck,
   ClipboardList,
+  FileBarChart,
   CreditCard,
   DoorOpen,
   GraduationCap,
@@ -57,6 +58,7 @@ const M = {
   presences: { name: 'Présences', path: '/dashboard/presences', icon: CheckSquare },
   notes: { name: 'Notes', path: '/dashboard/notes', icon: ClipboardList },
   bulletins: { name: 'Bulletins', path: '/dashboard/bulletins', icon: ScrollText },
+  rapportsTrimestriels: { name: 'Rapports trimestriels', path: '/dashboard/rapports-trimestriels', icon: FileBarChart },
   cartes: { name: 'Cartes scolaires', path: '/dashboard/cartes-scolaires', icon: CreditCard },
   finances: { name: 'Finances', path: '/dashboard/finances', icon: Wallet },
   utilisateurs: { name: 'Comptes utilisateurs', path: '/dashboard/utilisateurs', icon: KeyRound },
@@ -73,8 +75,8 @@ const M = {
 
 // ÉLÈVE et PARENT n'ont pas d'accès web (voir ProtectedRoute + /mobile-uniquement).
 const MENUS_BY_ROLE: Record<string, MenuItem[]> = {
-  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.salles, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.sujetsDevoirs, M.niveaux],
-  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.salles, M.edt, M.presences, M.notes, M.bulletins, M.cartes, M.discipline, M.cahierTexte, M.performance, M.sujetsDevoirs],
+  DIRECTEUR: [M.dashboard, M.eleves, M.enseignants, M.classes, M.matieres, M.salles, M.edt, M.presences, M.notes, M.bulletins, M.rapportsTrimestriels, M.cartes, M.finances, M.utilisateurs, M.discipline, M.stock, M.cahierTexte, M.performance, M.rapportsNiveau, M.sujetsDevoirs, M.niveaux],
+  SECRETAIRE: [M.dashboard, M.eleves, M.enseignants, M.classes, M.salles, M.edt, M.presences, M.notes, M.bulletins, M.rapportsTrimestriels, M.cartes, M.discipline, M.cahierTexte, M.performance, M.sujetsDevoirs],
   COMPTABLE: [M.dashboard, M.finances, M.stock],
   ENSEIGNANT: [M.dashboard, M.classes, M.edt, M.disponibilites, M.presences, M.notes, M.bulletins, M.cahierTexte, M.rapportsNiveau],
   SURVEILLANT_GENERAL: [M.dashboard, M.eleves, M.classes, M.discipline],

@@ -10,6 +10,7 @@ import { bulletinService } from '@/services/bulletin.service';
 import { authService } from '@/services/auth.service';
 import { Classe, Eleve, Bulletin } from '@/types';
 import { categorieEffective } from '@/lib/periodes';
+import { anneeScolaireCourante } from '@/lib/anneeScolaire';
 import { errorMessage } from '@/lib/errors';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -76,7 +77,7 @@ export default function BulletinsPage() {
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const anneeScolaire = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
+  const anneeScolaire = anneeScolaireCourante();
   const bulletinRef = useRef<HTMLDivElement>(null);
 
   const role = authService.getCurrentUser()?.role || '';
@@ -307,6 +308,12 @@ export default function BulletinsPage() {
                   <div style={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>RÉPUBLIQUE DU MALI</div>
                   <div style={{ fontStyle: 'italic', color: '#555' }}>Un Peuple - Un But - Une Foi</div>
                   <div style={{ fontSize: '10px', color: '#444', marginTop: '2px' }}>MINISTÈRE DE L&apos;ÉDUCATION NATIONALE DU MALI</div>
+                  {bulletin.etablissementRive && (
+                    <div style={{ fontSize: '10px', color: '#444', fontWeight: 600, textTransform: 'uppercase' }}>BAMAKO {bulletin.etablissementRive}</div>
+                  )}
+                  {bulletin.etablissementCap && (
+                    <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase' }}>{bulletin.etablissementCap}</div>
+                  )}
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontWeight: 'bold', color: '#1B365D' }}>BULLETIN OFFICIEL DE NOTES</div>

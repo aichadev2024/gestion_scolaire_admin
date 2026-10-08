@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/form-field';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { anneeScolaireCourante } from '@/lib/anneeScolaire';
 
 export default function CartesScolairesPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
@@ -28,7 +29,7 @@ export default function CartesScolairesPage() {
   const [mode, setMode] = useState<'LOT' | 'INDIVIDUEL'>('LOT');
   const carteRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const anneeScolaire = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
+  const anneeScolaire = anneeScolaireCourante();
 
   useEffect(() => {
     const user = authService.getCurrentUser();

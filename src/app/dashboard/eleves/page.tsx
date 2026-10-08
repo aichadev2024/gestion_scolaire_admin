@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { anneeScolaireCourante } from '@/lib/anneeScolaire';
 
 const EMPTY = {
   prenom: '', nom: '', telephone: '', email: '', genre: 'M',
@@ -105,7 +106,7 @@ export default function ElevesPage() {
   const [filterClasseId, setFilterClasseId] = useState('');
   const [showRecap, setShowRecap] = useState(false);
   const [recapClasseId, setRecapClasseId] = useState('');
-  const [recapAnnee, setRecapAnnee] = useState(`${new Date().getFullYear()}/${new Date().getFullYear() + 1}`);
+  const [recapAnnee, setRecapAnnee] = useState(anneeScolaireCourante());
   const [recapLoading, setRecapLoading] = useState(false);
 
   const photoPreview = useMemo(

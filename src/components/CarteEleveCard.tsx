@@ -3,6 +3,7 @@
 import React, { forwardRef, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Eleve } from '@/types';
+import { anneeScolaireCourante } from '@/lib/anneeScolaire';
 
 interface CarteProps {
   eleve: Eleve;
@@ -81,7 +82,7 @@ function diviserEnLignes(texte: string, maxWidthPx: number, font: string, maxLig
 }
 
 const CarteEleveCard = forwardRef<HTMLDivElement, CarteProps>(
-  ({ eleve, etablissementNom, etablissementLogoUrl, etablissementTelephone, anneeScolaire = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1), version = 1 }, ref) => {
+  ({ eleve, etablissementNom, etablissementLogoUrl, etablissementTelephone, anneeScolaire = anneeScolaireCourante(), version = 1 }, ref) => {
     const nom = eleve.profil?.nom?.toUpperCase() || '—';
     const prenom = eleve.profil?.prenom || '—';
     const matricule = eleve.matricule || '—';
