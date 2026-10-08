@@ -104,6 +104,10 @@ export interface RetardPaiement {
   montantDu: number;
   echeanceLaPlusAncienne: string;
   joursRetard: number;
+  /** Au moins un parent a un compte : le rappel peut lui parvenir. */
+  parentJoignable?: boolean;
+  /** Dernière relance envoyée (ISO), absente si jamais relancé. */
+  derniereRelance?: string | null;
 }
 
 export interface Note {

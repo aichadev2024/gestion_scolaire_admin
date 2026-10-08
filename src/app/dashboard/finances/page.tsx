@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Download, Pencil, Phone, Trash2, TriangleAlert, Wallet } from 'lucide-react';
-import { financeService, SituationFinanciere } from '@/services/finance.service';
+import { BellRing, Download, Pencil, Phone, Trash2, TriangleAlert, Wallet } from 'lucide-react';
+import { financeService, RelancePaiementResultat, SituationFinanciere } from '@/services/finance.service';
 import { classeService } from '@/services/classe.service';
 import { eleveService } from '@/services/eleve.service';
 import { authService } from '@/services/auth.service';
@@ -38,6 +38,8 @@ export default function FinancesPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  /** 'tous' pendant une relance groupée, sinon l'id de l'élève relancé. */
+  const [relance, setRelance] = useState<'tous' | number | null>(null);
 
   const [editingFrais, setEditingFrais] = useState<FraisScolarite | null>(null);
   const [fraisForm, setFraisForm] = useState(FRAIS_EMPTY);
@@ -76,6 +78,30 @@ export default function FinancesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const resumeRelance = (r: RelancePaiementResultat) => {
+    const parts: string[] = [];
+    if (r.envoyees) parts.push(`${r.envoyees} famille${r.envoyees > 1 ? 's' : ''} relancée${r.envoyees > 1 ? 's' : ''}`);
+    if (r.dejaRelances) parts.push(`${r.dejaRelances} relancée${r.dejaRelances > 1 ? 's' : ''} il y a moins de 3 jours`);
+    if (r.sansCompteParent) parts.push(`${r.sansCompteParent} sans compte parent (à appeler)`);
+    return parts.join(' · ') || 'Aucune famille à relancer.';
+  };
+
+  const relancer = async (cible: 'tous' | RetardPaiement) => {
+    const tous = cible === 'tous';
+    if (tous && !confirm(`Envoyer un rappel de paiement aux parents des ${retards.length} élèves en retard ?`)) return;
+    try {
+      setRelance(tous ? 'tous' : cible.eleveId);
+      const r = await financeService.relancerRetards(tous ? undefined : [cible.eleveId]);
+      if (r.envoyees) toast.success(resumeRelance(r));
+      else toast.info(resumeRelance(r));
+      setRetards(await financeService.getRetardsPaiement().catch(() => retards));
+    } catch (error: unknown) {
+      toast.error(errorMessage(error, "Impossible d'envoyer les rappels."));
+    } finally {
+      setRelance(null);
+    }
+  };
 
   const chargerPaiementsEtSituation = async (eleveId: number) => {
     const [paiements, sit] = await Promise.all([
@@ -598,12 +624,19 @@ export default function FinancesPage() {
       {/* ─── Retards de paiement ─── */}
       {tab === 'RETARDS' && (
         <Card className="p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <TriangleAlert className="size-5 text-destructive" />
-            <h2 className="font-display text-lg font-bold">Parents en retard de paiement</h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <TriangleAlert className="size-5 text-destructive" />
+              <h2 className="font-display text-lg font-bold">Parents en retard de paiement</h2>
+            </div>
+            {retards.length > 0 && (
+              <Button size="sm" onClick={() => relancer('tous')} loading={relance === 'tous'} disabled={relance !== null}>
+                <BellRing /> Relancer tous les parents
+              </Button>
+            )}
           </div>
           <p className="mb-5 text-sm text-muted-foreground">
-            Élèves dont au moins une échéance de frais est dépassée depuis 1 jour ou plus, avec un solde encore dû.
+            Élèves dont au moins une échéance de frais est dépassée depuis 1 jour ou plus, avec un solde encore dû (arriérés compris). « Relancer » envoie au parent une notification avec le montant dû, sur son application ; une famille n'est pas relancée plus d'une fois tous les 3 jours.
           </p>
 
           {loading ? (
@@ -625,6 +658,7 @@ export default function FinancesPage() {
                   <TableHead>Échéance la plus ancienne</TableHead>
                   <TableHead>Retard</TableHead>
                   <TableHead className="text-right">Montant dû</TableHead>
+                  <TableHead className="text-right">Rappel</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -656,6 +690,28 @@ export default function FinancesPage() {
                       <Badge variant="destructive">{r.joursRetard} jour{r.joursRetard > 1 ? 's' : ''}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-bold text-destructive">{fcfa(r.montantDu)}</TableCell>
+                    <TableCell className="text-right">
+                      {r.parentJoignable ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => relancer(r)}
+                            loading={relance === r.eleveId}
+                            disabled={relance !== null}
+                          >
+                            <BellRing /> Relancer
+                          </Button>
+                          {r.derniereRelance && (
+                            <span className="text-xs text-muted-foreground">
+                              Relancé le {new Date(r.derniereRelance).toLocaleDateString('fr-FR')}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Pas de compte parent — à appeler</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

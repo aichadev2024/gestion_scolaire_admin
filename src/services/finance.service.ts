@@ -42,6 +42,12 @@ export interface SituationFinanciere {
   lignes: LigneSituation[];
 }
 
+export interface RelancePaiementResultat {
+  envoyees: number;
+  sansCompteParent: number;
+  dejaRelances: number;
+}
+
 export const financeService = {
   getSituation: async (eleveId: number): Promise<SituationFinanciere> => {
     const response = await api.get<SituationFinanciere>(`/paiements/eleve/${eleveId}/situation`);
@@ -84,6 +90,12 @@ export const financeService = {
 
   getRetardsPaiement: async (): Promise<RetardPaiement[]> => {
     const response = await api.get<RetardPaiement[]>('/paiements/retards');
+    return response.data;
+  },
+
+  /** Envoie un rappel de paiement aux parents ; sans liste, à tous les élèves en retard. */
+  relancerRetards: async (eleveIds?: number[]): Promise<RelancePaiementResultat> => {
+    const response = await api.post<RelancePaiementResultat>('/paiements/retards/relancer', { eleveIds });
     return response.data;
   },
 
