@@ -28,6 +28,8 @@ export interface RapportLigneClasse {
   moyenne: number | null;
   tauxReussite: number | null;
   tauxPresence: number | null;
+  /** Absent pour qui n'a pas accès aux finances. */
+  tauxRecouvrement?: number | null;
 }
 
 export interface RapportEleve {
@@ -68,6 +70,18 @@ export interface RapportTrimestriel {
   meilleurs: RapportEleve[];
   enDifficulte: RapportEleve[];
   discipline: { total: number; parStatut: Record<string, number>; nonTraites: number };
+  /** Réservé à la direction : null pour les autres rôles. */
+  finances?: {
+    devise: string;
+    attendu: number;
+    encaisse: number;
+    reste: number;
+    tauxRecouvrement: number | null;
+    arrieres: number;
+    montantEnRetard: number;
+    elevesEnRetard: number;
+    encaisseSurPeriode: number;
+  } | null;
 }
 
 export interface RapportParams {

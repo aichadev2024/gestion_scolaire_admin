@@ -37,6 +37,7 @@ const NAVY = '#1B365D';
 const BLUE = '#2E7CB8';
 const nombre = (n: number | null | undefined, suffixe = '') => (n == null ? '—' : `${n.toLocaleString('fr-FR')}${suffixe}`);
 const dateFr = (iso: string) => new Date(iso).toLocaleDateString('fr-FR');
+const montant = (n: number, devise: string) => `${Math.round(n).toLocaleString('fr-FR')} ${devise}`;
 
 export default function RapportsTrimestrielsPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
@@ -100,7 +101,8 @@ export default function RapportsTrimestrielsPage() {
     }
   };
 
-  const logo = rapport?.entete.logoUrl && !logoEchec ? rapport.entete.logoUrl : '/logo.png';
+  // Uniquement le logo de l'école : sans logo (ou s'il ne charge pas), on n'affiche rien.
+  const logo = rapport?.entete.logoUrl && !logoEchec ? rapport.entete.logoUrl : null;
   const parClasse = rapport && rapport.classeId == null;
 
   return (
@@ -239,8 +241,10 @@ export default function RapportsTrimestrielsPage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `3px double ${NAVY}`, paddingBottom: '15px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={logo} alt="Logo de l'établissement" onError={() => setLogoEchec(true)} style={{ height: '70px', width: '70px', objectFit: 'contain' }} />
+                  {logo && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logo} alt="Logo de l'établissement" onError={() => setLogoEchec(true)} style={{ height: '70px', width: '70px', objectFit: 'contain' }} />
+                  )}
                   <div>
                     <h2 style={{ margin: 0, fontSize: '21px', fontWeight: 900, color: NAVY, textTransform: 'uppercase' }}>{rapport.entete.nom}</h2>
                     {rapport.entete.adresse && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#444' }}>{rapport.entete.adresse}</p>}
@@ -293,9 +297,10 @@ export default function RapportsTrimestrielsPage() {
               {parClasse ? (
                 <Section titre="Détail par classe">
                   <Tableau
-                    entetes={['Classe', 'Effectif', 'Évalués', 'Moyenne', 'Réussite', 'Présence']}
+                    entetes={['Classe', 'Effectif', 'Évalués', 'Moyenne', 'Réussite', 'Présence', ...(rapport.finances ? ['Recouvrement'] : [])]}
                     lignes={rapport.classes.map((c) => [
                       c.classe, String(c.effectif), String(c.evalues), nombre(c.moyenne), nombre(c.tauxReussite, ' %'), nombre(c.tauxPresence, ' %'),
+                      ...(rapport.finances ? [nombre(c.tauxRecouvrement, ' %')] : []),
                     ])}
                   />
                 </Section>
@@ -352,6 +357,33 @@ export default function RapportsTrimestrielsPage() {
                   )}
                 </p>
               </Section>
+
+              {rapport.finances && (
+                <Section titre="Situation financière (à ce jour)">
+                  <Tableau
+                    entetes={['Frais attendus', 'Encaissé', 'Reste à recouvrer', 'Recouvrement']}
+                    lignes={[[
+                      montant(rapport.finances.attendu, rapport.finances.devise),
+                      montant(rapport.finances.encaisse, rapport.finances.devise),
+                      montant(rapport.finances.reste, rapport.finances.devise),
+                      nombre(rapport.finances.tauxRecouvrement, ' %'),
+                    ]]}
+                  />
+                  <p style={{ margin: '8px 0 0' }}>
+                    Encaissé du {dateFr(rapport.dateDebut)} au {dateFr(rapport.dateFin)} :{' '}
+                    <strong>{montant(rapport.finances.encaisseSurPeriode, rapport.finances.devise)}</strong>.{' '}
+                    {rapport.finances.elevesEnRetard > 0 ? (
+                      <>
+                        <strong>{rapport.finances.elevesEnRetard}</strong> élève(s) en retard de paiement pour{' '}
+                        <strong>{montant(rapport.finances.montantEnRetard, rapport.finances.devise)}</strong> échus
+                      </>
+                    ) : (
+                      'Aucun retard de paiement'
+                    )}
+                    {rapport.finances.arrieres > 0 && <> (dont arriérés des années précédentes : {montant(rapport.finances.arrieres, rapport.finances.devise)} dus au total)</>}.
+                  </p>
+                </Section>
+              )}
 
               <Section titre="Bilan et observations de la direction">
                 {commentaire.trim() ? (

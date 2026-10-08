@@ -323,13 +323,15 @@ export default function BulletinsPage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px double #1B365D', paddingBottom: '15px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={logoEtablissement && !logoEchec ? logoEtablissement : '/logo.png'}
-                    alt="Logo de l'établissement"
-                    onError={() => setLogoEchec(true)}
-                    style={{ height: "70px", width: "70px", objectFit: "contain" }}
-                  />
+                  {logoEtablissement && !logoEchec && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoEtablissement}
+                      alt="Logo de l'établissement"
+                      onError={() => setLogoEchec(true)}
+                      style={{ height: "70px", width: "70px", objectFit: "contain" }}
+                    />
+                  )}
                   <div>
                     <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#1B365D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {(nomEtablissement || authService.getCurrentUser()?.etablissementNom || 'ÉTABLISSEMENT SCOLAIRE').toUpperCase()}
